@@ -8,5 +8,13 @@ document.addEventListener("DOMContentLoaded", function () {
         // Update accessibility attribute
         const expanded = toggleBtn.getAttribute("aria-expanded") === "true";
         toggleBtn.setAttribute("aria-expanded", String(!expanded));
+   
+
+const menulinks = mobileMenu.querySelectorAll("a");
+menulinks.forEach(link => {
+    link.addEventListener("click", () => {
+        mobileMenu.classList.remove("show");
+        tooglebtn.setAttribute("aria-expanded", "false");
     });
 });
+    });
