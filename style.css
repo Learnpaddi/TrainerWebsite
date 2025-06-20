@@ -1,4 +1,4 @@
-  /* Reset & base */
+/* Reset & base */
   *, *::before, *::after {
     box-sizing: border-box;
   }
@@ -285,6 +285,10 @@
     color: #6b7280;
   }
   /* Contact CTA section */
+  
+  
+  /* Contact section */
+
   .contact-section {
     background: #2563eb;
     color: white;
@@ -446,17 +450,80 @@
   }
 }
 
-.testimonial-photo {
-  width: 100px;
-  height: 110px;
-  border-radius: 10%;
-  object-fit: cover;
-  margin-bottom: 0.5rem;
-}
-.testimonial-card {
+/* Contact Section Styles */
+.contact-section {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.contact-section h2 {
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  color: #2563eb;
+  text-align: center;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
-  min-width: 300px;
-  min-height: 120px;
-} 
+}
+
+.contact-form label {
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.contact-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.contact-form button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 0.9rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.contact-form button:hover {
+  background: #1e40af;
+}
+
+/* Responsive adjustments */
+@media (min-width: 700px) {
+  .contact-section {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 2rem;
+    max-width: 900px;
+  }
+  .contact-section .contact-info,
+  .contact-section .contact-form {
+    flex: 1;
+  }
+  .contact-section .contact-info {
+    margin-right: 2rem;
+  }
+}
