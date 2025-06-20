@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+HEAD
   /* Reset & base */
   *, *::before, *::after {
     box-sizing: border-box;
@@ -272,7 +272,7 @@
   .testimonial-text {
     font-style: italic;
     font-size: 1.125rem;
-    line-height: auto;
+    line-height: 1.7;
     color: #374151;
   }
   .testimonial-author {
@@ -437,15 +437,443 @@
   margin-bottom: 0.5rem;
 }
 .testimonial-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-width: 300px;
-  min-height: 120px;
-=======
-  /* Reset & base */
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 300px;
+    min-height: 120px;
+}
+ 
+ /* Reset & base */
   *, *::before, *::after {
     box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: #4b5563; /* Neutral gray */
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    scroll-behavior: smooth;
+  }
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  a:focus-visible, button:focus-visible {
+    outline: 3px solid #2563eb; /* Blue focus */
+    outline-offset: 2px;
+  }
+  h1,h2,h3,h4,h5,h6 {
+    margin-top: 0;
+    font-weight: 700;
+    color: #111827; /* Darker text */
+  }
+  h1 {
+    font-size: 3rem;
+    line-height: 1.1;
+  }
+  h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  p {
+    font-size: 1.125rem;
+    color: #6b7280;
+  }
+  /* Container */
+  .container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #ffffffcc;
+    backdrop-filter: saturate(180%) blur(14px);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.1);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #111827;
+    user-select: none;
+  }
+  nav.desktop-nav {
+    display: flex;
+    gap: 1.5rem;
+  }
+  nav.desktop-nav a {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #374151;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  nav.desktop-nav a:hover,
+  nav.desktop-nav a:focus-visible {
+    color: #2563eb;
+    background-color: #e0e7ff;
+  }
+  /* Mobile hamburger */
+  button.mobile-menu-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #374151;
+    display: flex;
+    align-items: center;
+  }
+  button.mobile-menu-toggle .material-icons {
+    font-size: 2rem;
+  }
+  /* Mobile navigation */
+  nav.mobile-nav {
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    box-shadow: 0 10px 20px rgb(0 0 0 / 0.1);
+    position: absolute;
+    top: 60px;
+    right: 1rem;
+    border-radius: 12px;
+    width: 200px;
+  }
+  nav.mobile-nav.show {
+    display: flex;
+  }
+  nav.mobile-nav a {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.3s ease;
+  }
+  nav.mobile-nav a:last-child {
+    border-bottom: none;
+  }
+  nav.mobile-nav a:hover,
+  nav.mobile-nav a:focus-visible {
+    background-color: #eff6ff;
+    color: #2563eb;
+  }
+  /* Hero section */
+  .hero {
+    padding: 6rem 1rem 4rem;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 400px;
+  }
+  .hero h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    max-width: 700px;
+    margin: 0 auto 1rem;
+  }
+  .hero p {
+    font-size: 1.375rem;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+    color: #d1d5db;
+  }
+  .btn-primary {
+    background-color: #111827;
+    color: white;
+    font-weight: 700;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.25s ease;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn-primary:hover,
+  .btn-primary:focus-visible {
+    background-color: #374151;
+    transform: translateY(-2px);
+  }
+  .btn-primary .material-icons {
+    font-size: 1.5rem;
+  }
+  /* Section base style */
+  section {
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+  }
+  h2.section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 2.5rem;
+    color: #111827;
+  }
+  /* Overview content */
+  .overview-text {
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 1.125rem;
+    color: #4b5563;
+    line-height: 1.7;
+  }
+  /* Team section */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .team-member-card {
+    background: #e7e1f8;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 1rem 2rem;
+  }
+  .team-member-photo {
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.1);
+  }
+  .team-member-name {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #111827;
+    margin-bottom: 0.25rem;
+  }
+  .team-member-role {
+    font-weight: 500;
+    color: #6b7280;
+    font-size: 1rem;
+  }
+  /* Institutes/Coporates section */
+  .institutes-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .institute-logo {
+    height: 60px;
+    object-fit: contain;
+    filter: grayscale(1);
+    opacity: 0.7;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+  }
+  .institute-logo:hover,
+  .institute-logo:focus-visible {
+    filter: grayscale(0);
+    opacity: 1;
+  }
+  /* Testimonials slider basic */
+  .testimonials-container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    gap: 2rem;
+  }
+  .testimonial-card {
+    background: #f3f4f6;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 0.05);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 300px;
+    min-height: 120px;
+  }
+  .testimonial-text {
+    font-style: italic;
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+  .testimonial-author {
+    margin-top: auto;
+    font-weight: 700;
+    color: #111827;
+  }
+  .testimonial-role {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  .testimonial-photo {
+    width: 100px;
+    height: 110px;
+    border-radius: 10%;
+    object-fit: cover;
+    margin-bottom: 0.5rem;
+  }
+  /* Contact CTA section */
+  .contact-section {
+    background: #2563eb;
+    color: white;
+    text-align: center;
+    padding: 4rem 1rem;
+    border-radius: 12px;
+    margin: 0 1rem 4rem;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .contact-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  .contact-section p {
+    font-size: 1.125rem;
+    color: #f2ef8f;
+    margin-bottom: 2rem;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .btn-contact {
+    background-color: white;
+    color: #2563eb;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 1rem 3rem;
+    font-size: 1.125rem;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .btn-contact:hover,
+  .btn-contact:focus-visible {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+  .btn-contact .material-icons {
+    font-size: 1.6rem;
+  }
+  /* Footer */
+  footer {
+    background: #f9fafb;
+    text-align: center;
+    padding: 1rem 2rem;
+    font-size: 0.95rem;
+    color: #6b7280;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  @media (max-width: 767px) {
+    footer {
+      padding: 1rem 1rem;
+      font-size: 0.85rem;
+    }
+    .hero h1 {
+      font-size: 2.25rem;
+    }
+    nav.desktop-nav {
+      display: none;
+    }
+  }
+  @media (min-width: 768px) {
+    button.mobile-menu-toggle {
+      display: none;
+    }
+    nav.mobile-nav {
+      display: none !important;
+    }
+    .contact-section {
+      padding: 60px 20px;
+      background-color: #6669f0; /* Blue background */
+      color: white;
+      text-align: center;
+    }
+    #contact-title {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #f5f5f5;
+    }
+    #contact-form {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #ffffff10;
+      padding: 30px;
+      border-radius: 10px;
+      backdrop-filter: blur(4px);
+    }
+    #contact-form div {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    #contact-form label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    #contact-form input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #f0f4f8;
+    }
+    #contact-form input:focus {
+      outline: none;
+      background-color: #e2e8f0;
+    }
+    .btn-contact {
+      background-color: #644bf3;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .btn-contact:hover {
+      background-color: #f7f7f9;
+    }
   }
   body {
     margin: 0; padding: 0;
@@ -716,7 +1144,7 @@
   .testimonial-text {
     font-style: italic;
     font-size: 1.125rem;
-    line-height: auto;
+    line-height: 1.7;
     color: #374151;
   }
   .testimonial-author {
@@ -886,5 +1314,4 @@
   gap: 1rem;
   min-width: 300px;
   min-height: 120px;
->>>>>>> 9ae66bf (initial commit)
 } 
