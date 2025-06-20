@@ -529,42 +529,60 @@ footer {
     font-size: 0.85rem;
   }
   .contact-section {
-    padding: 2rem 0.5rem;
+    padding: 1.25rem 0.5rem;
     border-radius: 8px;
-    margin: 0 0.25rem 2rem;
+    margin: 0 0.25rem 1.5rem;
     max-width: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   }
   .contact-section h2 {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     margin-bottom: 0.5rem;
+    line-height: 1.2;
+    word-break: break-word;
   }
   .contact-section p {
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    max-width: 95vw;
+    font-size: 0.98rem;
+    margin-bottom: 0.75rem;
+    max-width: 98vw;
+    color: #f2ef8f;
+    line-height: 1.5;
   }
   #contact-form {
-    padding: 1rem 0.5rem;
+    padding: 0.5rem 0.25rem;
     border-radius: 6px;
     max-width: 100%;
+    background: #ffffff18;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
   }
   #contact-form div {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
   #contact-form label {
-    font-size: 1rem;
-    margin-bottom: 4px;
+    font-size: 0.98rem;
+    margin-bottom: 3px;
+    color: #fff;
   }
   #contact-form input {
-    font-size: 1rem;
-    padding: 8px;
+    font-size: 0.98rem;
+    padding: 7px;
     border-radius: 4px;
+    background: #f0f4f8;
+    border: none;
+    width: 100%;
+    margin-top: 2px;
+  }
+  #contact-form input:focus {
+    background: #e2e8f0;
   }
   .btn-contact {
     font-size: 1rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 20px;
-    gap: 0.5rem;
+    padding: 0.7rem 1.2rem;
+    border-radius: 18px;
+    margin-top: 0.5rem;
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
   }
   footer {
     padding: 0.75rem 0.5rem;
