@@ -14,15 +14,18 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-    }
-
-    .box {
+      padding: 1rem;
+      box-sizing: border-box;
       text-align: center;
     }
 
+    .box {
+      max-width: 90vw;
+    }
+
     .checkmark-circle {
-      width: 100px;
-      height: 100px;
+      width: 90px;
+      height: 90px;
       border-radius: 50%;
       display: inline-block;
       stroke-width: 2;
@@ -42,7 +45,7 @@
     }
 
     @keyframes stroke {
-      100% {
+      to {
         stroke-dashoffset: 0;
       }
     }
@@ -57,7 +60,7 @@
     }
 
     @keyframes fill {
-      100% {
+      to {
         box-shadow: inset 0px 0px 0px 60px #1e40af;
       }
     }
@@ -69,6 +72,8 @@
 
     p {
       font-size: 1.1rem;
+      line-height: 1.5;
+      margin: 0 auto;
     }
 
     a {
@@ -76,6 +81,27 @@
       text-decoration: underline;
       display: inline-block;
       margin-top: 20px;
+      font-size: 1rem;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 480px) {
+      .checkmark-circle {
+        width: 70px;
+        height: 70px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+
+      a {
+        font-size: 0.95rem;
+      }
     }
   </style>
 </head>
