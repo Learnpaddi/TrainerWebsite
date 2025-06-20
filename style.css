@@ -109,6 +109,7 @@ nav.mobile-nav {
   right: 1rem;
   border-radius: 12px;
   width: 200px;
+  height:auto
 }
 nav.mobile-nav.show {
   display: flex;
