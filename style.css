@@ -617,3 +617,112 @@ footer {
     color: #4b5563;
     font-size: 1rem;
 }
+
+/* Modal overlay */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal content */
+.modal-content {
+    background: #fff;
+    color: #222;
+    font-family: 'Inter', sans-serif;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 2rem 1.5rem;
+    max-width: 400px;
+    width: 90%;
+    margin: auto;
+    position: relative;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Close button */
+.close-modal {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+    .close-modal:hover {
+        color: #222;
+    }
+
+/* Form styling */
+#careers-form label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #222;
+}
+
+#careers-form input[type="text"],
+#careers-form input[type="email"],
+#careers-form input[type="tel"],
+#careers-form input[type="file"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: #f9fafb;
+    transition: border 0.2s;
+}
+
+#careers-form input:focus {
+    border-color: #3b82f6;
+    outline: none;
+}
+
+#careers-form button.btn-contact {
+    width: 100%;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+}
+
+    #careers-form button.btn-contact:hover {
+        background: #2563eb;
+    }
+
+/* Responsive */
+@media (max-width: 500px) {
+    .modal-content {
+        padding: 1rem;
+    }
+}
