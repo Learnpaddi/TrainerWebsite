@@ -23,7 +23,7 @@
                 <a href="index.html#team" tabindex="0">Our Team</a>
                 <a href="index.html#institutes" tabindex="0">Institutes</a>
                 <a href="index.html#testimonials" tabindex="0">Testimonials</a>
-                <a href="careers.html" target="_blank" tabindex="0">Careers</a>
+                <a href="careers.html" tabindex="0">Careers</a>
                 <a href="index.html#contact" tabindex="0" class="btn-primary" style="padding-left:1.25rem; padding-right:1.25rem;">Contact Us</a>
             </nav>
             <button class="mobile-menu-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle menu">
@@ -36,7 +36,7 @@
             <a href="index.html#team">Our Team</a>
             <a href="index.html#institutes">Institutes</a>
             <a href="index.html#testimonials">Testimonials</a>
-            <a href="careers.html" target="_blank">Careers</a>
+            <a href="careers.html">Careers</a>
             <a href="index.html#contact" class="btn-primary" style="margin: 0.5rem 1rem; text-align:center;">Contact Us</a>
         </nav>
     </header>
@@ -51,31 +51,66 @@
             <h2 id="openings-title" class="section-title">Current Job Openings</h2>
             <div class="programs-list">
                 <article class="program-card">
-                    <h3 class="program-title">Business Analyst Trainer</h3>
-                    <p class="program-desc">Deliver business analysis training to students and professionals. Experience in requirements gathering and process modeling required.</p>
+                    <h3 class="program-title job-link" data-job="ba">Business Analyst Trainer</h3>
+                    <div class="job-details" id="job-ba">
+                        <strong>Roles & Responsibilities:</strong>
+                        <ul>
+                            <li>Deliver business analysis training sessions.</li>
+                            <li>Prepare course materials and assessments.</li>
+                            <li>Mentor students on real-world projects.</li>
+                        </ul>
+                        <button class="apply-btn" data-role="Business Analyst Trainer">Apply</button>
+                    </div>
                 </article>
                 <article class="program-card">
-                    <h3 class="program-title">Sales & Marketing Trainer</h3>
-                    <p class="program-desc">Lead sessions on sales and marketing strategies. Prior teaching or corporate experience preferred.</p>
+                    <h3 class="program-title job-link" data-job="sm">Sales & Marketing Trainer</h3>
+                    <div class="job-details" id="job-sm">
+                        <strong>Roles & Responsibilities:</strong>
+                        <ul>
+                            <li>Lead sales and marketing workshops.</li>
+                            <li>Develop practical case studies.</li>
+                            <li>Guide students in project work.</li>
+                        </ul>
+                        <button class="apply-btn" data-role="Sales & Marketing Trainer">Apply</button>
+                    </div>
                 </article>
                 <article class="program-card">
-                    <h3 class="program-title">Full Stack Software Engineering Trainer</h3>
-                    <p class="program-desc">Teach modern web development technologies. Hands-on experience with front-end and back-end frameworks required.</p>
+                    <h3 class="program-title job-link" data-job="fs">Full Stack Software Engineering Trainer</h3>
+                    <div class="job-details" id="job-fs">
+                        <strong>Roles & Responsibilities:</strong>
+                        <ul>
+                            <li>Teach front-end and back-end development.</li>
+                            <li>Design hands-on coding assignments.</li>
+                            <li>Support students in building projects.</li>
+                        </ul>
+                        <button class="apply-btn" data-role="Full Stack Software Engineering Trainer">Apply</button>
+                    </div>
                 </article>
                 <article class="program-card">
-                    <h3 class="program-title">Cloud Computing Trainer</h3>
-                    <p class="program-desc">Guide students in cloud platforms and deployment. Industry certifications are a plus.</p>
+                    <h3 class="program-title job-link" data-job="cc">Cloud Computing Trainer</h3>
+                    <div class="job-details" id="job-cc">
+                        <strong>Roles & Responsibilities:</strong>
+                        <ul>
+                            <li>Conduct cloud computing sessions.</li>
+                            <li>Help students with cloud deployments.</li>
+                            <li>Stay updated with latest cloud trends.</li>
+                        </ul>
+                        <button class="apply-btn" data-role="Cloud Computing Trainer">Apply</button>
+                    </div>
                 </article>
             </div>
         </section>
-
-        <section id="apply" class="contact-section">
-            <h2>Apply Now</h2>
-            <p>Interested in joining our team? Fill out the form below and we’ll get in touch!</p>
-            <form id="careers-form" action="https://formsubmit.co/careers@learnpaddi.in" method="POST">
+    </main>
+    <!-- Modal for Application Form -->
+    <div class="modal" id="applyModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModal">&times;</span>
+            <h2>Apply for <span id="jobTitle"></span></h2>
+            <form id="careers-form" action="https://formsubmit.co/careers@learnpaddi.in" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="_captcha" value="false">
                 <input type="hidden" name="_next" value="https://learnpaddi.in/thank-you.html">
                 <input type="hidden" name="_subject" value="New Careers Application">
+                <input type="hidden" name="Position" id="formPosition">
                 <div>
                     <label for="name">Full Name*</label>
                     <input type="text" name="name" id="name" required>
@@ -89,8 +124,8 @@
                     <input type="tel" name="phone" id="phone" required>
                 </div>
                 <div>
-                    <label for="role">Position Applying For*</label>
-                    <input type="text" name="role" id="role" required>
+                    <label for="resume">Upload Resume (PDF/DOC)*</label>
+                    <input type="file" name="attachment" id="resume" accept=".pdf,.doc,.docx" required>
                 </div>
                 <div>
                     <label for="message">Tell us about yourself</label>
@@ -98,11 +133,12 @@
                 </div>
                 <button type="submit" class="btn-contact">Submit Application</button>
             </form>
-        </section>
-    </main>
+        </div>
+    </div>
 
     <footer role="contentinfo">
         <p>© 2024 Learnpaddi - All rights reserved.</p>
     </footer>
+   
 </body>
 </html>
