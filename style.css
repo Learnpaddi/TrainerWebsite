@@ -751,16 +751,43 @@ footer {
         text-decoration: underline;
     }
 .vision-mission {
-    margin-top: 2rem;
+    margin-top: 2.5rem;
+    background: #f3f4f6;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 2rem 1.5rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-left: 6px solid #2563eb;
 }
 
     .vision-mission .section-subtitle {
         margin-bottom: 0.25rem;
-        font-size: 1.15rem;
-        font-weight: 600;
+        font-size: 1.2rem;
+        font-weight: 700;
         color: #2563eb;
+        letter-spacing: 0.01em;
     }
 
     .vision-mission p {
-        margin-bottom: 1rem;
+        margin-bottom: 1.2rem;
+        font-size: 1.08rem;
+        color: #374151;
+        line-height: 1.7;
     }
+
+@media (max-width: 767px) {
+    .vision-mission {
+        padding: 1.2rem 0.8rem;
+        max-width: 100%;
+        border-radius: 8px;
+    }
+
+        .vision-mission .section-subtitle {
+            font-size: 1.05rem;
+        }
+}
