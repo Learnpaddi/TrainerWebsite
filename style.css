@@ -750,3 +750,17 @@ footer {
     .team-member-card .linkedin-link:hover {
         text-decoration: underline;
     }
+.vision-mission {
+    margin-top: 2rem;
+}
+
+    .vision-mission .section-subtitle {
+        margin-bottom: 0.25rem;
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #2563eb;
+    }
+
+    .vision-mission p {
+        margin-bottom: 1rem;
+    }
