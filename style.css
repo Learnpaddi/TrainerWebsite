@@ -631,48 +631,51 @@ footer {
     align-items: center;
     justify-content: center;
 }
-
+.modal.show {
+    display: flex;
+}
 /* Modal content */
 .modal-content {
     background: #fff;
-    color: #222;
-    font-family: 'Inter', sans-serif;
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-    padding: 2rem 1.5rem;
-    max-width: 400px;
-    width: 90%;
-    margin: auto;
     position: relative;
-    animation: fadeIn 0.3s;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    width: 95vw;
+    max-width: 800px;
+    height: 90vh;
+    max-height: 95vh;
+    padding: 0;
 }
-
-@keyframes fadeIn {
-    from {
-        transform: translateY(40px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
+.modal-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 12px;
+}
+@media (max-width: 600px) {
+    .modal-content {
+        width: 99vw;
+        height: 98vh;
+        max-width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
     }
 }
-
-/* Close button */
 .close-modal {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    font-size: 1.5rem;
+    font-size: 2rem;
     color: #888;
     cursor: pointer;
-    transition: color 0.2s;
+    z-index: 2;
 }
-
-    .close-modal:hover {
-        color: #222;
-    }
+.close-modal:hover {
+    color: #222;
+}
 
 /* Form styling */
 #careers-form label {
@@ -725,18 +728,6 @@ footer {
     .modal-content {
         padding: 1rem;
     }
-}
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.5);
-    align-items: center;
-    justify-content: center;
 }
 .team-member-card .linkedin-link {
     display: inline-flex;

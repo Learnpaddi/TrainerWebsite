@@ -30,31 +30,30 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Modal logic
+    // Modal logic for iframe form
     var modal = document.getElementById('applyModal');
     var closeModal = document.getElementById('closeModal');
-    var jobTitleSpan = document.getElementById('jobTitle');
-    var formPosition = document.getElementById('formPosition');
+    var iframe = document.getElementById('careersFormIframe');
 
-    if (modal && closeModal && jobTitleSpan && formPosition) {
-        document.querySelectorAll('.apply-btn').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                var role = btn.getAttribute('data-role');
-                jobTitleSpan.textContent = role;
-                formPosition.value = role;
-                modal.style.display = 'flex'; // Use 'flex' if your CSS uses flex for centering
-            });
+    document.querySelectorAll('.apply-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            // Optionally, you can pass the job title as a query param
+            var role = btn.getAttribute('data-role');
+            iframe.src = "careers1.html?role=" + encodeURIComponent(role);
+            modal.style.display = 'flex';
         });
+    });
 
-        closeModal.onclick = function () {
+    closeModal.onclick = function () {
+        modal.style.display = 'none';
+        iframe.src = ""; // Unload form for privacy
+    };
+
+    window.onclick = function (event) {
+        if (event.target == modal) {
             modal.style.display = 'none';
-        };
-
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        };
-    }
+            iframe.src = "";
+        }
+    };
 });

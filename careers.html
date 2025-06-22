@@ -101,37 +101,10 @@
         </section>
     </main>
     <!-- Modal for Application Form -->
-    <div class="modal" id="applyModal">
-        <div class="modal-content">
-            <span class="close-modal" id="closeModal">&times;</span>
-            <h2>Apply for <span id="jobTitle"></span></h2>
-            <form id="careers-form" action="https://formsubmit.co/careers@learnpaddi.in" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="_captcha" value="false">
-                <input type="hidden" name="_next" value="https://learnpaddi.in/thank-you.html">
-                <input type="hidden" name="_subject" value="New Careers Application">
-                <input type="hidden" name="Position" id="formPosition">
-                <div>
-                    <label for="name">Full Name*</label>
-                    <input type="text" name="name" id="name" required>
-                </div>
-                <div>
-                    <label for="email">Email ID*</label>
-                    <input type="email" name="email" id="email" required>
-                </div>
-                <div>
-                    <label for="phone">Phone Number*</label>
-                    <input type="tel" name="phone" id="phone" required>
-                </div>
-                <div>
-                    <label for="resume">Upload Resume (PDF/DOC)*</label>
-                    <input type="file" name="attachment" id="resume" accept=".pdf,.doc,.docx" required>
-                </div>
-                <div>
-                    <label for="message">Tell us about yourself</label>
-                    <input type="text" name="message" id="message">
-                </div>
-                <button type="submit" class="btn-contact">Submit Application</button>
-            </form>
+    <div class="modal" id="applyModal" style="display:none;">
+        <div class="modal-content" style="max-width:800px;width:95vw;height:90vh;position:relative;padding:0;">
+            <span class="close-modal" id="closeModal" style="position:absolute;top:1rem;right:1rem;z-index:2;font-size:2rem;cursor:pointer;">&times;</span>
+            <iframe id="careersFormIframe" src="" style="width:100%;height:100%;border:none;border-radius:12px;overflow:auto;"></iframe>
         </div>
     </div>
 

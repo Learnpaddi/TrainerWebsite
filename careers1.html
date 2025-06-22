@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Our Team | Careers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style1.css">
+    <script src="script2.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="script1.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Application Form -->
+            <div class="lg:w-2/3 form-container">
+                <form id="careerForm" class="p-6 md:p-8"
+                      action="https://formsubmit.co/careers@learnpaddi.in"
+                      method="POST"
+                      enctype="multipart/form-data">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Application Form</h2>
+                    <!-- Hidden job title field -->
+                    <input type="hidden" id="jobTitle" name="Job Title" value="">
+                    <!-- FormSubmit hidden fields -->
+                    <input type="hidden" name="_captcha" value="false">
+                    <input type="hidden" name="_next" value="https://learnpaddi.in/thank-you.html">
+                    <input type="hidden" name="_subject" value="New Careers Application">
+
+                    <!-- Personal Information -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-user text-blue-500"></i>
+                            Personal Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name*</label>
+                                <input type="text" id="firstName" name="First Name" required class="w-full px-4 py-2 form-input">
+                                <p class="text-xs text-red-500 hidden" id="firstNameError">Please enter your first name</p>
+                            </div>
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name*</label>
+                                <input type="text" id="lastName" name="Last Name" required class="w-full px-4 py-2 form-input">
+                                <p class="text-xs text-red-500 hidden" id="lastNameError">Please enter your last name</p>
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+                                <input type="email" id="email" name="Email" required class="w-full px-4 py-2 form-input">
+                                <p class="text-xs text-red-500 hidden" id="emailError">Please enter a valid email</p>
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="tel" id="phone" name="Phone" class="w-full px-4 py-2 form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-briefcase text-blue-500"></i>
+                            Professional Information
+                        </h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label for="linkedin" class="block text-sm font-medium text-gray-700 mb-1">LinkedIn Profile</label>
+                                <input type="url" id="linkedin" name="LinkedIn" class="w-full px-4 py-2 form-input">
+                            </div>
+                            <div>
+                                <label for="portfolio" class="block text-sm font-medium text-gray-700 mb-1">Portfolio Website</label>
+                                <input type="url" id="portfolio" name="Portfolio" class="w-full px-4 py-2 form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resume Upload -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-file-alt text-blue-500"></i>
+                            Resume & Documents
+                        </h3>
+                        <div class="file-upload-container rounded-lg p-6 text-center cursor-pointer" id="resumeDropzone">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-blue-500 mb-3"></i>
+                            <p class="font-medium text-gray-700">Upload your resume (PDF, DOC, DOCX)</p>
+                            <p class="text-sm text-gray-500 mt-1">Drag & drop your file here or click to browse</p>
+                            <input type="file" id="resume" name="attachment" accept=".pdf,.doc,.docx" class="hidden" required>
+                            <p class="text-xs text-red-500 hidden" id="resumeError">Please upload your resume</p>
+                            <div id="resumePreview" class="mt-3 hidden">
+                                <p class="text-sm text-green-600 font-medium">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    <span id="resumeFileName"></span>
+                                </p>
+                                <button type="button" id="changeResume" class="text-blue-500 text-sm mt-1 hover:underline">Change file</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cover Letter -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-edit text-blue-500"></i>
+                            Cover Letter
+                        </h3>
+                        <div>
+                            <label for="coverLetter" class="block text-sm font-medium text-gray-700 mb-1">Tell us why you'd be a great fit*</label>
+                            <textarea id="coverLetter" name="Cover Letter" rows="6" required class="w-full px-4 py-2 form-input"></textarea>
+                            <p class="text-xs text-red-500 hidden" id="coverLetterError">Please write a cover letter</p>
+                        </div>
+                    </div>
+
+                    <!-- Additional Questions -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-question-circle text-blue-500"></i>
+                            Additional Questions
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="salaryExpectations" class="block text-sm font-medium text-gray-700 mb-1">Salary Expectations</label>
+                                <input type="text" id="salaryExpectations" name="Salary Expectations" class="w-full px-4 py-2 form-input">
+                            </div>
+                            <div>
+                                <label for="reference" class="block text-sm font-medium text-gray-700 mb-1">Referred by (if any)</label>
+                                <input type="text" id="reference" name="Reference" class="w-full px-4 py-2 form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terms and Submit -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="terms" name="terms" required class="mt-1 mr-2">
+                            <label for="terms" class="text-sm text-gray-600">
+                                I agree to the processing of my personal data according to your <a href="#" class="text-blue-500 hover:underline">Privacy Policy</a>*
+                            </label>
+                        </div>
+                        <p class="text-xs text-red-500 hidden" id="termsError">You must agree to the terms</p>
+                        <button type="submit" class="px-6 py-3 rounded-lg text-white font-medium submit-btn w-full sm:w-auto">
+                            <i class="fas fa-paper-plane mr-2"></i> Submit Application
+                        </button>
+                    </div>
+
+                    <!-- Loading Indicator -->
+                    <div id="loadingIndicator" class="mt-4 text-center hidden">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                        <p class="mt-2 text-gray-600">Submitting your application...</p>
+                    </div>
+                </form>
+
+                <!-- Success Message -->
+                <div id="successMessage" class="success-message hidden p-8 text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                        <i class="fas fa-check text-green-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900 mb-2">Application Submitted!</h3>
+                    <p class="text-gray-600 mb-6">
+                        Thank you for applying. We've received your application and will review it shortly.
+                    </p>
+                    <button id="submitAnother" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Submit Another Application
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Pre-fill job title from query string
+        document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const role = urlParams.get('role');
+            if (role) {
+                const jobTitleInput = document.getElementById('jobTitle');
+                if (jobTitleInput) jobTitleInput.value = role;
+            }
+        });
+    </script>
+</body>
+</html>
