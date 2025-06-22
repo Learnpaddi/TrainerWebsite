@@ -738,3 +738,15 @@ footer {
     align-items: center;
     justify-content: center;
 }
+.team-member-card .linkedin-link {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    color: #0A66C2;
+    text-decoration: none;
+}
+
+    .team-member-card .linkedin-link:hover {
+        text-decoration: underline;
+    }
