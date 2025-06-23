@@ -6,15 +6,23 @@
     <title>Join Our Team | Careers</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style1.css">
-    <script src="script2.js"></script>
-    <link rel="stylesheet" href="style.css">
-    <script src="script1.js"></script>
     <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
     <script>
         (function () {
             emailjs.init("qctLaXnoFtBONFYNO"); // Replace with your EmailJS public key
         })();
+    </script>
+    <script src="sendmail.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var form = document.getElementById('careerForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    sendMail();
+                });
+            }
+        });
     </script>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -23,16 +31,10 @@
             <!-- Application Form -->
             <div class="lg:w-2/3 form-container">
                 <form id="careerForm" class="p-6 md:p-8"
-                      action="https://formsubmit.co/careers@learnpaddi.in"
-                      method="POST"
                       enctype="multipart/form-data">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">Application Form</h2>
                     <!-- Hidden job title field -->
                     <input type="hidden" id="jobTitle" name="Job Title" value="">
-                    <!-- FormSubmit hidden fields -->
-                    <input type="hidden" name="_captcha" value="false">
-                    <input type="hidden" name="_next" value="https://learnpaddi.in/thank-you.html">
-                    <input type="hidden" name="_subject" value="New Careers Application">
 
                     <!-- Personal Information -->
                     <div class="mb-8">
@@ -171,25 +173,5 @@
             </div>
         </div>
     </div>
-    <script>
-        // Pre-fill job title from query string
-        document.addEventListener("DOMContentLoaded", function () {
-            var form = document.getElementById('careerForm');
-            if (form) {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-
-                    emailjs.sendForm('service_3b8eo6m', 'template_62bdnhe', this)
-                        .then(function () {
-                            alert('Application sent successfully!');
-                            form.reset();
-                            // Optionally, redirect or close modal here
-                        }, function (error) {
-                            alert('Failed to send application: ' + JSON.stringify(error));
-                        });
-                });
-            }
-        });
-    </script>
 </body>
 </html>
