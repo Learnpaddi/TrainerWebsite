@@ -10,6 +10,12 @@
     <script src="script2.js"></script>
     <link rel="stylesheet" href="style.css">
     <script src="script1.js"></script>
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <script>
+        (function () {
+            emailjs.init("qctLaXnoFtBONFYNO"); // Replace with your EmailJS public key
+        })();
+    </script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -167,12 +173,21 @@
     </div>
     <script>
         // Pre-fill job title from query string
-        document.addEventListener('DOMContentLoaded', function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const role = urlParams.get('role');
-            if (role) {
-                const jobTitleInput = document.getElementById('jobTitle');
-                if (jobTitleInput) jobTitleInput.value = role;
+        document.addEventListener("DOMContentLoaded", function () {
+            var form = document.getElementById('applicationForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    emailjs.sendForm('service_3b8eo6m', 'template_62bdnhe', this)
+                        .then(function () {
+                            alert('Application sent successfully!');
+                            form.reset();
+                            // Optionally, redirect or close modal here
+                        }, function (error) {
+                            alert('Failed to send application: ' + JSON.stringify(error));
+                        });
+                });
             }
         });
     </script>
