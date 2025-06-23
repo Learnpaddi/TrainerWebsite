@@ -1,17 +1,20 @@
 function sendMail() {
-    let parms = {
-        name: document.getElementById("firstName").value + " " + document.getElementById("lastName").value,
-        email: document.getElementById("email").value,
-        subject: "New Careers Application",
-        message: document.getElementById("coverLetter").value,
-    };
-
-    emailjs.send("service_jzzspeo", "template_4s4af01", parms)
-        .then(response => {
+    var form = document.getElementById('careerForm');
+    emailjs.sendForm('service_jzzspeo', 'template_4s4af01', form)
+        .then(function(response) {
             alert("Mail sent successfully!");
-            document.getElementById("careerForm").reset();
-        })
-        .catch(error => {
-            alert("Failed to send mail: " + error);
+            form.reset();
+        }, function(error) {
+            alert("Failed to send mail: " + error.text);
         });
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    var form = document.getElementById('careerForm');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            sendMail();
+        });
+    }
+});
