@@ -7,13 +7,3 @@ function sendMail() {
             alert("Failed to send mail: " + error.text);
         });
 }
-
-document.addEventListener("DOMContentLoaded", function () {
-    var form = document.getElementById('careerForm');
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            sendMail();
-        });
-    }
-});
