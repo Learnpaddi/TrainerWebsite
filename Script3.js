@@ -1,7 +1,12 @@
-// JavaScript source code
+< !--Make sure this script is included BEFORE script3.js-- >
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
 
 document.addEventListener("DOMContentLoaded", function () {
+    emailjs.init("qctLaXnoFtBONFYNO"); // Your public key
+
     const form = document.getElementById('contact-form');
+    if (!form) return;
+
     form.addEventListener('submit', function (e) {
         e.preventDefault();
 
@@ -13,11 +18,11 @@ document.addEventListener("DOMContentLoaded", function () {
             college: form.college.value,
             message: form.message.value
         })
-        .then(function(response) {
-            // Redirect or show a thank you message
+        .then(function (response) {
             window.location.href = "thank-you.html";
-        }, function(error) {
+        }, function (error) {
             alert("There was an error sending your message. Please try again later.");
+            console.error("EmailJS error:", error); // Helpful for debugging
         });
     });
 });
