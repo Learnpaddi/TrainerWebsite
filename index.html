@@ -11,13 +11,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="html" href="thank-you.html">
     <link rel="icon" href="images/IcoLogo.ico" type="image/x-icon" />
-    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
-    <script src="script3.js"></script>
-    <script>
-        (function () {
-            emailjs.init("qctLaXnoFtBONFYNO"); // Replace with your EmailJS public key
-        })();
-    </script>
+    
 </head>
 <body>
     <header role="banner">
@@ -59,7 +53,7 @@
                 Contact Us
                 <span class="material-icons" aria-hidden="true">arrow_forward</span>
             </a>
-            
+
         </section>
 
         <section id="overview" role="region" aria-labelledby="overview-title" class="container">
@@ -212,8 +206,8 @@
                 </div>
 
                 <div>
-                    <label for="email">Email ID (optional)</label>
-                    <input type="email" name="email" id="email">
+                    <label for="email">Email ID*</label>
+                    <input type="email" name="email" id="email" required>
                 </div>
 
                 <div>
@@ -228,15 +222,42 @@
 
                 <div>
                     <label for="message">Message</label>
-                    <input type="text" name="message" id="message">
+                    <input type="text" name="message" id="message" required>
                 </div>
 
                 <button type="submit" class="btn-contact">Submit</button>
             </form>
+
+            <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    emailjs.init("qctLaXnoFtBONFYNO");
+
+                    const form = document.getElementById('contact-form');
+                    if (!form) return;
+
+                    form.addEventListener('submit', function (e) {
+                        e.preventDefault();
+
+                        emailjs.send("service_jzzspeo", "template_d9cf8hs", {
+                            name: form.name.value,
+                            phone: form.phone.value,
+                            email: form.email.value,
+                            city: form.city.value,
+                            college: form.college.value,
+                            message: form.message.value
+                        })
+                            .then(() => window.location.href = "thank-you.html")
+                            .catch((error) => {
+                                alert("There was an error sending your message. Please try again later.");
+                                console.error("EmailJS error:", error);
+                            });
+                    });
+                });
+            </script>
+
+
         </section>
-
-
-
     </main>
 
     <footer role="contentinfo">
