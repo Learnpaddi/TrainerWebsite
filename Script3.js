@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     form.addEventListener('submit', function (e) {
         e.preventDefault();
 
-        emailjs.send("service_jzzspeo", "template_4s4af01", {
+        emailjs.send("service_jzzspeo", "template_d9cf8hs", {
             name: form.name.value,
             phone: form.phone.value,
             email: form.email.value,
