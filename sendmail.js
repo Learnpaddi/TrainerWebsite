@@ -1,18 +1,40 @@
 function sendMail() {
     var form = document.getElementById('careerForm');
+    var fileInput = document.getElementById('resume');
+    var file = fileInput.files[0];
 
-    // Optional: Basic client-side validation
-    if (!form.checkValidity()) {
-        alert("Please fill in all required fields.");
+    if (!file) {
+        alert("Please upload a resume.");
         return;
     }
 
-    emailjs.sendForm('service_jzzspeo', 'template_4s4af01', form)
-        .then(function (response) {
-            console.log('SUCCESS!', response.status, response.text);
-            window.location.href = "thank-you1.html"; // Redirect on success
-        }, function (error) {
-            console.error('FAILED...', error);
-            alert("Failed to send mail: " + error.text);
+    var reader = new FileReader();
+
+    reader.onload = function () {
+        var base64File = reader.result.split(',')[1]; // remove data mime part
+
+        fetch('https://script.google.com/macros/s/AKfycbxSKKm4QDCyyeXkDgKEPR2RVLEZQavEjvMbvQiKheKUrYAGMKNtQCt0E4_svrvyktexhA/exec', {method: 'POST', headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                filedata: base64File,
+                filename: file.name,
+                mimeType: file.type
+            })
+        })
+        .then(res => res.text())
+        .then(uploadResult => {
+            if (uploadResult.startsWith("Success")) {
+                // Now send the email
+                emailjs.sendForm('service_jzzspeo', 'template_4s4af01', form)
+                    .then(() => {
+                        window.location.href = "thank-you.html";
+                    }, error => {
+                        alert("Email failed: " + error.text);
+                    });
+            } else {
+                alert("File upload failed: " + uploadResult);
+            }
         });
+    };
+
+    reader.readAsDataURL(file);
 }
