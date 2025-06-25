@@ -1,22 +1,23 @@
     function sendMail(resumeUrl) {
     const data = {
-        action: "submitForm",
         firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        linkedin: document.getElementById('linkedin').value.trim(),
-        portfolio: document.getElementById('portfolio').value.trim(),
-        coverLetter: document.getElementById('coverLetter').value.trim(),
-        salaryExpectations: document.getElementById('salaryExpectations').value.trim(),
-        reference: document.getElementById('reference').value.trim(),
-        resumeUrl: resumeUrl || ""
+    lastName: document.getElementById('lastName').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    linkedin: document.getElementById('linkedin').value.trim(),
+    portfolio: document.getElementById('portfolio').value.trim(),
+    coverLetter: document.getElementById('coverLetter').value.trim(),
+    salaryExpectations: document.getElementById('salaryExpectations').value.trim(),
+    reference: document.getElementById('reference').value.trim(),
+    resumeUrl: resumeUrl || ""
     };
 
-    fetch(SCRIPT_URL, {
+    fetch("https://script.google.com/macros/s/AKfycbx2E_MmaUwn65E22-qMgynRQdHVJ4ybFacvAfKRZYMHdZX_byDRculHin2uWlz4mYlH/exec", {
         method: "POST",
-        headers: {"Content-Type": "application/json" },
-        body: JSON.stringify(data)
+    headers: {
+        "Content-Type": "application/json"
+        },
+    body: JSON.stringify(data)
     })
     .then(res => res.text())
     .then(response => {
@@ -38,19 +39,18 @@
     const reader = new FileReader();
 
     reader.onload = function () {
-        const base64File = reader.result.split(',')[1];
+        const base64File = reader.result.split(',')[1]; // remove metadata prefix
 
-    const data = {
-        action: "uploadResume",
-        filedata: base64File,
-        filename: file.name,
-        mimeType: file.type
-        };
-
-    fetch(SCRIPT_URL, {
+    fetch('https://script.google.com/macros/s/AKfycbx2E_MmaUwn65E22-qMgynRQdHVJ4ybFacvAfKRZYMHdZX_byDRculHin2uWlz4mYlH/exec', {
         method: 'POST',
-        headers: {"Content-Type": "application/json" },
-        body: JSON.stringify(data)
+    headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+            },
+    body: new URLSearchParams({
+        filedata: base64File,
+    filename: file.name,
+    mimeType: file.type
+            })
         })
         .then(res => res.text())
         .then(response => {
@@ -76,17 +76,17 @@
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
-
             const resumeInput = document.getElementById('resume');
             const file = resumeInput.files[0];
-            const submitBtn = form.querySelector('button[type="submit"]');
-            if (submitBtn) submitBtn.disabled = true;
 
             if (!file) {
                 alert("Please upload your resume.");
-                if (submitBtn) submitBtn.disabled = false;
                 return;
             }
+
+            // Disable submit button to prevent duplicate submission
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
 
             uploadResumeToDrive(file,
                 function (resumeUrl) {
@@ -101,6 +101,3 @@
         });
     }
 });
-
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2E_MmaUwn65E22-qMgynRQdHVJ4ybFacvAfKRZYMHdZX_byDRculHin2uWlz4mYlH/exec";
-
