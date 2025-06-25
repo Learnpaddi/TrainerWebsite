@@ -15,8 +15,8 @@
 
     fetch(SCRIPT_URL, {
         method: "POST",
-    headers: {"Content-Type": "application/json" },
-    body: JSON.stringify(data)
+        headers: {"Content-Type": "application/json" },
+        body: JSON.stringify(data)
     })
     .then(res => res.text())
     .then(response => {
