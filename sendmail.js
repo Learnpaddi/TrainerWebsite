@@ -13,7 +13,7 @@ function sendMail() {
     reader.onload = function () {
         var base64File = reader.result.split(',')[1]; // remove data mime part
 
-        fetch('1ZD_bn5hjaO7EkZ2qgUIdAg5mzmsuAUeWthDhvPVK0Qc_9l_cyUI6YiRX', {
+        fetch('https://script.google.com/macros/s/AKfycbxX0RRTAarqccxPYDyp2_sJk8ccQRQDTV3na3SjKhDgZcp2-1BdFn8QB2iY4DyVxfy6/exec', {
             method: 'POST',
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({
@@ -28,7 +28,7 @@ function sendMail() {
                 // Now send the email
                 emailjs.sendForm('service_jzzspeo', 'template_4s4af01', form)
                     .then(() => {
-                        window.location.href = "thank-you1.html";
+                        window.location.href = "thank-you.html";
                     }, error => {
                         alert("Email failed: " + error.text);
                     });
