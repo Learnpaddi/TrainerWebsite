@@ -75,4 +75,23 @@ function uploadResumeToDrive(file, onSuccess, onFailure) {
 // Hook into the form submit
 document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById('careerForm');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var resumeInput = document.getElementById('resume');
+            var file = resumeInput.files[0];
+            if (!file) {
+                alert("Please upload your resume.");
+                return;
+            }
+            uploadResumeToDrive(file,
+                function (resumeUrl) {
+                    sendMail(resumeUrl);
+                },
+                function (errorMsg) {
+                    alert("Resume upload failed: " + errorMsg);
+                }
+            );
+        });
+    }
 });
