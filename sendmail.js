@@ -64,9 +64,9 @@ function uploadResumeToDrive(file, onSuccess, onFailure) {
                     onFailure(response);
                 }
             })
-            .catch(err => {
-                onFailure("Upload error: " + err.message);
-            });
+            //.catch(err => {
+            //  onFailure("Upload error: " + err.message);
+            //});
     };
 
     reader.readAsDataURL(file);
