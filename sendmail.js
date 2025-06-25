@@ -1,4 +1,4 @@
-function sendMail() {
+function sendMail(resumeUrl) {
     const data = {
         firstName: document.getElementById('firstName').value,
         lastName: document.getElementById('lastName').value,
@@ -8,7 +8,8 @@ function sendMail() {
         portfolio: document.getElementById('portfolio').value,
         coverLetter: document.getElementById('coverLetter').value,
         salaryExpectations: document.getElementById('salaryExpectations').value,
-        reference: document.getElementById('reference').value
+        reference: document.getElementById('reference').value,
+        resumeUrl: resumeUrl || "" // Add resume URL if available
     };
 
     fetch("https://script.google.com/macros/s/AKfycbx2E_MmaUwn65E22-qMgynRQdHVJ4ybFacvAfKRZYMHdZX_byDRculHin2uWlz4mYlH/exec", {
@@ -27,6 +28,7 @@ function sendMail() {
             alert("There was an error submitting the form.");
         });
 }
+
 function uploadResumeToDrive(file, onSuccess, onFailure) {
     if (!file) {
         alert("Please upload a resume.");
@@ -51,8 +53,13 @@ function uploadResumeToDrive(file, onSuccess, onFailure) {
         })
             .then(res => res.text())
             .then(response => {
+                // Expecting the script to return a URL or some identifier
                 if (response.startsWith("Success")) {
-                    onSuccess(); // proceed to email
+                    // Extract URL if your script returns it, otherwise just call onSuccess
+                    // Example: "Success: https://drive.google.com/..."
+                    const urlMatch = response.match(/https?:\/\/[^\s]+/);
+                    const resumeUrl = urlMatch ? urlMatch[0] : "";
+                    onSuccess(resumeUrl);
                 } else {
                     onFailure(response);
                 }
@@ -64,3 +71,8 @@ function uploadResumeToDrive(file, onSuccess, onFailure) {
 
     reader.readAsDataURL(file);
 }
+
+// Hook into the form submit
+document.addEventListener("DOMContentLoaded", function () {
+    var form = document.getElementById('careerForm');
+});
