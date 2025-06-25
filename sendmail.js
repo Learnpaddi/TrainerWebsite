@@ -13,7 +13,7 @@ function sendMail() {
     reader.onload = function () {
         var base64File = reader.result.split(',')[1]; // remove data mime part
 
-        fetch('https://script.google.com/macros/s/AKfycbygryuzf-eAI_Ai0pWorCQJYQc9-9ot7lc2-aI7gig/dev', {
+        fetch('1ZD_bn5hjaO7EkZ2qgUIdAg5mzmsuAUeWthDhvPVK0Qc_9l_cyUI6YiRX', {
             method: 'POST',
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({
