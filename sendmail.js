@@ -1,14 +1,14 @@
 function sendMail(resumeUrl) {
     const data = {
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        linkedin: document.getElementById('linkedin').value.trim(),
-        portfolio: document.getElementById('portfolio').value.trim(),
-        coverLetter: document.getElementById('coverLetter').value.trim(),
-        salaryExpectations: document.getElementById('salaryExpectations').value.trim(),
-        reference: document.getElementById('reference').value.trim(),
+        firstName: document.getElementById(careerForm('firstName')).value.trim(),
+        lastName: document.getElementById(careerForm('lastName')).value.trim(),
+        email: document.getElementById(careerForm('email')).value.trim(),
+        phone: document.getElementById(careerForm('phone')).value.trim(),
+        linkedin: document.getElementById(careerForm('linkedin')).value.trim(),
+        portfolio: document.getElementById(careerForm('portfolio')).value.trim(),
+        coverLetter: document.getElementById(careerForm('coverLetter')).value.trim(),
+        salaryExpectations: document.getElementById(careerForm('salaryExpectations')).value.trim(),
+        reference: document.getElementById(careerForm('reference')).value.trim(),
         resumeUrl: resumeUrl || ""
     };
 
