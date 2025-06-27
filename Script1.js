@@ -57,3 +57,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 });
+
+document.querySelectorAll('.job-link').forEach(function (link) {
+    link.addEventListener('click', function () {
+        // Collapse all
+        document.querySelectorAll('.program-card').forEach(function (card) {
+            card.classList.remove('active');
+        });
+        // Expand the clicked one
+        this.closest('.program-card').classList.add('active');
+    });
+});
