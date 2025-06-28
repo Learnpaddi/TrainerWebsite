@@ -20,13 +20,14 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Show/hide job details
     document.querySelectorAll('.job-link').forEach(function (link) {
         link.addEventListener('click', function () {
-            document.querySelectorAll('.job-details').forEach(function (d) { d.style.display = 'none'; });
-            var jobId = link.getAttribute('data-job');
-            var jobDetail = document.getElementById('job-' + jobId);
-            if (jobDetail) jobDetail.style.display = 'block';
+            // Collapse all
+            document.querySelectorAll('.program-card').forEach(function (card) {
+                card.classList.remove('active');
+            });
+            // Expand the clicked one
+            this.closest('.program-card').classList.add('active');
         });
     });
 
@@ -58,13 +59,3 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 });
 
-document.querySelectorAll('.job-link').forEach(function (link) {
-    link.addEventListener('click', function () {
-        // Collapse all
-        document.querySelectorAll('.program-card').forEach(function (card) {
-            card.classList.remove('active');
-        });
-        // Expand the clicked one
-        this.closest('.program-card').classList.add('active');
-    });
-});
