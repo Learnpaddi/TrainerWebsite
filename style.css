@@ -858,3 +858,30 @@ footer {
         opacity: 0.5;
     }
 }
+.footer-social {
+    display: flex;
+    justify-content: center;
+    gap: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+    .footer-social a {
+        color: #2563eb;
+        background: #f3f4f6;
+        border-radius: 50%;
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.7rem;
+        transition: background 0.2s, color 0.2s, transform 0.2s;
+        text-decoration: none;
+    }
+
+        .footer-social a:hover,
+        .footer-social a:focus-visible {
+            background: #2563eb;
+            color: #fff;
+            transform: translateY(-2px) scale(1.08);
+        }
