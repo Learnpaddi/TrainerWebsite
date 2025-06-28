@@ -299,15 +299,17 @@ h2.section-title {
 }
 /* Contact CTA section */
 .contact-section {
-  background: #2563eb;
+  background: #2563eb; /* keep your blue background */
   color: white;
   text-align: center;
-  padding: 4rem 1rem;
-  border-radius: 12px;
-  margin: 0 1rem 4rem;
-  max-width: 900px;
+  max-width: 700px;
   margin-left: auto;
   margin-right: auto;
+  border-radius: 14px;
+  padding: 2rem 1.5rem;
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .contact-section h2 {
   font-size: 2.5rem;
@@ -589,6 +591,13 @@ footer {
     padding: 0.75rem 0.5rem;
     font-size: 0.8rem;
   }
+  .contact-section {
+    max-width: 100%;
+    padding: 1.2rem 0.8rem;
+    border-radius: 8px;
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+  }
 }
 
 .programs-list {
@@ -783,10 +792,9 @@ footer {
     color: #0A66C2;
     text-decoration: none;
 }
-
-    .team-member-card .linkedin-link:hover {
+.team-member-card .linkedin-link:hover {
         text-decoration: underline;
-    }
+}
 .vision-mission {
     margin-top: 2.5rem;
     background: #f3f4f6;
