@@ -836,3 +836,22 @@ footer {
             font-size: 1.05rem;
         }
 }
+.hiring-badge {
+    background-color: #d7ff00;
+    color: black;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    margin-left: 8px;
+    animation: blink 1s infinite;
+}
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
