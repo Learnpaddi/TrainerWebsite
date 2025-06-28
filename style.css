@@ -357,6 +357,55 @@ footer {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  border-top: 2px solid #e0e7ef; /* subtle divider */
+}
+footer p {
+  color: #374151;
+  /* Removed text-shadow for clarity */
+  margin: 0.5rem 0 0 0;
+}
+.footer-social {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+.footer-social a {
+  color: #2563eb;
+  background: #f3f4f6;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  text-decoration: none;
+  box-shadow: none; /* Remove extra shadow */
+}
+.footer-social a:hover,
+.footer-social a:focus-visible {
+  background: #2563eb;
+  color: #fff;
+  transform: translateY(-2px) scale(1.08);
+}
+@media (max-width: 767px) {
+  footer {
+    padding: 1rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+@media (max-width: 600px) {
+  footer {
+    padding: 0.7rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  .footer-social a {
+    width: 32px;
+    height: 32px;
+    font-size: 1.3rem;
+  }
 }
 @media (max-width: 767px) {
   footer {
@@ -599,6 +648,17 @@ footer {
     margin-bottom: 1.2rem;
   }
 }
+@media (max-width: 600px) {
+  footer {
+    padding: 0.7rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  .footer-social a {
+    width: 32px;
+    height: 32px;
+    font-size: 1.3rem;
+  }
+}
 
 .programs-list {
     display: grid;
@@ -836,27 +896,36 @@ footer {
             font-size: 1.05rem;
         }
 }
-.Hiring-badge {
-    background-color: #facc15; /* Yellow background like Tailwind's yellow-400 */
-    color: black;
-    font-size: 10px;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 6px;
-    margin-left: 6px;
-    text-transform: uppercase;
-    animation: pulse 1.2s infinite;
+.hiring-flash-btn {
+    background: #e11d48;
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 999px;
+    padding: 0.25em 1em;
+    font-size: 0.95em;
+    margin-left: 0.5em;
+    animation: hiring-blink 1s steps(2, start) infinite;
+    box-shadow: 0 0 0 0 #e11d48;
+    cursor: pointer;
+    outline: none;
+    transition: box-shadow 0.2s;
+    display: inline-block;
 }
 
-/* Optional: pulse animation to make it blink lightly */
-@keyframes pulse {
+@keyframes hiring-blink {
     0%, 100% {
         opacity: 1;
     }
 
     50% {
-        opacity: 0.5;
+        opacity: 0.3;
     }
+}
+
+.hiring-flash-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
 }
 .footer-social {
     display: flex;
@@ -877,6 +946,7 @@ footer {
         font-size: 1.7rem;
         transition: background 0.2s, color 0.2s, transform 0.2s;
         text-decoration: none;
+        box-shadow: none; /* Remove extra shadow */
     }
 
         .footer-social a:hover,
@@ -885,3 +955,14 @@ footer {
             color: #fff;
             transform: translateY(-2px) scale(1.08);
         }
+@media (max-width: 600px) {
+  footer {
+    padding: 0.7rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  .footer-social a {
+    width: 32px;
+    height: 32px;
+    font-size: 1.3rem;
+  }
+}
