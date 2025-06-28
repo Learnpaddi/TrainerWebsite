@@ -96,3 +96,39 @@
         height: 50px;
         animation: spin 1s linear infinite;
     }
+
+.hiring-flash-btn {
+    background: #e11d48;
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 999px;
+    padding: 0.25em 1em;
+    margin-left: 0.5em;
+    font-size: 0.95em;
+    animation: hiring-flash 1s infinite alternate;
+    box-shadow: 0 0 0 0 #e11d48;
+    cursor: pointer;
+    outline: none;
+    transition: box-shadow 0.2s;
+}
+
+@keyframes hiring-flash {
+    0% {
+        background: #e11d48;
+        box-shadow: 0 0 0 0 #e11d48;
+    }
+    70% {
+        background: #be123c;
+        box-shadow: 0 0 12px 4px #e11d48aa;
+    }
+    100% {
+        background: #e11d48;
+        box-shadow: 0 0 0 0 #e11d48;
+    }
+}
+
+.hiring-flash-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
