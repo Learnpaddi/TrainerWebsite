@@ -625,6 +625,45 @@ footer {
     font-size: 1rem;
 }
 
+.program-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px 0 rgba(38, 99, 235, 0.08), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+    border: 1.5px solid #e0e7ef;
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
+    margin-bottom: 0.5rem;
+    transition: box-shadow 0.25s, transform 0.2s;
+    position: relative;
+}
+
+.program-card:hover, .program-card:focus-within {
+    box-shadow: 0 8px 32px 0 rgba(38, 99, 235, 0.16), 0 2px 8px 0 rgba(0,0,0,0.06);
+    transform: translateY(-4px) scale(1.02);
+    border-color: #2563eb;
+}
+
+.program-title {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #2563eb;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.program-desc {
+    margin: 0;
+    padding-left: 1.2em;
+    color: #374151;
+    font-size: 1.08rem;
+    line-height: 1.7;
+}
+
+.program-desc li {
+    margin-bottom: 0.5em;
+    list-style: disc;
+}
+
 /* Modal overlay */
 .modal {
     display: none;
