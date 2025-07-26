@@ -313,28 +313,33 @@ h2.section-title {
 /* Testimonials slider basic */
 .testimonials-container {
     position: relative;
-    max-width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    min-height: 260px;
     overflow: hidden;
-    padding: 20px 0;
 }
 
 .testimonial-card {
     display: none;
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin: 0 auto;
-    max-width: 600px;
     opacity: 0;
-    transform: translateX(50px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateX(40px);
+    transition: opacity 0.5s, transform 0.5s;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    padding: 2rem;
+    z-index: 1;
 }
 
 .testimonial-card.active {
     display: block;
     opacity: 1;
     transform: translateX(0);
+    z-index: 2;
 }
 
 .testimonial-controls {
@@ -347,10 +352,10 @@ h2.section-title {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #ddd;
+    background: #bbb;
     margin: 0 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background 0.3s;
 }
 
 .testimonial-dot.active {

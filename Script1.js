@@ -59,44 +59,42 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const testimonials = document.querySelectorAll('.testimonial-card');
-    const testimonialsContainer = document.querySelector('.testimonials-container');
-    let currentTestimonial = 0;
+    if (!testimonials.length) return;
 
-    // Create dots container
-    const dotsContainer = document.createElement('div');
-    dotsContainer.className = 'testimonial-controls';
-    testimonialsContainer.after(dotsContainer);
+    // Create dots
+    const controls = document.createElement('div');
+    controls.className = 'testimonial-controls';
+    testimonials[0].parentNode.after(controls);
 
-    // Create dots for each testimonial
-    testimonials.forEach((_, index) => {
+    testimonials.forEach((_, i) => {
         const dot = document.createElement('span');
         dot.className = 'testimonial-dot';
-        dot.addEventListener('click', () => showTestimonial(index));
-        dotsContainer.appendChild(dot);
+        dot.addEventListener('click', () => showTestimonial(i));
+        controls.appendChild(dot);
     });
 
-    const dots = document.querySelectorAll('.testimonial-dot');
+    const dots = controls.querySelectorAll('.testimonial-dot');
+    let current = 0;
+    let timer = null;
 
-    function showTestimonial(index) {
-        testimonials.forEach(card => {
-            card.classList.remove('active');
+    function showTestimonial(idx) {
+        testimonials.forEach((el, i) => {
+            el.classList.toggle('active', i === idx);
+            dots[i].classList.toggle('active', i === idx);
         });
-        dots.forEach(dot => {
-            dot.classList.remove('active');
-        });
-
-        testimonials[index].classList.add('active');
-        dots[index].classList.add('active');
+        current = idx;
+        resetTimer();
     }
 
     function nextTestimonial() {
-        currentTestimonial = (currentTestimonial + 1) % testimonials.length;
-        showTestimonial(currentTestimonial);
+        showTestimonial((current + 1) % testimonials.length);
     }
 
-    // Show first testimonial
-    showTestimonial(0);
+    function resetTimer() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(nextTestimonial, 5000);
+    }
 
-    // Auto advance testimonials every 5 seconds
-    setInterval(nextTestimonial, 5000);
+    showTestimonial(0);
+    resetTimer();
 });
