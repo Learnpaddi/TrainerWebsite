@@ -7,7 +7,7 @@ function sendMail() {
         return;
     }
 
-    emailjs.sendForm('service_jzzspeo', 'template_4s4af01', form)
+    emailjs.sendForm('service_wf8q2fi', 'template_z5a5vz9', form)
         .then(function (response) {
             console.log('SUCCESS!', response.status, response.text);
             window.location.href = "thank-you1.html"; // Redirect on success
