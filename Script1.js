@@ -57,4 +57,46 @@ document.addEventListener("DOMContentLoaded", function () {
             iframe.src = "";
         }
     };
+
+    const testimonials = document.querySelectorAll('.testimonial-card');
+    const testimonialsContainer = document.querySelector('.testimonials-container');
+    let currentTestimonial = 0;
+
+    // Create dots container
+    const dotsContainer = document.createElement('div');
+    dotsContainer.className = 'testimonial-controls';
+    testimonialsContainer.after(dotsContainer);
+
+    // Create dots for each testimonial
+    testimonials.forEach((_, index) => {
+        const dot = document.createElement('span');
+        dot.className = 'testimonial-dot';
+        dot.addEventListener('click', () => showTestimonial(index));
+        dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.testimonial-dot');
+
+    function showTestimonial(index) {
+        testimonials.forEach(card => {
+            card.classList.remove('active');
+        });
+        dots.forEach(dot => {
+            dot.classList.remove('active');
+        });
+
+        testimonials[index].classList.add('active');
+        dots[index].classList.add('active');
+    }
+
+    function nextTestimonial() {
+        currentTestimonial = (currentTestimonial + 1) % testimonials.length;
+        showTestimonial(currentTestimonial);
+    }
+
+    // Show first testimonial
+    showTestimonial(0);
+
+    // Auto advance testimonials every 5 seconds
+    setInterval(nextTestimonial, 5000);
 });
