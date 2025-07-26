@@ -123,7 +123,7 @@ nav.mobile-nav {
     right: 1rem;
     border-radius: 12px;
     width: 200px;
-    height: auto
+    height: auto;
 }
 
     nav.mobile-nav.show {
@@ -263,28 +263,53 @@ h2.section-title {
     font-size: 1rem;
 }
 /* Institutes/Coporates section */
+.institutes-wrapper {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    padding: 20px 0;
+}
+
 .institutes-list {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 3rem;
-    max-width: 1000px;
-    margin: 0 auto;
+    gap: 40px;
+    animation: scroll 40s linear infinite;
+    width: fit-content;
+    min-width: 200%; /* <-- Add this line */
 }
 
 .institute-logo {
-    height: 60px;
-    object-fit: contain;
-    filter: grayscale(1);
-    opacity: 0.7;
-    transition: filter 0.3s ease, opacity 0.3s ease;
+      flex-shrink: 0;
+      width: 160px; /* or as needed */
+      height: 60px;
+      object-fit: contain;
 }
 
-    .institute-logo:hover,
-    .institute-logo:focus-visible {
-        filter: grayscale(0);
-        opacity: 1;
+@keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* Optional: Pause animation on hover */
+.institutes-list:hover {
+    animation-play-state: paused;
+}
+
+/* Responsive fix: keep horizontal scroll on mobile */
+@media (max-width: 767px) {
+    .institutes-list {
+        flex-direction: row;
+        gap: 20px;
     }
+    .institute-logo {
+        width: 120px;
+        height: 40px;
+      }
+  }
+
+.institutes-list {
+      animation: scroll 40s linear infinite;
+  }
 /* Testimonials slider basic */
 .testimonials-container {
     max-width: 900px;
@@ -623,13 +648,15 @@ footer {
     }
 
     .institutes-list {
-        gap: 1.25rem;
-        flex-direction: column;
+        gap: 20px;
+        /* Keep horizontal flex and animation */
+        flex-direction: row;
         align-items: center;
     }
 
     .institute-logo {
         height: 40px;
+        width: 120px;
         max-width: 90vw;
     }
 
@@ -937,6 +964,11 @@ footer {
 
     #careers-form button.btn-contact:hover {
         background: #2563eb;
+    }
+
+    #careers-form button.btn-contact:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(38, 99, 235, 0.4);
     }
 
 /* Responsive */
