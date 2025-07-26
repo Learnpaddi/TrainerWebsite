@@ -315,24 +315,18 @@ h2.section-title {
     position: relative;
     max-width: 600px;
     margin: 0 auto;
-    min-height: 260px;
+    min-height: 300px; /* Increased to accommodate content */
     overflow: hidden;
 }
 
 .testimonial-card {
-    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     opacity: 0;
     transform: translateX(40px);
     transition: opacity 0.5s, transform 0.5s;
-    position: absolute;
-    width: 100%;
-    left: 0;
-    top: 0;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    padding: 2rem;
-    z-index: 1;
 }
 
 .testimonial-card.active {

@@ -59,12 +59,22 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const testimonials = document.querySelectorAll('.testimonial-card');
-    if (!testimonials.length) return;
+    console.log('Found testimonials:', testimonials.length);
+
+    if (!testimonials.length) {
+        console.log('No testimonials found!');
+        return;
+    }
 
     // Create dots
     const controls = document.createElement('div');
     controls.className = 'testimonial-controls';
-    testimonials[0].parentNode.after(controls);
+    const parent = testimonials[0].parentNode;
+    if (!parent) {
+        console.log('Parent node not found!');
+        return;
+    }
+    parent.after(controls);
 
     testimonials.forEach((_, i) => {
         const dot = document.createElement('span');
