@@ -1268,22 +1268,23 @@ footer {
         .testimonial-controls {
             display: flex;
             justify-content: center;
-            gap: 8px;
-            margin-top: 1rem; /* space below card */
+            gap: 10px;
+            margin-top: 1.2rem;
+            margin-bottom: 0.5rem;
         }
 
         .testimonial-dot {
-            width: 8px;
-            height: 8px;
-            background: #e5e7eb;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            background: #e5e7eb;
+            transition: background 0.3s, transform 0.2s;
             cursor: pointer;
         }
 
-            .testimonial-dot.active {
-                background: #2563eb;
-                transform: scale(1.2);
-            }
+        .testimonial-dot.active {
+            background: #2563eb;
+            transform: scale(1.2);
+        }
     }
 }

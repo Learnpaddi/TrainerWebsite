@@ -61,38 +61,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Testimonials logic
     const testimonials = document.querySelectorAll('.testimonial-card');
-    if (!testimonials.length) {
-        console.log('No testimonials found');
-        return;
-    }
-
-    // Create dots
-    const controls = document.createElement('div');
-    controls.className = 'testimonial-controls';
-    testimonials[0].parentNode.appendChild(controls);
-
-    testimonials.forEach((_, i) => {
-        const dot = document.createElement('span');
-        dot.className = 'testimonial-dot';
-        dot.addEventListener('click', () => showTestimonial(i));
-        controls.appendChild(dot);
-    });
-
-    const dots = controls.querySelectorAll('.testimonial-dot');
+    const dots = document.querySelectorAll('.testimonial-dot');
     let current = 0;
-    let timer = null;
+    let autoSlideInterval;
+    const slideDelay = 4000; // 4 seconds
 
-    function showTestimonial(idx) {
-        // Hide all testimonials first
-        testimonials.forEach((el, i) => {
-            el.classList.remove('active');
-            dots[i].classList.remove('active');
+    function showTestimonial(index) {
+        testimonials.forEach((t, i) => {
+            t.classList.toggle('active', i === index);
         });
-
-        // Show the selected testimonial
-        testimonials[idx].classList.add('active');
-        dots[idx].classList.add('active');
-        current = idx;
+        dots.forEach((d, i) => {
+            d.classList.toggle('active', i === index);
+        });
+        current = index;
     }
 
     function nextTestimonial() {
@@ -100,24 +81,25 @@ document.addEventListener("DOMContentLoaded", function () {
         showTestimonial(next);
     }
 
-    function startAutoRotation() {
-        if (timer) clearInterval(timer);
-        timer = setInterval(nextTestimonial, 5000); // Change slide every 5 seconds
+    function startAutoSlide() {
+        autoSlideInterval = setInterval(nextTestimonial, slideDelay);
     }
 
-    function stopAutoRotation() {
-        if (timer) {
-            clearInterval(timer);
-            timer = null;
-        }
+    function stopAutoSlide() {
+        clearInterval(autoSlideInterval);
     }
 
-    // Add hover pause functionality
-    const testimonialContainer = testimonials[0].parentNode;
-    testimonialContainer.addEventListener('mouseenter', stopAutoRotation);
-    testimonialContainer.addEventListener('mouseleave', startAutoRotation);
+    dots.forEach((dot, idx) => {
+        dot.addEventListener('click', () => {
+            showTestimonial(idx);
+            stopAutoSlide();
+            startAutoSlide();
+        });
+    });
 
-    // Initialize the first testimonial and start rotation
+    // Show first testimonial by default
     showTestimonial(0);
-    startAutoRotation();
+
+    // Start auto-sliding
+    startAutoSlide();
 });
