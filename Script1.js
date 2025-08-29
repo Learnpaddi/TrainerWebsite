@@ -120,39 +120,4 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initialize the first testimonial and start rotation
     showTestimonial(0);
     startAutoRotation();
-
-    // Testimonials carousel
-    document.addEventListener('DOMContentLoaded', function () {
-        const dots = document.querySelectorAll('.dot');
-        let currentTestimonial = 0;
-
-        function showTestimonial(index) {
-            // Hide all testimonials
-            testimonials.forEach(testimonial => {
-                testimonial.classList.remove('active');
-            });
-            // Remove active class from all dots
-            dots.forEach(dot => {
-                dot.classList.remove('active');
-            });
-
-            // Show selected testimonial and dot
-            testimonials[index].classList.add('active');
-            dots[index].classList.add('active');
-        }
-
-        // Add click events to dots
-        dots.forEach((dot, index) => {
-            dot.addEventListener('click', () => {
-                currentTestimonial = index;
-                showTestimonial(currentTestimonial);
-            });
-        });
-
-        // Auto rotate testimonials
-        setInterval(() => {
-            currentTestimonial = (currentTestimonial + 1) % testimonials.length;
-            showTestimonial(currentTestimonial);
-        }, 5000);
-    });
 });
