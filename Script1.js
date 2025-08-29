@@ -103,3 +103,15 @@ document.addEventListener("DOMContentLoaded", function () {
     // Start auto-sliding
     startAutoSlide();
 });
+document.addEventListener("DOMContentLoaded", function () {
+    // ...existing code...
+
+    // Read More toggle for program cards
+    document.querySelectorAll('.read-more-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const card = btn.closest('.program-card');
+            card.classList.toggle('expanded');
+            btn.textContent = card.classList.contains('expanded') ? 'Hide' : 'Read More';
+        });
+    });
+});

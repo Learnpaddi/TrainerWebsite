@@ -1282,3 +1282,37 @@ footer {
             font-size: 1.7rem;
         }
 }
+.program-details {
+    display: none;
+    margin-top: 1rem;
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 1rem;
+    color: #374151;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(38,99,235,0.06);
+    transition: max-height 0.3s, opacity 0.3s;
+}
+
+.program-card.expanded .program-details {
+    display: block;
+}
+
+.read-more-btn {
+    margin-top: 1rem;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 0.5em 1.5em;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+    .read-more-btn:hover,
+    .read-more-btn:focus {
+        background: #644bf3;
+        color: #fff;
+    }
