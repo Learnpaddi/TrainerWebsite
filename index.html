@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LearnPaddi</title>
+    <title>LearnPaddi - Expert Training for Career Success</title>
     <meta name="description" content="We provide expert trainers to institutes for student career training with proven results. Contact us to empower your students." />
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <link rel="html" href="thank-you.html">
-    <link rel="html" href="aboutus.html">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <!-- Combined Styles -->
+    <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="images/IcoLogo.ico" type="image/x-icon" />
     <meta name="robots" content="index, follow">
-    <script src="script1.js"></script>
+    <!-- Combined JavaScript -->
+    <script src="script.js"></script>
     <script type="application/ld+json">
         {
           "@context": "https://schema.org",
@@ -25,6 +25,30 @@
     </script>
 </head>
 <body>
+    <!-- Floating Social Sidebar -->
+    <div class="floating-social">
+        <a href="https://www.linkedin.com/company/learnpaddi" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
+            <i class="fab fa-linkedin-in"></i>
+        </a>
+        <a href="https://x.com/LearnPaddi" target="_blank" rel="noopener" aria-label="X" title="Twitter/X">
+            <i class="fab fa-x-twitter"></i>
+        </a>
+        <a href="https://www.facebook.com/profile.php?id=61577835232833" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook">
+            <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://whatsapp.com/channel/0029Vb5ku1QLSmbW0lo93C1L" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+        <a href="https://www.youtube.com/@Learn-paddi" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube">
+            <i class="fab fa-youtube"></i>
+        </a>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
     <header role="banner">
         <div class="header-inner container">
             <div class="logo" aria-label="Company Logo" tabindex="0">
@@ -36,7 +60,6 @@
             <nav class="desktop-nav" aria-label="Primary Navigation">
                 <a href="index.html" tabindex="0">Home</a>
                 <a href="#programs" tabindex="0">Training Programs</a>
-                <!--       <a href="#team" tabindex="0">Our Team</a>   -->
                 <a href="#institutes" tabindex="0">Institutes</a>
                 <a href="#testimonials" tabindex="0">Testimonials</a>
                 <a href="careers.html" class="text-gray-800" style="display:inline-flex;align-items:center;gap:0.5em;">
@@ -50,10 +73,8 @@
             </button>
         </div>
         <nav id="mobile-menu" class="mobile-nav" role="navigation" aria-label="Mobile Primary Navigation">
-
             <a href="index.html">Home</a>
             <a href="#programs">Training Programs</a>
-            <!--   <a href="#team">Our Team</a>    -->
             <a href="#institutes">Institutes</a>
             <a href="#testimonials">Testimonials</a>
             <a href="careers.html" class="text-gray-800" style="display:inline-flex;align-items:center;gap:0.5em;">
@@ -65,34 +86,32 @@
     </header>
 
     <main>
-        <section class="hero" role="region" aria-labelledby="hero-title">
+<section class="hero" role="region" aria-labelledby="hero-title">
             <h1 id="hero-title">Fueling Today's Mind for Tomorrow's Success</h1>
             <p>
                 Discover Learnpaddi's expert-led training programs designed for students, professionals, and job seekers. Gain practical skills, industry knowledge, and certifications to build your career with our trusted learning and teaching platform.
             </p>
-            <a href="aboutus.html#contact" class="btn-primary" aria-label="Contact us for training inquiries">
+            <a href="aboutus.html#contact" class="btn-primary pulse-btn" aria-label="Contact us for training inquiries">
                 Contact Us
                 <span class="material-icons" aria-hidden="true">arrow_forward</span>
             </a>
-
         </section>
 
         <section id="overview" role="region" aria-labelledby="overview-title" class="container">
-            <h2 id="overview-title" class="section-title">Overview</h2>
-            <p class="overview-text">Learnpaddi is more than just a training platform - it's a launchpad for young minds. We work closely with educational institution and Corporate's to guide students & Employees on a path that blends knowledge, skills, and personal growth. Whether you're a curious student or someone preparing for placements or to improve your carrer path, Learnpaddi is built to help you become future-ready.</p>
+            <h2 id="overview-title" class="section-title reveal">Overview</h2>
+            <p class="overview-text reveal">Learnpaddi is more than just a training platform - it's a launchpad for young minds. We work closely with educational institution and Corporate's to guide students & Employees on a path that blends knowledge, skills, and personal growth. Whether you're a curious student or someone preparing for placements or to improve your carrer path, Learnpaddi is built to help you become future-ready.</p>
             <p></p>
-            <p class="overview-text">We believe today's students need more than textbooks to succeed. They need confidence, real-world skills, and a mindset that embraces change. Learnpaddi bridges the gap between academics and industry, delivering training that's practical, impactful, and fun.</p>
-
+            <p class="overview-text reveal">We believe today's students need more than textbooks to succeed. They need confidence, real-world skills, and a mindset that embraces change. Learnpaddi bridges the gap between academics and industry, delivering training that's practical, impactful, and fun.</p>
         </section>
 
         <section id="programs" class="container" role="region" aria-labelledby="programs-title">
-            <h2 id="programs-title" class="section-title">Our Training Programs</h2>
+            <h2 id="programs-title" class="section-title reveal">Our Training Programs</h2>
             <div class="programs-list">
-                <article class="program-card">
+<article class="program-card reveal stagger-1">
                     <div class="program-illustration">
                         <span class="material-icons">school</span>
                     </div>
-                    <h3 class="program-title">Career Skills improvement</h3>
+                    <h3 class="program-title">Career Skills Improvement</h3>
                     <ul class="program-desc">
                         <li>Career growth</li>
                         <li>Job readiness</li>
@@ -100,15 +119,9 @@
                         <li>Problem-solving</li>
                         <li>Professional development</li>    
                     </ul>
-                    <button class="read-more-btn" type="button">Read More</button>
-                    <div class="program-details">
-                        <p>
-                            At Learnpaddi, we focus on helping learners build essential career skills that employers value the most. Our career skill improvement programs are designed to enhance problem-solving, decision-making, leadership, and adaptability so that you can thrive in a fast-changing workplace. With personalized guidance, mock interviews, and practical case studies, learners gain the confidence to excel in job roles and create long-term growth opportunities.
-                        </p>
-                    </div>
-
+                    <button class="read-more-btn" type="button" data-title="Career Skills Improvement" data-details="At Learnpaddi, we focus on helping learners build essential career skills that employers value the most. Our career skill improvement programs are designed to enhance problem-solving, decision-making, leadership, and adaptability so that you can thrive in a fast-changing workplace. With personalized guidance, mock interviews, and practical case studies, learners gain the confidence to excel in job roles and create long-term growth opportunities.">Read More</button>
                 </article>
-                <article class="program-card">
+<article class="program-card reveal stagger-2">
                     <div class="program-illustration">
                         <span class="material-icons">emoji_people</span>
                     </div>
@@ -120,15 +133,10 @@
                         <li>Emotional intelligence</li>
                         <li>Workplace success</li>
                     </ul>
-                    <button class="read-more-btn" type="button">Read More</button>
-                    <div class="program-details">
-                        <p>
-                             Communication and collaboration are at the heart of success. The Soft Skills Lab at Learnpaddi enables participants to develop critical interpersonal skills such as effective communication, teamwork, presentation, emotional intelligence, and time management. Through role plays, group activities, and real-world scenarios, we ensure learners not only acquire knowledge but also practice and refine their soft skills in a supportive environment.
-                        </p>
-                    </div>
+                    <button class="read-more-btn" type="button" data-title="Soft Skills Lab" data-details="Communication and collaboration are at the heart of success. The Soft Skills Lab at Learnpaddi enables participants to develop critical interpersonal skills such as effective communication, teamwork, presentation, emotional intelligence, and time management. Through role plays, group activities, and real-world scenarios, we ensure learners not only acquire knowledge but also practice and refine their soft skills in a supportive environment.">Read More</button>
                 </article>
 
-                <article class="program-card">
+<article class="program-card reveal stagger-3">
                     <div class="program-illustration">
                         <span class="material-icons">computer</span>
                     </div>
@@ -140,14 +148,10 @@
                         <li>Online tools</li>
                         <li>Productivity apps</li>
                     </ul>
-                    <button class="read-more-btn" type="button">Read More</button>
-                    <div class="program-details">
-                        <p>
-                             In today's digital-first world, being tech-savvy is no longer optional-it' s essential. Learnpaddi's Digital Literacy programs empower learners with the knowledge and confidence to use modern tools and technologies effectively. From basic computer operations to advanced digital tools, internet safety, and productivity applications, our training ensures that every learner is equipped to navigate the digital landscape with ease and efficiency, preparing them for both academic and professional success.
-</div>
+                    <button class="read-more-btn" type="button" data-title="Digital Literacy" data-details="In today's digital-first world, being tech-savvy is no longer optional-it' s essential. Learnpaddi's Digital Literacy programs empower learners with the knowledge and confidence to use modern tools and technologies effectively. From basic computer operations to advanced digital tools, internet safety, and productivity applications, our training ensures that every learner is equipped to navigate the digital landscape with ease and efficiency, preparing them for both academic and professional success.">Read More</button>
                 </article>
 
-                <article class="program-card">
+<article class="program-card reveal stagger-4">
                     <div class="program-illustration">
                         <span class="material-icons">business_center</span>
                     </div>
@@ -159,48 +163,85 @@
                         <li>Workplace readiness</li>
                         <li>Professional networking</li>
                     </ul>
-                    <button class="read-more-btn" type="button">Read More</button>
-                    <div class="program-details">
-                        <p>
-                             Bridging the gap between education and industry is a core value at Learnpaddi. Our Industrial Connect initiatives provide learners with opportunities to engage with professionals, participate in industry-led workshops, and gain insights into real-world practices. By fostering collaboration between learners and industry experts, we help participants understand workplace expectations, emerging trends, and career pathways-making them industry-ready from day one.
-                        </p>
-                    </div>
+                    <button class="read-more-btn" type="button" data-title="Industry Connect" data-details="Bridging the gap between education and industry is a core value at Learnpaddi. Our Industrial Connect initiatives provide learners with opportunities to engage with professionals, participate in industry-led workshops, and gain insights into real-world practices. By fostering collaboration between learners and industry experts, we help participants understand workplace expectations, emerging trends, and career pathways-making them industry-ready from day one.">Read More</button>
                 </article>
-
-                <!-- Add more programs as needed -->
             </div>
         </section>
        
         <section id="institutes" role="region" aria-labelledby="institutes-title" class="container">
-            <h2 id="institutes-title" class="section-title">Our Esteemed Institutes & Corporates</h2>
-            <div class="institutes-wrapper">
+            <h2 id="institutes-title" class="section-title reveal">Our Esteemed Institutes & Corporates</h2>
+            <div class="institutes-wrapper reveal">
                 <div class="institutes-list" aria-label="Trained institutes and corporate clients logos or names">
-                    <!-- Original logos -->
-                    <img src="https://placehold.co/160x60/png?text=Institute+1" alt="Logo of Institute 1, a reputed educational institute" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+2" alt="Logo of Institute 2, a leading corporate training partner" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+3" alt="Logo of Institute 3, trusted by many students" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+4" alt="Logo of Corporate A, a corporate client" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+5" alt="Logo of Corporate B, a corporate client" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+6" alt="Logo of Corporate C, a corporate client" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <!-- Duplicate logos for seamless scrolling -->
-                    <img src="https://placehold.co/160x60/png?text=Institute+1" alt="Logo of Institute 1, a reputed educational institute" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+2" alt="Logo of Institute 2, a leading corporate training partner" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+3" alt="Logo of Institute 3, trusted by many students" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+4" alt="Logo of Corporate A, a corporate client" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+5" alt="Logo of Corporate B, a corporate client" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
-                    <img src="https://placehold.co/160x60/png?text=Institute+6" alt="Logo of Corporate C, a corporate client" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Institute+1" alt="Logo of Institute 1" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Institute+2" alt="Logo of Institute 2" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Institute+3" alt="Logo of Institute 3" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Corporate+A" alt="Logo of Corporate A" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Corporate+B" alt="Logo of Corporate B" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Corporate+C" alt="Logo of Corporate C" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <!-- Duplicate for seamless scroll -->
+                    <img src="https://placehold.co/160x60/png?text=Institute+1" alt="Logo of Institute 1" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Institute+2" alt="Logo of Institute 2" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Institute+3" alt="Logo of Institute 3" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Corporate+A" alt="Logo of Corporate A" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Corporate+B" alt="Logo of Corporate B" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                    <img src="https://placehold.co/160x60/png?text=Corporate+C" alt="Logo of Corporate C" class="institute-logo" tabindex="0" onerror="this.style.visibility='hidden'" />
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="faq-section" role="region" aria-labelledby="faq-title">
+            <div class="container">
+                <h2 id="faq-title" class="section-title reveal">Frequently Asked Questions</h2>
+                <div class="faq-container">
+                    <div class="faq-item reveal">
+                        <div class="faq-question">
+                            <span>What training programs do you offer?</span>
+                            <i class="fas fa-chevron-down faq-icon"></i>
+                        </div>
+                        <div class="faq-answer">
+                            We offer a wide range of training programs including Career Skills Improvement, Soft Skills Development, Digital Literacy, and Industry Connect programs. Our courses are designed to bridge the gap between academics and industry requirements.
+                        </div>
+                    </div>
+                    <div class="faq-item reveal stagger-1">
+                        <div class="faq-question">
+                            <span>Who can benefit from your training programs?</span>
+                            <i class="fas fa-chevron-down faq-icon"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Our programs are designed for students, fresh graduates, job seekers, and working professionals looking to enhance their skills and career prospects. We tailor our training to meet the specific needs of each participant.
+                        </div>
+                    </div>
+                    <div class="faq-item reveal stagger-2">
+                        <div class="faq-question">
+                            <span>Do you provide placement assistance?</span>
+                            <i class="fas fa-chevron-down faq-icon"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Yes, we provide comprehensive placement assistance including mock interviews, resume building, and connections with our corporate partners to help our trainees secure suitable employment opportunities.
+                        </div>
+                    </div>
+                    <div class="faq-item reveal stagger-3">
+                        <div class="faq-question">
+                            <span>Can you customize training programs for our institute?</span>
+                            <i class="fas fa-chevron-down faq-icon"></i>
+                        </div>
+                        <div class="faq-answer">
+                            Absolutely! We work closely with educational institutions and corporations to design customized training programs that address specific skill gaps and meet organizational objectives.
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <section id="testimonials" role="region" aria-labelledby="testimonials-title" class="container">
-            <h2 id="testimonials-title" class="section-title">Feedback from Students & Institutes</h2>
-            <div class="testimonials-container">
+            <h2 id="testimonials-title" class="section-title reveal">Feedback from Students & Institutes</h2>
+            <div class="testimonials-container reveal">
                 <blockquote class="testimonial-card" tabindex="0" aria-label="Student feedback from Sarah Lee">
                     <div>
                         <p class="testimonial-text">"The training provided by LearnPaddi was exceptional. The trainers were knowledgeable and helped me gain confidence for my career." </p>
                         <div class="testimonial-footer">
-                            <img src="https://placehold.co/160x60/png?text=SA" alt="Photo of Sara" class="testimonial-photo" />
+                            <img src="https://placehold.co/160x60/png?text=SA" alt="Photo of Sarah" class="testimonial-photo" />
                             <div>
                                 <span class="testimonial-author">Sarah</span>
                                 <span class="testimonial-role">Student</span>
@@ -251,39 +292,27 @@
                     <span class="testimonial-dot"></span>
                     <span class="testimonial-dot"></span>
                 </div>
-
             </div>
         </section>
 
     </main>
 
-    <footer role="contentinfo" style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-        <div class="footer-social" style="margin-bottom: 10px;">
-            <a href="https://www.linkedin.com/company/learnpaddi" target="_blank" rel="noopener" aria-label="LinkedIn">
-                <i class="fab fa-linkedin-in"></i>
-            </a>
-            <a href="https://x.com/LearnPaddi" target="_blank" rel="noopener" aria-label="X">
-                <i class="fab fa-x-twitter"></i>
-            </a>
-            <a href="https://www.facebook.com/profile.php?id=61577835232833" target="_blank" rel="noopener" aria-label="Facebook">
-                <i class="fab fa-facebook-f"></i>
-            </a>
-            <a href="https://whatsapp.com/channel/0029Vb5ku1QLSmbW0lo93C1L" target="_blank" rel="noopener" aria-label="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-            </a>
-            <a href="https://www.youtube.com/@Learn-paddi" target="_blank" rel="noopener" aria-label="YouTube">
-                <i class="fab fa-youtube"></i>
-            </a>
-        </div>
-
-        <p style="margin: 10px 0;">
+<footer role="contentinfo">
+        <p>
             &copy; 2025 LearnPaddi | MSME Registered
             <a href="https://udyamregistration.gov.in/UA/PrintAcknowledgement_Public.aspx?Udyam_Reference_Number=UDYAM-TN-34-0092036" target="_blank" style="color: #007bff;">
-  
             </a>
         </p>
     </footer>
 
-
+    <!-- Program Details Modal -->
+    <div id="programModal" class="program-modal">
+        <div class="program-modal-content">
+            <span class="program-modal-close">&times;</span>
+            <h2 id="programModalTitle"></h2>
+            <p id="programModalDetails"></p>
+        </div>
+    </div>
 </body>
 </html>
+

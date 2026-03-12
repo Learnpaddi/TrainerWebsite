@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LearnPaddi</title>
-    <meta name="description" content="We provide expert trainers to institutes for student career training with proven results. Contact us to empower your students." />
+    <title>About Us - LearnPaddi</title>
+    <meta name="description" content="Learn about LearnPaddi's mission to provide expert trainers to institutes for student career training with proven results." />
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <link rel="html" href="thank-you.html">
-    <link rel="html" href="index.html">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <!-- Combined Styles -->
+    <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="images/IcoLogo.ico" type="image/x-icon" />
     <meta name="robots" content="index, follow">
-    <script src="script1.js"></script>
+    <!-- Combined JavaScript -->
+    <script src="script.js"></script>
     <script type="application/ld+json">
         {
           "@context": "https://schema.org",
@@ -25,6 +25,30 @@
     </script>
 </head>
 <body>
+    <!-- Floating Social Sidebar -->
+    <div class="floating-social">
+        <a href="https://www.linkedin.com/company/learnpaddi" target="_blank" rel="noopener" aria-label="LinkedIn" title="LinkedIn">
+            <i class="fab fa-linkedin-in"></i>
+        </a>
+        <a href="https://x.com/LearnPaddi" target="_blank" rel="noopener" aria-label="X" title="Twitter/X">
+            <i class="fab fa-x-twitter"></i>
+        </a>
+        <a href="https://www.facebook.com/profile.php?id=61577835232833" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook">
+            <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://whatsapp.com/channel/0029Vb5ku1QLSmbW0lo93C1L" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+        <a href="https://www.youtube.com/@Learn-paddi" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube">
+            <i class="fab fa-youtube"></i>
+        </a>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
     <header role="banner">
         <div class="header-inner container">
             <div class="logo" aria-label="Company Logo" tabindex="0">
@@ -35,8 +59,7 @@
 
             <nav class="desktop-nav" aria-label="Primary Navigation">
                 <a href="index.html" tabindex="0">Home</a>
-                <a href="index.html#programs">Training Programs</a>
-                <!-- <a href="index.html#team" tabindex="0">Our Team</a> -->
+                <a href="index.html#programs" tabindex="0">Training Programs</a>
                 <a href="index.html#institutes" tabindex="0">Institutes</a>
                 <a href="index.html#testimonials" tabindex="0">Testimonials</a>
                 <a href="careers.html" class="text-gray-800" style="display:inline-flex;align-items:center;gap:0.5em;">
@@ -52,7 +75,6 @@
         <nav id="mobile-menu" class="mobile-nav" role="navigation" aria-label="Mobile Primary Navigation">
             <a href="index.html">Home</a>
             <a href="index.html#programs">Training Programs</a>
-            <!-- <a href="index.html#team">Our Team</a>  -->
             <a href="index.html#institutes">Institutes</a>
             <a href="index.html#testimonials">Testimonials</a>
             <a href="careers.html" class="text-gray-800" style="display:inline-flex;align-items:center;gap:0.5em;">
@@ -62,40 +84,66 @@
             <a href="aboutus.html">About Us</a>
         </nav>
     </header>
+
     <main>
         <section class="hero" role="region" aria-labelledby="hero-title">
             <h1 id="hero-title">Who We Are</h1>
             <p>Learnpaddi was born from the idea that learning should be exciting, relevant, and life-changing. We are a team of passionate trainers, creators, and educators committed to shaping India's next generation of professionals.</p>
         </section>
 
-        <div class="vision-mission">
-            <h3 class="section-subtitle">Vision</h3>
-            <p>To be the leading provider of transformative career training, empowering students and institutes to achieve excellence and industry relevance.</p>
-            <h3 class="section-subtitle">Mission</h3>
-            <p>To deliver high-quality, practical, and industry-aligned training programs through expert trainers, fostering skill development and real-world readiness for every learner.</p>
+        <div class="container">
+            <div class="vision-mission reveal">
+                <h3 class="section-subtitle">Vision</h3>
+                <p>To be the leading provider of transformative career training, empowering students and institutes to achieve excellence and industry relevance.</p>
+                <h3 class="section-subtitle">Mission</h3>
+                <p>To deliver high-quality, practical, and industry-aligned training programs through expert trainers, fostering skill development and real-world readiness for every learner.</p>
+            </div>
         </div>
 
+        <!-- Stats Section -->
+        <section class="stats-section" role="region" aria-labelledby="stats-title">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-item reveal">
+                        <span class="stat-number" data-target="5000">0</span>
+                        <span class="stat-label">Students Trained</span>
+                    </div>
+                    <div class="stat-item reveal stagger-1">
+                        <span class="stat-number" data-target="50">0</span>
+                        <span class="stat-label">Institutes & Corporates</span>
+                    </div>
+                    <div class="stat-item reveal stagger-2">
+                        <span class="stat-number" data-target="100">0</span>
+                        <span class="stat-label">Expert Trainers</span>
+                    </div>
+                    <div class="stat-item reveal stagger-3">
+                        <span class="stat-number" data-target="95">0</span>
+                        <span class="stat-label">% Placement Success</span>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <section id="team" role="region" aria-labelledby="team-title" class="container">
-            <h2 id="team-title" class="section-title">Our Expert Trainers</h2>
+            <h2 id="team-title" class="section-title reveal">Our Expert Trainers</h2>
             <div class="team-grid">
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: ThangaDurai, Business Analyst">
-                    <img src="https://placehold.co/120x120/png?text=AJ" alt="Portrait of Thangadurai, Business Analyst" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-1" tabindex="0" aria-label="Trainer: Ajay Kumar">
+                    <img src="https://placehold.co/120x120/png?text=AJ" alt="Portrait of Ajay Kumar" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Ajay Kumar</h3>
                     <p class="team-member-role">Business Analyst</p>
                 </article>
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: Jothilingam, Sales & Marketing Specialist">
-                    <img src="https://placehold.co/120x120/png?text=JM" alt="Portrait of Jothilingam, Data Science Specialist" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-2" tabindex="0" aria-label="Trainer: Jayam M">
+                    <img src="https://placehold.co/120x120/png?text=JM" alt="Portrait of Jayam M" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Jayam M</h3>
                     <p class="team-member-role">Sales & Marketing</p>
                 </article>
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: SaranRaj, Senior Software Engineer">
-                    <img src="https://placehold.co/120x120/png?text=AR" alt="Portrait of SaranRaj, Senior Software Engineer" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-3" tabindex="0" aria-label="Trainer: Andreya Paul">
+                    <img src="https://placehold.co/120x120/png?text=AP" alt="Portrait of Andreya Paul" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Andreya Paul</h3>
                     <p class="team-member-role">Senior Software Engineer</p>
                 </article>
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: Priya, Cloud Computing Consultant">
-                    <img src="https://placehold.co/120x120/png?text=PR" alt="Portrait of Priya Patel, Cloud Computing Consultant" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-4" tabindex="0" aria-label="Trainer: Priya Patil">
+                    <img src="https://placehold.co/120x120/png?text=PR" alt="Portrait of Priya Patil" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Priya Patil</h3>
                     <p class="team-member-role">Cloud Computing Consultant</p>
                 </article>
@@ -103,10 +151,10 @@
         </section>
 
         <section id="team" role="region" aria-labelledby="team-title" class="container">
-            <h2 id="team-title" class="section-title">Leadership Team</h2>
+            <h2 id="team-title" class="section-title reveal">Leadership Team</h2>
             <div class="team-grid">
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: ThangaDurai, Founder & CEO">
-                    <img src="images/IMG_20221208_091956.jpg" alt="Portrait of Thangadurai, Founder & CEO" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-1" tabindex="0" aria-label="Trainer: ThangaDurai, Founder">
+                    <img src="images/IMG_20221208_091956.jpg" alt="Portrait of ThangaDurai" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">ThangaDurai</h3>
                     <p class="team-member-role">Founder</p>
                     <a href="https://www.linkedin.com/in/thangaduraip" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
@@ -117,11 +165,11 @@
                     </a>
                 </article>
 
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: Anjali, Founder & CEO">
-                    <img src="images/anjali.jpeg" alt="Portrait of Anjali, Founder & CEO" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-2" tabindex="0" aria-label="Trainer: Anjali, Vice President">
+                    <img src="images/anjali.jpeg" alt="Portrait of Anjali" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Anjali</h3>
-                    <p class="team-member-role">Vice president</p>
-                    <a href="https://www.linkedin.com/in/anjali-p-1173612a5" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
+                    <p class="team-member-role">Vice President</p>
+                    <a href="https://www.linkedin.com/in/anjali-p-1173612a5" target="_blank" rel="noopener" aria-label="Anjali on LinkedIn" class="linkedin-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0A66C2" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:4px;">
                             <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z" />
                         </svg>
@@ -129,57 +177,44 @@
                     </a>
                 </article>
 
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: Jothilingam, Chief Marketing Officer">
-                    <img src="images/jothi.jpeg" alt="Portrait of Jothilingam, Chief Marketing Officer" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-3" tabindex="0" aria-label="Trainer: Jothilingam, Chief Marketing Officer">
+                    <img src="images/jothi.jpeg" alt="Portrait of Jothilingam" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Jothilingam</h3>
                     <p class="team-member-role">Chief Marketing Officer</p>
-                    <a href="https://www.linkedin.com/in/jothilingam-ramachandran-56b621265" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
+                    <a href="https://www.linkedin.com/in/jothilingam-ramachandran-56b621265" target="_blank" rel="noopener" aria-label="Jothilingam on LinkedIn" class="linkedin-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0A66C2" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:4px;">
                             <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z" />
                         </svg>
                         LinkedIn
                     </a>
                 </article>
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: SaranRaj, Chief Information Officer">
-                    <img src="images/saran.jpeg" alt="Portrait of SaranRaj, Chief Information Officer" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-4" tabindex="0" aria-label="Trainer: SaranRaj, Chief Information Officer">
+                    <img src="images/saran.jpeg" alt="Portrait of SaranRaj" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">SaranRaj M</h3>
                     <p class="team-member-role">Chief Information Officer</p>
-                    <a href="https://www.linkedin.com/in/saranrajmcse/" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
+                    <a href="https://www.linkedin.com/in/saranrajmcse/" target="_blank" rel="noopener" aria-label="SaranRaj on LinkedIn" class="linkedin-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0A66C2" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:4px;">
                             <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z" />
                         </svg>
                         LinkedIn
                     </a>
                 </article>
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: Priya, Strategic Vision And Direction">
-                    <img src="https://placehold.co/120x120/png?text=PR" alt="Portrait of Priya Patel, Strategic Vision And Direction" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-5" tabindex="0" aria-label="Trainer: Priya, Strategic Vision">
+                    <img src="https://placehold.co/120x120/png?text=PR" alt="Portrait of Priya" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Priya</h3>
                     <p class="team-member-role">Strategic Vision And Direction</p>
-                    <a href="https://www.linkedin.com/in" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
+                    <a href="https://www.linkedin.com/in" target="_blank" rel="noopener" aria-label="Priya on LinkedIn" class="linkedin-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0A66C2" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:4px;">
                             <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z" />
                         </svg>
                         LinkedIn
                     </a>
                 </article>
-                <!--
-    <article class="team-member-card" tabindex="0" aria-label="Trainer: Ajitha, Manager">
-        <img src="images/ajitha.jpeg" alt="Portrait of Ajitha, Manager" class="team-member-photo" onerror="this.style.visibility='hidden'" />
-        <h3 class="team-member-name">Ajitha</h3>
-        <p class="team-member-role">Manager</p>
-        <a href="https://www.linkedin.com/in" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0A66C2" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:4px;">
-                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z" />
-            </svg>
-            LinkedIn
-        </a>
-    </article>
-        -->
-                <article class="team-member-card" tabindex="0" aria-label="Trainer: Thulasivasan, Chief Financial Officer">
-                    <img src="images/thulasivasan.jpeg" alt="Portrait of Thulasivasan, Chief Financial Officer" class="team-member-photo" onerror="this.style.visibility='hidden'" />
+                <article class="team-member-card reveal stagger-5" tabindex="0" aria-label="Trainer: Thulasivasan, Chief Financial Officer">
+                    <img src="images/thulasivasan.jpeg" alt="Portrait of Thulasivasan" class="team-member-photo" onerror="this.style.visibility='hidden'" />
                     <h3 class="team-member-name">Thulasivasan</h3>
                     <p class="team-member-role">Chief Financial Officer</p>
-                    <a href="https://www.linkedin.com/in/thulasivasan-e/" target="_blank" rel="noopener" aria-label="ThangaDurai on LinkedIn" class="linkedin-link">
+                    <a href="https://www.linkedin.com/in/thulasivasan-e/" target="_blank" rel="noopener" aria-label="Thulasivasan on LinkedIn" class="linkedin-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0A66C2" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:4px;">
                             <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.379-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z" />
                         </svg>
@@ -189,7 +224,7 @@
             </div>
         </section>
 
-        <h2 id="team-title" class="section-title">Contact Us</h2>
+        <h2 id="team-title" class="section-title reveal">Contact Us</h2>
 
         <section id="contact" role="region" aria-labelledby="contact-title" class="contact-section">
             <h2 id="contact-title">Interested in Training Your Students?</h2>
@@ -232,7 +267,7 @@
             <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
             <script>
                 document.addEventListener("DOMContentLoaded", () => {
-                    emailjs.init("syYXMk4nEOCWRN-4f");// Replace with your EmailJS public key
+                    emailjs.init("syYXMk4nEOCWRN-4f");
 
                     const form = document.getElementById('contact-form');
                     if (!form) return;
@@ -256,36 +291,15 @@
                     });
                 });
             </script>
-
-
         </section>
     </main>
 
-    <footer role="contentinfo" style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-        <div class="footer-social" style="margin-bottom: 10px;">
-            <a href="https://www.linkedin.com/company/learnpaddi" target="_blank" rel="noopener" aria-label="LinkedIn">
-                <i class="fab fa-linkedin-in"></i>
-            </a>
-            <a href="https://x.com/LearnPaddi" target="_blank" rel="noopener" aria-label="X">
-                <i class="fab fa-x-twitter"></i>
-            </a>
-            <a href="https://www.facebook.com/profile.php?id=61577835232833" target="_blank" rel="noopener" aria-label="Facebook">
-                <i class="fab fa-facebook-f"></i>
-            </a>
-            <a href="https://whatsapp.com/channel/0029Vb5ku1QLSmbW0lo93C1L" target="_blank" rel="noopener" aria-label="WhatsApp">
-                <i class="fab fa-whatsapp"></i>
-            </a>
-            <a href="https://www.youtube.com/@Learn-paddi" target="_blank" rel="noopener" aria-label="YouTube">
-                <i class="fab fa-youtube"></i>
-            </a>
-        </div>
-
-        <p style="margin: 10px 0;">
+    <footer role="contentinfo">
+        <p>
             &copy; 2025 LearnPaddi | MSME Registered
             <a href="https://udyamregistration.gov.in/UA/PrintAcknowledgement_Public.aspx?Udyam_Reference_Number=UDYAM-TN-34-0092036" target="_blank" style="color: #007bff;"></a>
         </p>
     </footer>
-
-
 </body>
 </html>
+
