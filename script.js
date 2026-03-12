@@ -2,6 +2,94 @@
    COMBINED JAVASCRIPT - LearnPaddi Website
    ============================================ */
 
+// ========================================
+// RIPPLE EFFECT MANAGER
+// ========================================
+function createRipple(event) {
+    const button = event.currentTarget;
+    const circle = document.createElement('span');
+
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const radius = diameter / 2;
+
+    circle.style.width = circle.style.height = diameter + 'px';
+    circle.style.left = event.clientX - button.offsetLeft - radius + 'px';
+    circle.style.top = event.clientY - button.offsetTop - radius + 'px';
+    circle.classList.add('ripple');
+
+    const ripple = button.querySelector('.ripple');
+    if (ripple) ripple.remove();
+
+    button.appendChild(circle);
+
+    setTimeout(() => circle.remove(), 600);
+}
+
+// Add ripple effect to buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('.btn-primary, .btn-contact, .read-more-btn, .apply-btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', createRipple);
+    });
+});
+
+// ========================================
+// ICON ANIMATIONS ON HOVER
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+    const icons = document.querySelectorAll('.material-icons');
+
+    icons.forEach(icon => {
+        icon.addEventListener('mouseenter', function() {
+            this.style.animation = 'iconPulse 0.6s ease-in-out';
+        });
+
+        icon.addEventListener('mouseleave', function() {
+            this.style.animation = 'none';
+        });
+    });
+});
+
+// ========================================
+// ENHANCED SCROLL STAGGER ANIMATIONS
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+    const reveals = document.querySelectorAll('.reveal.stagger-1, .reveal.stagger-2, .reveal.stagger-3, .reveal.stagger-4, .reveal.stagger-5');
+
+    reveals.forEach((element, index) => {
+        const originalTransition = window.getComputedStyle(element).transition;
+        element.style.transition = originalTransition + ', opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1) ' + (index * 0.1) + 's';
+    });
+});
+
+// ========================================
+// INTERACTIVE ELEMENT HOVER TRACKING
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+    const interactiveElements = document.querySelectorAll('a, button, input[type="button"], input[type="submit"], .clickable');
+
+    interactiveElements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            this.style.cursor = 'pointer';
+        });
+
+        element.addEventListener('mouseleave', function() {
+            this.style.cursor = 'auto';
+        });
+    });
+});
+
+// ========================================
+// CARD ENTRANCE ANIMATION ON LOAD
+// ========================================
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.program-card, .team-member-card, .testimonial-card');
+
+    cards.forEach(card => {
+        card.style.animation = 'slideInUp 0.6s ease forwards';
+    });
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     
     // ========================================

@@ -35,10 +35,13 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 0;
     font-weight: 700;
     color: #111827;
+    animation: slideInUp 0.6s ease forwards;
+    opacity: 0;
 }
 
-h1 { font-size: 3rem; line-height: 1.1; }
-h2 { font-size: 2rem; margin-bottom: 1rem; }
+h1 { font-size: 3rem; line-height: 1.1; animation-delay: 0.1s; }
+h2 { font-size: 2rem; margin-bottom: 1rem; animation-delay: 0.2s; }
+h3 { animation-delay: 0.3s; }
 p { font-size: 1.125rem; color: #6b7280; }
 
 /* ================== CONTAINER ================== */
@@ -58,11 +61,13 @@ header {
     background: #ffffffcc;
     backdrop-filter: saturate(180%) blur(14px);
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.1);
-    transition: box-shadow 0.3s ease;
+    transition: all 0.3s ease;
+    animation: slideInDown 0.5s ease forwards;
 }
 
 header.scrolled {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    background: #fffbf7f2;
 }
 
 .header-inner {
@@ -72,6 +77,19 @@ header.scrolled {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 2rem;
+    animation: fadeInDown 0.5s ease forwards;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .logo {
@@ -79,22 +97,37 @@ header.scrolled {
     font-size: 1.5rem;
     color: #111827;
     user-select: none;
+    animation: slideInLeft 0.5s ease forwards;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .logo a {
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: transform 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .logo a:hover {
-    transform: scale(1.02);
+    transform: scale(1.05);
 }
 
 nav.desktop-nav {
     display: flex;
     gap: 1.5rem;
+    align-items: center;
+    animation: fadeIn 0.6s ease forwards 0.1s;
+    opacity: 0;
 }
 
 nav.desktop-nav a {
@@ -103,8 +136,9 @@ nav.desktop-nav a {
     color: #374151;
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
-    transition: all 0.25s ease;
+    transition: all 0.3s ease;
     position: relative;
+    will-change: color, background-color;
 }
 
 nav.desktop-nav a::after {
@@ -114,8 +148,8 @@ nav.desktop-nav a::after {
     left: 50%;
     width: 0;
     height: 2px;
-    background: #2563eb;
-    transition: all 0.3s ease;
+    background: linear-gradient(90deg, #2563eb, #644bf3);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform: translateX(-50%);
 }
 
@@ -126,7 +160,66 @@ nav.desktop-nav a:focus-visible {
 }
 
 nav.desktop-nav a:hover::after {
-    width: 80%;
+    width: 90%;
+}
+
+/* ================== RIPPLE EFFECT ================== */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 70%);
+    transform: scale(0);
+    animation: rippleEffect 0.6s ease-out;
+    pointer-events: none;
+}
+
+/* ================== SECTION ICONS WITH CSS ================== */
+#overview-title::before {
+    content: '👁️';
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: iconBounce 0.8s ease-in-out infinite;
+    font-size: 1.1em;
+}
+
+#programs-title::before {
+    content: '🎓';
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: iconBounce 0.8s ease-in-out infinite;
+    font-size: 1.1em;
+}
+
+#institutes-title::before {
+    content: '🏢';
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: iconBounce 0.8s ease-in-out infinite;
+    font-size: 1.1em;
+}
+
+#faq-title::before {
+    content: '❓';
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: iconBounce 0.8s ease-in-out infinite;
+    font-size: 1.1em;
+}
+
+#testimonials-title::before {
+    content: '💬';
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: iconBounce 0.8s ease-in-out infinite;
+    font-size: 1.1em;
+}
+
+#team-title::before {
+    content: '👥';
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: iconBounce 0.8s ease-in-out infinite;
+    font-size: 1.1em;
 }
 
 /* Mobile hamburger */
@@ -249,6 +342,20 @@ nav.mobile-nav a:focus-visible {
     margin: 0 auto 1rem;
     position: relative;
     z-index: 1;
+    animation: slideInDown 0.7s ease forwards;
+    opacity: 0;
+    letter-spacing: -1px;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .hero p {
@@ -258,6 +365,20 @@ nav.mobile-nav a:focus-visible {
     color: #e5e7eb;
     position: relative;
     z-index: 1;
+    animation: fadeInUp 0.8s ease forwards 0.2s;
+    opacity: 0;
+    line-height: 1.6;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ================== BUTTONS ================== */
@@ -276,8 +397,9 @@ nav.mobile-nav a:focus-visible {
     align-items: center;
     gap: 0.5rem;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     z-index: 1;
+    will-change: transform, box-shadow;
 }
 
 .btn-primary::before {
@@ -300,7 +422,8 @@ nav.mobile-nav a:focus-visible {
 .btn-primary:focus-visible {
     background-color: #374151;
     transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(37, 99, 235, 0.3);
+    animation: buttonGlow 1.5s ease-in-out infinite;
 }
 
 .btn-primary .material-icons {
@@ -336,6 +459,26 @@ h2.section-title {
     margin-bottom: 2.5rem;
     color: #111827;
     position: relative;
+    animation: slideInUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    opacity: 0;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+h2.section-title::before {
+    content: '';
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #2563eb, #644bf3);
+    border-radius: 50%;
+    animation: iconBounce 0.8s ease-in-out infinite;
 }
 
 h2.section-title::after {
@@ -343,15 +486,24 @@ h2.section-title::after {
     display: block;
     width: 60px;
     height: 4px;
-    background: linear-gradient(90deg, #2563eb, #764ba2);
+    background: linear-gradient(90deg, #2563eb, #644bf3);
     margin: 10px auto 0;
     border-radius: 2px;
     animation: expandWidth 1s ease forwards;
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 @keyframes expandWidth {
     from { width: 0; }
     to { width: 60px; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* ================== SCROLL REVEAL ================== */
@@ -401,6 +553,8 @@ h2.section-title::after {
     font-size: 1.125rem;
     color: #4b5563;
     line-height: 1.7;
+    animation: slideInUp 0.6s ease forwards;
+    opacity: 0;
 }
 
 /* ================== STATS SECTION ================== */
@@ -421,7 +575,14 @@ h2.section-title::after {
 
 .stat-item {
     padding: 1rem;
+    animation: slideInUp 0.6s ease forwards;
+    opacity: 0;
 }
+
+.stats-grid .stat-item:nth-child(1) { animation-delay: 0.1s; }
+.stats-grid .stat-item:nth-child(2) { animation-delay: 0.2s; }
+.stats-grid .stat-item:nth-child(3) { animation-delay: 0.3s; }
+.stats-grid .stat-item:nth-child(4) { animation-delay: 0.4s; }
 
 .stat-number {
     font-size: 3.5rem;
@@ -429,11 +590,15 @@ h2.section-title::after {
     display: block;
     margin-bottom: 0.5rem;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    animation: numberCountUp 0.8s ease-in-out;
 }
 
 .stat-label {
     font-size: 1.1rem;
     opacity: 0.9;
+    animation: fadeInUp 0.6s ease forwards 0.3s;
+    opacity: 0;
+    font-weight: 500;
 }
 
 /* ================== TEAM SECTION ================== */
@@ -459,11 +624,12 @@ h2.section-title::after {
     cursor: pointer;
     transform-style: preserve-3d;
     perspective: 1000px;
+    will-change: transform, box-shadow;
 }
 
 .team-member-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-15px) scale(1.03);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 30px rgba(100, 75, 243, 0.15);
 }
 
 .team-member-photo {
@@ -473,11 +639,12 @@ h2.section-title::after {
     object-fit: cover;
     margin-bottom: 1rem;
     box-shadow: 0 2px 12px rgb(0 0 0 / 0.1);
-    transition: transform 0.3s ease;
+    transition: transform 0.35s ease;
+    will-change: transform;
 }
 
 .team-member-card:hover .team-member-photo {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.12) rotate(5deg);
 }
 
 .team-member-name {
@@ -485,12 +652,16 @@ h2.section-title::after {
     font-size: 1.25rem;
     color: #111827;
     margin-bottom: 0.25rem;
+    animation: slideInUp 0.5s ease forwards 0.2s;
+    opacity: 0;
 }
 
 .team-member-role {
     font-weight: 500;
     color: #6b7280;
     font-size: 1rem;
+    animation: slideInUp 0.5s ease forwards 0.3s;
+    opacity: 0;
 }
 
 /* LinkedIn Link */
@@ -553,8 +724,8 @@ h2.section-title::after {
     position: relative;
     max-width: 600px;
     margin: 0 auto;
-    min-height: 300px;
-    overflow: hidden;
+    min-height: 360px;
+    overflow: visible;
     padding: 20px 0;
 }
 
@@ -569,13 +740,14 @@ h2.section-title::after {
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: flex-start;
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     padding: 2.5rem;
-    min-height: 220px;
+    padding-bottom: 4rem;
+    min-height: 280px;
 }
 
 .testimonial-card.active {
@@ -589,6 +761,8 @@ h2.section-title::after {
     color: #374151;
     margin: 0 0 0.5rem 0;
     font-style: italic;
+    animation: slideInUp 0.5s ease forwards 0.1s;
+    opacity: 0;
 }
 
 .testimonial-photo {
@@ -602,6 +776,9 @@ h2.section-title::after {
 
 .testimonial-author {
     margin-right: 0.5em;
+    font-weight: 700;
+    animation: slideInUp 0.5s ease forwards 0.2s;
+    opacity: 0;
 }
 
 .testimonial-role {
@@ -611,11 +788,14 @@ h2.section-title::after {
 }
 
 .testimonial-controls {
-    position: relative;
+    position: absolute;
     display: flex;
     justify-content: center;
     gap: 8px;
-    margin-top: 20px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
 }
 
 .testimonial-dot {
@@ -624,16 +804,19 @@ h2.section-title::after {
     border-radius: 50%;
     background: #ccc;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, background-color;
 }
 
 .testimonial-dot:hover {
-    transform: scale(1.3);
+    transform: scale(1.5);
+    background: #9ca3af;
 }
 
 .testimonial-dot.active {
     background: #2563eb;
-    transform: scale(1.2);
+    transform: scale(1.3);
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
 }
 
 /* ================== FAQ SECTION ================== */
@@ -675,8 +858,9 @@ h2.section-title::after {
 }
 
 .faq-icon {
-    transition: transform 0.3s ease;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     color: #2563eb;
+    will-change: transform;
 }
 
 .faq-item.active .faq-icon {
@@ -735,6 +919,8 @@ h2.section-title::after {
     margin-bottom: 1rem;
     position: relative;
     z-index: 1;
+    animation: slideInUp 0.6s ease forwards;
+    opacity: 0;
 }
 
 .contact-section p {
@@ -746,6 +932,8 @@ h2.section-title::after {
     margin-right: auto;
     position: relative;
     z-index: 1;
+    animation: fadeInUp 0.7s ease forwards 0.1s;
+    opacity: 0;
 }
 
 .btn-contact {
@@ -819,6 +1007,7 @@ footer p {
     box-shadow: none;
     position: relative;
     overflow: hidden;
+    will-change: transform, background-color, box-shadow;
 }
 
 .footer-social a::before {
@@ -840,8 +1029,8 @@ footer p {
 .footer-social a:focus-visible {
     background: #644bf3;
     color: #fff;
-    transform: translateY(-4px) scale(1.1);
-    box-shadow: 0 8px 20px rgba(100, 75, 243, 0.4);
+    transform: translateY(-6px) scale(1.15);
+    box-shadow: 0 10px 24px rgba(100, 75, 243, 0.5);
 }
 
 /* ================== SCROLL TO TOP ================== */
@@ -864,17 +1053,23 @@ footer p {
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
     z-index: 999;
+    will-change: transform, box-shadow, opacity;
 }
 
 .scroll-to-top.visible {
     opacity: 1;
     visibility: visible;
+    animation: slideInUp 0.5s ease;
 }
 
 .scroll-to-top:hover {
     background: #1d4ed8;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    transform: translateY(-6px) scale(1.1);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+}
+
+.scroll-to-top:active {
+    transform: translateY(-3px) scale(1.05);
 }
 
 /* ================== FLOATING SOCIAL SIDEBAR ================== */
@@ -905,13 +1100,14 @@ footer p {
     font-size: 1.1rem;
     transition: all 0.3s ease;
     text-decoration: none;
+    will-change: transform, background-color, box-shadow;
 }
 
 .floating-social a:hover {
     background: #644bf3;
     color: #fff;
-    transform: translateX(4px) scale(1.1);
-    box-shadow: 0 4px 12px rgba(100, 75, 243, 0.4);
+    transform: translateX(8px) scale(1.15);
+    box-shadow: 0 6px 16px rgba(100, 75, 243, 0.5);
 }
 
 /* ================== PROGRAMS LIST ================== */
@@ -971,11 +1167,13 @@ footer p {
     margin: 0 auto 1rem;
     box-shadow: 0 4px 16px rgba(38,99,235,0.10);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
 }
 
 .program-card:hover .program-illustration {
     transform: scale(1.15) rotate(-10deg);
     box-shadow: 0 8px 32px rgba(38,99,235,0.25);
+    animation: iconPulse 0.6s ease-in-out 1;
 }
 
 .program-illustration .material-icons {
@@ -991,6 +1189,12 @@ footer p {
     font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: 0.01em;
+    animation: slideInUp 0.5s ease forwards 0.1s;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
 }
 
 .program-desc {
@@ -1004,7 +1208,15 @@ footer p {
 .program-desc li {
     margin-bottom: 0.5em;
     list-style: disc;
+    animation: itemSlideIn 0.5s ease forwards;
+    opacity: 0;
 }
+
+.program-card:nth-child(1) .program-desc li:nth-child(1) { animation-delay: 0.1s; }
+.program-card:nth-child(1) .program-desc li:nth-child(2) { animation-delay: 0.2s; }
+.program-card:nth-child(1) .program-desc li:nth-child(3) { animation-delay: 0.3s; }
+.program-card:nth-child(1) .program-desc li:nth-child(4) { animation-delay: 0.4s; }
+.program-card:nth-child(1) .program-desc li:nth-child(5) { animation-delay: 0.5s; }
 
 .program-details {
     max-height: 0;
@@ -1035,13 +1247,33 @@ footer p {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    will-change: transform, box-shadow;
+    position: relative;
+    overflow: hidden;
+}
+
+.read-more-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
 }
 
 .read-more-btn:hover,
 .read-more-btn:focus {
     background: #644bf3;
     color: #fff;
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(100, 75, 243, 0.4);
+}
+
+.read-more-btn:active {
+    transform: translateY(-1px) scale(0.98);
 }
 
 /* ================== VISION MISSION ================== */
@@ -1066,6 +1298,8 @@ footer p {
     font-weight: 700;
     color: #2563eb;
     letter-spacing: 0.01em;
+    animation: slideInLeft 0.5s ease forwards;
+    opacity: 0;
 }
 
 .vision-mission p {
@@ -1302,12 +1536,15 @@ footer p {
     font-family: inherit;
     background: #f9fafb;
     transition: all 0.3s ease;
+    will-change: border-color, box-shadow;
 }
 
 #careers-form input:focus {
     border-color: #3b82f6;
     outline: none;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    animation: fieldFocusGlow 1.2s ease-in-out;
+    background: #fff;
 }
 
 #careers-form button.btn-contact {
@@ -1437,6 +1674,7 @@ footer p {
     background: rgba(255, 255, 255, 0.95);
     color: #1f2937;
     transition: all 0.3s ease;
+    will-change: border-color, box-shadow, background;
 }
 
 .contact-section input:focus,
@@ -1444,8 +1682,9 @@ footer p {
 .contact-section select:focus {
     outline: none;
     border-color: #fff;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2), 0 0 15px rgba(255, 255, 255, 0.3);
     background: #fff;
+    animation: fieldFocusGlow 0.8s ease-out;
 }
 
 .contact-section input::placeholder,
@@ -1534,6 +1773,170 @@ footer p {
     100% { box-shadow: inset 0px 0px 0px 60px #1e40af; }
 }
 
+/* ================== ENHANCED ANIMATIONS ================== */
+
+/* Button Animations */
+@keyframes buttonRipple {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+    }
+    100% {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+    }
+}
+
+@keyframes buttonGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(37, 99, 235, 0.6), 0 10px 30px rgba(37, 99, 235, 0.3); }
+}
+
+@keyframes iconRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes loadingSpinner {
+    to { transform: rotate(360deg); }
+}
+
+/* Card Animations */
+@keyframes shimmerLoading {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+@keyframes borderGradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes itemSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Icon Animations */
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+@keyframes iconFlip {
+    0% { transform: rotateY(0); }
+    100% { transform: rotateY(360deg); }
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Scroll & Section Animations */
+@keyframes numberCountUp {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes sectionDividerWave {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Form & Input Animations */
+@keyframes fieldFocusGlow {
+    0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 0 0 6px rgba(37, 99, 235, 0); }
+    50% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 0 0 6px rgba(37, 99, 235, 0.1); }
+    100% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0), 0 0 0 6px rgba(37, 99, 235, 0.15); }
+}
+
+@keyframes validationSuccess {
+    from {
+        opacity: 0;
+        transform: scale(0.8) rotate(-45deg);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+@keyframes validationError {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+@keyframes formSubmitSuccess {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* Navigation Animations */
+@keyframes navUnderlineExpand {
+    from { width: 0; }
+    to { width: 80%; }
+}
+
+@keyframes headerCondense {
+    from { padding: 1rem; }
+    to { padding: 0.5rem; }
+}
+
+@keyframes sidebarSlideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Cursor Interaction */
+@keyframes rippleEffect {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
 .thank-you-content h1 {
     margin-bottom: 15px;
     font-size: 2.5rem;
@@ -1589,6 +1992,17 @@ footer p {
 }
 
 /* ================== RESPONSIVE ================== */
+
+/* Accessibility: Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 @media (max-width: 767px) {
     .container {
         padding-left: 0.5rem;
