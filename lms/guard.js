@@ -1,15 +1,37 @@
 // LMS Auth Guard - Modular Firebase
 // Redirect unauth to /login.html
 
-if (window.location.pathname.startsWith('/lms/') && window.location.pathname !== '/lms/login.html' && window.location.pathname !== '/lms/register.html') {
-import('./firebase.js').then(({ auth, onAuthChange }) => {
-    onAuthChange((user) => {
+// Enhanced LMS Auth Guard with global currentUser
+// Auto-protects all /lms/* pages except login/register
+
+(async () => {
+  if (!window.location.pathname.startsWith('/lms/') || 
+      window.location.pathname === '/lms/login.html' || 
+      window.location.pathname === '/lms/register.html') {
+    return;
+  }
+
+  try {
+    const { auth, onAuthChange, getUserDoc } = await import('./firebase.js');
+    onAuthChange(async (user) => {
+      window.currentUser = user;  // Global access
+      
       if (!user) {
         window.location.href = '/login.html';
+        return;
       }
+      
+      // Load user doc globally
+      window.currentUserDoc = await getUserDoc(user.uid);
+      console.log('Auth guard: User loaded', user.uid);
+      
+      // Trigger app init if exists
+      if (window.initApp) window.initApp(user);
     });
-  }).catch(() => {
-    // Fallback
-  });
-}
+  } catch (error) {
+    console.error('Guard init failed:', error);
+    window.location.href = '/login.html';
+  }
+})();
+
 

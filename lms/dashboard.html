@@ -79,20 +79,25 @@
   </main>
 
   <script type="module">
-
-    import * as firebase from './firebase.js';
-
-    // Load dashboard
-    // Auth protected by guard.js
-
-      const userDoc = await firebase.getUserDoc(user.uid);
+    // Dashboard init on auth
+    window.initApp = async (user) => {
+      const { getUserDoc, getUserEnrollments, getUserCertificates } = await import('./firebase.js');
+      
+      const userDoc = await getUserDoc(user.uid);
       document.getElementById('welcome-text').textContent = `Hello, ${userDoc?.name || user.displayName || user.email}!`;
 
-      const enrollments = await firebase.getUserEnrollments(user.uid);
+      // Load enrollments + fetch course titles
+      const enrollments = await getUserEnrollments(user.uid);
+      await Promise.all(enrollments.map(async (enr) => {
+        const courseSnap = await firebase.getDoc(firebase.doc(firebase.db, 'courses', enr.courseId));
+        enr.courseTitle = courseSnap.exists() ? courseSnap.data().title : 'Unknown Course';
+        enr.courseThumbnail = courseSnap.exists() ? courseSnap.data().thumbnail : '';
+      }));
+
       const enrolledDiv = document.getElementById('enrolled-courses');
       let totalProgress = 0;
-      let completed = 0;
-
+      let completedCount = 0;
+      
       if (enrollments.length === 0) {
         enrolledDiv.innerHTML = `
           <div class="text-center py-12 text-gray-500">
@@ -101,40 +106,72 @@
           </div>
         `;
         updateStats(0, 0, 0);
-        return;
-      }
-
-      enrolledDiv.innerHTML = enrollments.map(enr => `
-        <div class="group p-6 bg-gray-50 rounded-2xl hover:bg-white transition-all border hover:border-primary/30 hover:shadow-lg">
-          <div class="flex gap-6">
-            <div class="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <i class="fas fa-book text-2xl text-primary"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-xl mb-2 truncate">${enr.courseTitle || 'Course'}</h3>
-              <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
-                <div class="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all" style="width: ${enr.progress || 0}%"></div>
+        loadCertificates([]);
+      } else {
+        totalProgress = enrollments.reduce((sum, enr) => sum + (enr.progress || 0), 0);
+        completedCount = enrollments.filter(e => e.completed).length;
+        
+        enrolledDiv.innerHTML = enrollments.map(enr => `
+          <div class="group p-6 bg-gray-50 rounded-2xl hover:bg-white transition-all border hover:border-primary/30 hover:shadow-lg">
+            <div class="flex gap-6">
+              <img src="${enr.courseThumbnail}" alt="${enr.courseTitle}" class="w-20 h-20 object-cover rounded-xl flex-shrink-0 bg-gray-200">
+              <div class="flex-1 min-w-0">
+                <h3 class="font-bold text-xl mb-2 truncate">${enr.courseTitle}</h3>
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
+                  <div class="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all" style="width: ${enr.progress || 0}%"></div>
+                </div>
+                <p class="text-sm text-gray-500">${Math.round(enr.progress || 0)}% Complete</p>
               </div>
-              <p class="text-sm text-gray-500">${Math.round(enr.progress || 0)}% Complete</p>
-            </div>
-            <div class="flex flex-col gap-2 self-start ml-auto">
-              <a href="course.html?id=${enr.courseId}" class="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-primary/90 whitespace-nowrap">Continue</a>
-              ${enr.completed ? '<span class="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-semibold text-center">Completed</span>' : ''}
+              <div class="flex flex-col gap-2 self-start ml-auto">
+                <a href="course.html?id=${enr.courseId}" class="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-primary/90 whitespace-nowrap">Continue</a>
+                ${enr.completed ? '<span class="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-semibold text-center">Completed</span>' : ''}
+                ${enr.quizScore ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${enr.quizScore?.toFixed(0)}% Quiz</span>` : ''}
+              </div>
             </div>
           </div>
-        </div>
-      `).join('');
-
-      const avgProgress = enrollments.length ? totalProgress / enrollments.length : 0;
-      updateStats(avgProgress, completed, enrollments.length);
-    });
+        `).join('');
+        
+        updateStats(totalProgress / enrollments.length, completedCount, enrollments.length);
+        loadCertificates(await getUserCertificates(user.uid));
+      }
+    };
 
     function updateStats(avgProgress, completed, total) {
       document.getElementById('total-progress').textContent = Math.round(avgProgress) + '%';
-      document.querySelector('[id*=\"progress-bar\"]').style.width = avgProgress + '%';
-      // certificates placeholder
+      document.getElementById('progress-bar').style.width = avgProgress + '%';
+      document.getElementById('completed-courses').textContent = `${completed}/${total} Completed`;
+    }
+
+    async function loadCertificates(certs) {
+      const certDiv = document.getElementById('certificates-preview');
+      if (certs.length === 0) {
+        certDiv.innerHTML = `
+          <div class="text-center p-8 border-2 border-dashed border-gray-200 rounded-2xl hover:border-primary/50 transition-all col-span-full">
+            <i class="fas fa-certificate text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-500">No certificates yet. Complete courses to earn them!</p>
+            <a href="certificate.html" class="text-primary font-semibold mt-4 block hover:underline">View All Certificates</a>
+          </div>
+        `;
+      } else {
+        certDiv.innerHTML = certs.map(cert => `
+          <div class="group cursor-pointer p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border hover:shadow-xl hover:-translate-y-1 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center">
+                <i class="fas fa-certificate text-white text-xl"></i>
+              </div>
+              <div>
+                <h4 class="font-bold">${cert.courseTitle}</h4>
+                <p class="text-sm text-gray-500">${cert.issuedDate?.toDate ? cert.issuedDate.toDate().toLocaleDateString() : 'Recent'}</p>
+              </div>
+            </div>
+            <a href="certificate.html?cert=${cert.id}" class="text-primary font-semibold underline text-sm hover:no-underline">View Certificate →</a>
+          </div>
+        `).join('');
+      }
     }
   </script>
+
+  <script src="guard.js" defer></script>
 
   <script src="guard.js" defer></script>
 </body>

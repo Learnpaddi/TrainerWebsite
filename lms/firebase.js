@@ -162,6 +162,75 @@ export async function getUserEnrollments(userId) {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+// NEW: Get single enrollment
+export async function getEnrollment(userId, courseId) {
+  const q = query(
+    collection(db, 'enrollments'), 
+    where('userId', '==', userId),
+    where('courseId', '==', courseId)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs[0] ? { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } : null;
+}
+
+// NEW: Enroll if not exists (idempotent)
+export async function enrollIfNotExists(userId, courseId) {
+  let enrollment = await getEnrollment(userId, courseId);
+  if (!enrollment) {
+    enrollment = await enrollCourse(userId, courseId);
+  }
+  return enrollment;
+}
+
+// NEW: User certificates
+export async function getUserCertificates(userId) {
+  const q = query(
+    collection(db, 'certificates'), 
+    where('userId', '==', userId)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// NEW: Generate certificate
+export async function generateCertificate(userId, courseId, courseTitle, userName) {
+  const certId = `cert-${userId}-${courseId}-${Date.now()}`;
+  await setDoc(doc(db, 'certificates', certId), {
+    certificateId: certId,
+    userId,
+    userName,
+    courseId,
+    courseTitle,
+    issuedDate: serverTimestamp(),
+    verified: true
+  });
+  return certId;
+}
+
+// NEW: Submit quiz results
+export async function submitQuiz(enrollmentId, score, totalQuestions) {
+  const percentage = (score / totalQuestions) * 100;
+  await updateDoc(doc(db, 'enrollments', enrollmentId), {
+    quizScore: percentage,
+    completed: percentage >= 80, // Pass threshold
+    completedAt: percentage >= 80 ? serverTimestamp() : null
+  });
+  
+  if (percentage >= 80) {
+    // Auto-generate cert (user doc fetch async)
+    const enrollmentSnap = await getDoc(doc(db, 'enrollments', enrollmentId));
+    const enr = { id: enrollmentId, ...enrollmentSnap.data() };
+    const courseSnap = await getDoc(doc(db, 'courses', enr.courseId));
+    const course = courseSnap.data();
+    const userSnap = await getDoc(doc(db, 'users', enr.userId));
+    const userData = userSnap.data();
+    const certId = await generateCertificate(enr.userId, enr.courseId, course.title, userData.name);
+    return { passed: true, certId };
+  }
+  return { passed: false };
+}
+
+
 // Realtime Listeners
 export function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);

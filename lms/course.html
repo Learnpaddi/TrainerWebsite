@@ -93,20 +93,35 @@
 
     import * as firebase from './firebase.js';
 
-    const urlParams = new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?')));
-    const courseId = urlParams.get('id') || window.location.hash.split('/')[2];
+    // Parse courseId from URL (?id=xxx or #id=xxx)
+    const urlParams = new URLSearchParams(window.location.search.length > 1 ? window.location.search.slice(1) : window.location.hash.slice(1));
+    const courseId = urlParams.get('id') || 'demo-course-1'; // Fallback
     
     let courseData = {};
-    let currentEnrollmentId = null;
+    let currentEnrollment = null;
     let currentLesson = 0;
+    let lessonProgress = new Set(); // Track completed lessons
 
-    // Load course
-    firebase.db.collection('courses').doc(courseId).get().then(doc => {
-      if (doc.exists) {
-        courseData = doc.data();
+    // Wait for auth then init
+    window.initApp = async () => {
+      if (!window.currentUser) return;
+      
+      // Auto-enroll if needed
+      currentEnrollment = await firebase.enrollIfNotExists(window.currentUser.uid, courseId);
+      
+      // Load course data (v9 syntax)
+      const courseSnap = await firebase.getDoc(firebase.doc(firebase.db, 'courses', courseId));
+      if (courseSnap.exists()) {
+        courseData = courseSnap.data();
         populateCourse(courseData);
+        updateProgressBar();
+      } else {
+        document.getElementById('lesson-content').innerHTML = '<div class="text-center p-12"><h2 class="text-2xl font-bold text-red-500 mb-4">Course not found</h2><a href="courses.html" class="text-primary underline">← Back to Courses</a></div>';
       }
-    });
+    };
+
+    // Course title in header
+    document.getElementById('page-title').textContent = 'Loading Course...'; // Fallback
 
     // Enrollment loaded via guard.js protection + firebase utils (v9+ syntax fixed elsewhere)
 
@@ -151,39 +166,143 @@
       updateLessonButtons();
     };
 
-    window.completeLesson = async () => {
-      if (currentEnrollmentId) {
-        // Simple progress update (module completion)
-        const progress = Math.min(100, (currentEnrollmentId.progress || 0) + 25); // 4 lessons example
-        await firebase.updateProgress(currentEnrollmentId, progress);
-        document.getElementById('course-progress').textContent = progress + '%';
-        appUtils.showNotification('Lesson completed!');
+    // Progress bar
+    function updateProgressBar() {
+      const totalLessons = courseData.modules ? courseData.modules.reduce((sum, m) => sum + m.lessons?.length || 1, 0) : 0;
+      const completedLessons = lessonProgress.size;
+      const progress = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      
+      if (currentEnrollment) {
+        firebase.updateProgress(currentEnrollment.id, progress);
       }
-      if (courseData.progress >= 100) {
+      
+      // Update header progress (add if missing)
+      const progressEl = document.getElementById('course-progress') || document.createElement('div');
+      progressEl.id = 'course-progress';
+      progressEl.className = 'text-2xl font-bold text-primary mb-4';
+      progressEl.textContent = `${progress}% Complete`;
+      if (!document.getElementById('course-progress')) {
+        document.querySelector('.flex.gap-4')?.parentNode.insertBefore(progressEl, document.querySelector('.flex.gap-4'));
+      }
+      
+      if (progress >= 100 && courseData.quiz) {
         document.getElementById('mark-complete').style.display = 'none';
         document.getElementById('take-quiz').style.display = 'block';
       }
+    }
+
+    window.loadLesson = async (index) => {
+      currentLesson = index;
+      const moduleIdx = Math.floor(index / 3); // Assume 3 lessons/module
+      const lessonInModule = index % 3;
+      const lesson = courseData.modules[moduleIdx].lessons[lessonInModule];
+      
+      const content = document.getElementById('lesson-content');
+      content.innerHTML = `
+        <div class="w-full space-y-6">
+          <video class="w-full rounded-2xl shadow-xl" controls preload="metadata" poster="https://picsum.photos/800/450?random=${index}">
+            <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" type="video/mp4">
+            Video placeholder - mark as complete to progress.
+          </video>
+          <div>
+            <h3 class="text-2xl font-bold mb-4">${lesson.title}</h3>
+            <p class="text-lg text-gray-700">${lesson.description}</p>
+          </div>
+          <button onclick="completeLesson(${index})" class="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl flex items-center gap-2">
+            <i class="fas fa-check"></i> Mark Complete & Next
+          </button>
+        </div>
+      `;
+      
+      updateLessonButtons();
+      if (!lessonProgress.has(index)) {
+        lessonProgress.add(index);
+        updateProgressBar();
+      }
     };
 
+    window.completeLesson = async (lessonIndex) => {
+      lessonProgress.add(lessonIndex);
+      updateProgressBar();
+      showNotification('✅ Lesson completed!');
+      
+      // Next lesson
+      const nextIdx = lessonIndex + 1;
+      if (courseData.modules[Math.floor(nextIdx / 3)]?.lessons[nextIdx % 3]) {
+        loadLesson(nextIdx);
+      }
+    };
+
+    // Update lesson buttons (active/completed)
     function updateLessonButtons() {
       document.querySelectorAll('#lessons-list button').forEach((btn, idx) => {
+        const completed = lessonProgress.has(idx);
+        btn.innerHTML = `
+          <i class="fas fa-${currentLesson === idx ? 'play' : completed ? 'check-circle text-emerald-500' : 'circle'}"></i>
+          <span>${courseData.modules[Math.floor(idx/3)]?.title || ''} - Lesson ${idx%3 +1}</span>
+          ${completed ? '<i class="fas fa-check ml-auto text-emerald-500"></i>' : ''}
+        `;
         btn.classList.toggle('bg-primary/20', idx === currentLesson);
+        btn.classList.toggle('opacity-75', completed);
       });
     }
 
-    // Quiz logic (simplified)
+    // Quiz
     document.getElementById('take-quiz').onclick = () => {
+      if (!courseData.quiz?.questions) {
+        showNotification('Quiz not available yet', 'error');
+        return;
+      }
+      
+      const questions = courseData.quiz.questions;
+      document.getElementById('quiz-questions').innerHTML = questions.map((q, i) => `
+        <div class="mb-6 p-4 border rounded-xl">
+          <h4 class="font-bold mb-4">Q${i+1}: ${q.q}</h4>
+          ${q.options.map((opt, j) => `
+            <label class="block p-3 border-2 rounded-xl cursor-pointer hover:border-primary/50 mb-2 ${j===0?'border-primary':''}">
+              <input type="radio" name="q${i}" value="${j}" class="mr-3"> ${opt}
+            </label>
+          `).join('')}
+        </div>
+      `).join('');
+      
       document.getElementById('quiz-modal').classList.remove('hidden');
-      // Load quiz from courseData.quiz
+    };
+
+    document.getElementById('submit-quiz').onclick = async () => {
+      let score = 0;
+      courseData.quiz.questions.forEach((q, i) => {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (selected && parseInt(selected.value) === q.correct) score++;
+      });
+      
+      const result = await firebase.submitQuiz(currentEnrollment.id, score, courseData.quiz.questions.length);
+      document.getElementById('quiz-score').textContent = `Score: ${score}/${courseData.quiz.questions.length} (${Math.round((score/courseData.quiz.questions.length)*100)}%)`;
+      
+      if (result.passed) {
+        showNotification(`🎉 Quiz passed! Certificate generated: ${result.certId}`);
+        setTimeout(() => window.open(`certificate.html?cert=${result.certId}`, '_blank'), 1500);
+      } else {
+        showNotification('📚 Keep studying! Quiz score below 80%', 'error');
+      }
+      
+      document.getElementById('quiz-modal').classList.add('hidden');
     };
 
     window.closeQuiz = () => document.getElementById('quiz-modal').classList.add('hidden');
 
-    // Complete course
-    document.getElementById('mark-complete').onclick = async () => {
-      await firebase.updateDoc(doc(firebase.db, 'enrollments', currentEnrollmentId), { completed: true, completedAt: firebase.serverTimestamp() });
-      appUtils.showNotification('Course completed! Check certificates.');
-    };
+    function showNotification(msg, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 p-4 rounded-2xl shadow-2xl z-50 transform translate-x-full transition-all ${type === 'error' ? 'bg-red-500' : 'bg-emerald-500'} text-white font-semibold`;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
   </script>
 </body>
 </html>

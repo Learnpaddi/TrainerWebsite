@@ -69,7 +69,20 @@
         const courses = await firebase.getCourses();
         countSpan.textContent = `${courses.length} courses`;
         
-        coursesGrid.innerHTML = courses.map(course => `
+        // Load enrollments for buttons
+        const enrollments = await firebase.getUserEnrollments(window.currentUser.uid);
+        const enrollmentMap = new Map(enrollments.map(e => [e.courseId, e]));
+        
+        coursesGrid.innerHTML = courses.map(course => {
+          const courseId = course.courseId || course.id;
+          const enrollment = enrollmentMap.get(courseId);
+          const btnText = enrollment ? 'Continue Course' : 'Enroll Now';
+          const btnClass = enrollment?.completed ? 'from-emerald-500 to-teal-500' : 'from-primary to-accent';
+          const btnIcon = enrollment?.completed ? 'fas fa-certificate' : 'fas fa-arrow-right';
+          const href = enrollment ? `course.html?id=${courseId}` : '#';
+          const onclick = enrollment ? '' : `enrollCourse('${courseId}')`;
+          
+          return `
           <div class="group bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-3 transition-all border hover:border-primary/30">
             <img src="${course.thumbnail}" alt="${course.title}" class="w-full h-48 object-cover rounded-2xl mb-6 group-hover:scale-105 transition-transform">
             <div class="flex gap-2 text-xs bg-gray-100 px-3 py-1 rounded-full mb-4">
@@ -81,15 +94,49 @@
               <span><i class="fas fa-clock mr-1"></i>${course.duration}</span>
               <span><i class="fas fa-user mr-1"></i>${course.instructor}</span>
               <span><i class="fas fa-level-up-alt mr-1"></i>${course.level}</span>
+              ${enrollment ? `<span><i class="fas fa-chart-line mr-1"></i>${enrollment.progress}%</span>` : ''}
             </div>
-            <a href="course.html?id=${course.courseId || course.id}" class="block w-full bg-gradient-to-r from-primary to-accent text-white py-4 px-8 rounded-2xl font-bold text-center hover:shadow-xl hover:-translate-y-1 transition-all">
-              Start Course <i class="fas fa-arrow-right ml-2"></i>
-            </a>
+            <button ${onclick ? 'onclick=' + onclick : ''} href="${href}" class="block w-full bg-gradient-to-r ${btnClass} text-white py-4 px-8 rounded-2xl font-bold text-center hover:shadow-xl hover:-translate-y-1 transition-all ${enrollment?.completed ? '' : 'cursor-pointer'}">
+              ${btnText} <i class="${btnIcon} ml-2"></i>
+            </button>
           </div>
-        `).join('');
+          `;
+        }).join('');
       } catch (error) {
         coursesGrid.innerHTML = '<p class="text-center text-red-500 col-span-full text-xl">Error loading courses. <button onclick="loadCourses()" class="underline ml-2">Retry</button></p>';
       }
+    }
+
+    // Global enroll handler
+    window.enrollCourse = async (courseId) => {
+      if (!window.currentUser) {
+        alert('Please log in to enroll');
+        return location.href = '/login.html';
+      }
+      
+      try {
+        const enrollment = await firebase.enrollIfNotExists(window.currentUser.uid, courseId);
+        showNotification('✅ Enrolled successfully! Continue learning.');
+        loadCourses(); // Refresh
+      } catch (error) {
+        console.error('Enroll failed:', error);
+        showNotification('Enrollment failed. Try again.', 'error');
+      }
+    };
+
+    // UI utils
+    function showNotification(msg, type = 'success') {
+      // Simple toast
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 p-4 rounded-2xl shadow-2xl z-50 transform translate-x-full transition-all ${type === 'error' ? 'bg-red-500' : 'bg-emerald-500'} text-white font-semibold`;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
     }
 
     loadCourses();

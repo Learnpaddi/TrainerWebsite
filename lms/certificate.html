@@ -71,23 +71,71 @@
   </main>
 
   <script type="module">
+    (async () => {
+      const { getDoc, getUserCertificates } = await import('./firebase.js');
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      let certId = urlParams.get('cert');
+      
+      // Specific cert
+      if (certId) {
+        const certRef = doc(getFirestore(), 'certificates', certId);
+        const certSnap = await getDoc(certRef);
+        if (certSnap.exists()) {
+          const cert = certSnap.data();
+          document.getElementById('student-name').textContent = cert.userName;
+          document.getElementById('course-title').textContent = cert.courseTitle;
+          document.getElementById('completion-date').textContent = cert.issuedDate?.toDate ? cert.issuedDate.toDate().toLocaleDateString() : new Date().toLocaleDateString();
+          document.getElementById('cert-id').textContent = certId;
+          document.getElementById('cert-id-footer').textContent = certId;
+          return;
+        }
+      }
+      
+      // User certs or demo
+      if (window.currentUser) {
+        const certs = await getUserCertificates(window.currentUser.uid);
+        if (certs.length > 0) {
+          const cert = certs[0];
+          document.getElementById('student-name').textContent = cert.userName;
+          document.getElementById('course-title').textContent = cert.courseTitle;
+          document.getElementById('completion-date').textContent = cert.issuedDate?.toDate ? cert.issuedDate.toDate().toLocaleDateString() : new Date().toLocaleDateString();
+          document.getElementById('cert-id').textContent = cert.id;
+          document.getElementById('cert-id-footer').textContent = cert.id;
+          document.querySelector('button[onclick="window.location.href=\'dashboard.html\'"]').onclick = () => location.href = 'dashboard.html';
+          document.querySelector('button[onclick="window.location.href=\'dashboard.html\'"]').textContent = `← Back to Dashboard (${certs.length} certs)`;
+        }
+      }
+      
+      // Demo fallback
+      if (!document.getElementById('student-name').textContent) {
+        document.getElementById('student-name').textContent = 'John Doe';
+        document.getElementById('course-title').textContent = 'Full Stack Web Development';
+        document.getElementById('completion-date').textContent = new Date().toLocaleDateString();
+        document.getElementById('cert-id').textContent = 'DEMO-001';
+        document.getElementById('cert-id-footer').textContent = 'DEMO-001';
+      }
+    })().catch(e => console.error('Cert load failed:', e));
 
-    import * as firebase from './firebase.js';
+    window.generatePDF = async () => {
+      const element = document.getElementById('certificate');
+      const canvas = await html2canvas(element, {scale: 2, useCORS: true, backgroundColor: '#ffffff'});
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const imgWidth = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`learnpaddi-cert-${document.getElementById('cert-id').textContent}.pdf`);
+    };
 
-    // Load from query param or generate new
-    const urlParams = new URLSearchParams(window.location.search);
-    const certId = urlParams.get('cert') || 'demo-cert-001';
-
-    // Fetch cert from Firestore
-    firebase.db.collection('certificates').doc(certId).get().then(doc => {
-      if (doc.exists) {
-        const cert = doc.data();
-        document.getElementById('student-name').textContent = cert.userName;
-        document.getElementById('course-title').textContent = cert.courseTitle;
-        document.getElementById('completion-date').textContent = cert.issuedDate.toDate().toLocaleDateString();
-        document.getElementById('cert-id').textContent = certId;
-        document.getElementById('cert-id-footer').textContent = certId;
-      } else {
+    window.printCert = () => window.print();
+  </script>
+      }
+    }
+    
+    if (!document.getElementById('student-name').textContent) {
+      // Demo fallback
         // Demo data
         document.getElementById('student-name').textContent = 'John Doe';
         document.getElementById('course-title').textContent = 'Career Skills Mastery';
