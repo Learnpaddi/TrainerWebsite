@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course - LearnPaddi LMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Video.js CDN -->
+  <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-white shadow-sm sticky top-0 z-40 border-b">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#/" class="flex items-center gap-3">
+        <img src="../images/Logo.png" alt="LearnPaddi" class="h-10">
+        <span class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Course</span>
+      </a>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-sm bg-primary/10 px-4 py-2 rounded-xl">
+          <i class="fas fa-chart-line"></i>
+          <span id="course-progress">0%</span>
+        </div>
+        <a href="#/dashboard" class="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-primary/90">Dashboard</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-5xl mx-auto px-6 py-12">
+    <!-- Course Header -->
+    <div class="bg-white rounded-3xl shadow-xl p-8 mb-12">
+      <div class="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+        <img id="course-thumbnail" src="" alt="" class="w-full lg:w-64 h-48 object-cover rounded-2xl flex-shrink-0">
+        <div class="flex-1">
+          <div class="flex flex-wrap gap-4 mb-4 text-sm text-gray-500">
+            <span id="course-instructor"></span>
+            <span id="course-duration"></span>
+            <span id="course-level"></span>
+          </div>
+          <h1 id="course-title" class="text-4xl font-black mb-4 bg-gradient-to-r from-gray-900 to-primary bg-clip-text"></h1>
+          <p id="course-desc" class="text-xl text-gray-600 mb-6"></p>
+          <div class="flex gap-4">
+            <button id="mark-complete" class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl">
+              <i class="fas fa-check mr-2"></i> Mark Complete
+            </button>
+            <button id="take-quiz" class="bg-primary text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl" style="display:none;">
+              Take Quiz
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lessons Sidebar + Content -->
+    <div class="grid lg:grid-cols-4 gap-8">
+      <!-- Lessons List -->
+      <div class="lg:col-span-1 bg-white rounded-3xl shadow-xl p-6 sticky top-24 h-fit">
+        <h3 class="font-bold text-xl mb-6 flex items-center gap-2">
+          <i class="fas fa-list text-primary"></i> Lessons ( <span id="lesson-count">0</span> )
+        </h3>
+        <div id="lessons-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="lg:col-span-3">
+        <div id="lesson-content" class="bg-white rounded-3xl shadow-xl p-8 min-h-[400px] flex items-center justify-center text-gray-500">
+          <div class="text-center">
+            <i class="fas fa-play-circle text-6xl mb-6 opacity-50"></i>
+            <h2 class="text-2xl font-bold mb-2">Select a lesson to begin</h2>
+            <p>Click a lesson from the sidebar to start learning</p>
+          </div>
+        </div>
+
+        <!-- Quiz Modal -->
+        <div id="quiz-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-8">
+              <h2 class="text-2xl font-bold">Final Quiz</h2>
+              <button onclick="closeQuiz()" class="text-2xl">&times;</button>
+            </div>
+            <div id="quiz-questions"></div>
+            <div class="mt-8 pt-8 border-t flex justify-between">
+              <span id="quiz-score"></span>
+              <button id="submit-quiz" class="bg-gradient-to-r from-primary to-accent text-white px-8 py-3 rounded-2xl font-bold">Submit Quiz</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as firebase from './firebase.js';
+
+    const urlParams = new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?')));
+    const courseId = urlParams.get('id') || window.location.hash.split('/')[2];
+    
+    let courseData = {};
+    let currentEnrollmentId = null;
+    let currentLesson = 0;
+
+    // Load course
+    firebase.db.collection('courses').doc(courseId).get().then(doc => {
+      if (doc.exists) {
+        courseData = doc.data();
+        populateCourse(courseData);
+      }
+    });
+
+    // Get enrollment for progress
+    firebase.auth.onAuthStateChanged(async user => {
+      if (user) {
+        const q = firebase.db.collection('enrollments').where('userId', '==', user.uid).where('courseId', '==', courseId);
+        const snapshot = await q.get();
+        if (!snapshot.empty) {
+          const enr = snapshot.docs[0].data();
+          currentEnrollmentId = snapshot.docs[0].id;
+          document.getElementById('course-progress').textContent = enr.progress + '%';
+        }
+      }
+    });
+
+    function populateCourse(course) {
+      document.getElementById('course-title').textContent = course.title;
+      document.getElementById('course-desc').textContent = course.description;
+      document.getElementById('course-instructor').innerHTML = `<i class="fas fa-user mr-2"></i> ${course.instructor}`;
+      document.getElementById('course-duration').innerHTML = `<i class="fas fa-clock mr-2"></i> ${course.duration}`;
+      document.getElementById('course-level').innerHTML = `<i class="fas fa-level-up-alt mr-2"></i> ${course.level}`;
+      document.getElementById('course-thumbnail').src = course.thumbnail || '../images/Logo.png';
+      document.getElementById('lesson-count').textContent = course.modules.length;
+
+      // Lessons
+      const list = document.getElementById('lessons-list');
+      course.modules.forEach((lesson, idx) => {
+        list.innerHTML += `
+          <button onclick="loadLesson(${idx})" class="w-full text-left p-4 rounded-xl hover:bg-primary/10 transition-all flex items-center gap-3 ${idx === currentLesson ? 'bg-primary/20 border border-primary/30 font-semibold' : ''}">
+            <i class="fas fa-${idx === currentLesson ? 'play' : 'circle'} text-primary"></i>
+            <span>${lesson.title} (${lesson.duration}m)</span>
+          </button>
+        `;
+      });
+    }
+
+    window.loadLesson = (index) => {
+      currentLesson = index;
+      const course = courseData.modules[index];
+      const content = document.getElementById('lesson-content');
+      content.innerHTML = `
+        <div class="w-full">
+          <video class="w-full rounded-2xl shadow-xl" controls preload="metadata">
+            <source src="${course.videoUrl}" type="video/mp4">
+            <p>Your browser doesn't support video.</p>
+          </video>
+          <h3 class="text-2xl font-bold mt-6 mb-4">${course.title}</h3>
+          <p class="text-lg text-gray-700">${course.description}</p>
+          <button onclick="completeLesson()" class="mt-8 bg-emerald-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl">
+            <i class="fas fa-check mr-2"></i> Mark as Complete
+          </button>
+        </div>
+      `;
+      updateLessonButtons();
+    };
+
+    window.completeLesson = async () => {
+      if (currentEnrollmentId) {
+        // Simple progress update (module completion)
+        const progress = Math.min(100, (currentEnrollmentId.progress || 0) + 25); // 4 lessons example
+        await firebase.updateProgress(currentEnrollmentId, progress);
+        document.getElementById('course-progress').textContent = progress + '%';
+        appUtils.showNotification('Lesson completed!');
+      }
+      if (courseData.progress >= 100) {
+        document.getElementById('mark-complete').style.display = 'none';
+        document.getElementById('take-quiz').style.display = 'block';
+      }
+    };
+
+    function updateLessonButtons() {
+      document.querySelectorAll('#lessons-list button').forEach((btn, idx) => {
+        btn.classList.toggle('bg-primary/20', idx === currentLesson);
+      });
+    }
+
+    // Quiz logic (simplified)
+    document.getElementById('take-quiz').onclick = () => {
+      document.getElementById('quiz-modal').classList.remove('hidden');
+      // Load quiz from courseData.quiz
+    };
+
+    window.closeQuiz = () => document.getElementById('quiz-modal').classList.add('hidden');
+
+    // Complete course
+    document.getElementById('mark-complete').onclick = async () => {
+      await firebase.updateDoc(doc(firebase.db, 'enrollments', currentEnrollmentId), { completed: true, completedAt: firebase.serverTimestamp() });
+      appUtils.showNotification('Course completed! Check certificates.');
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LearnPaddi DB Seeder</title>
+  <script type="module" src="./firebase.js"></script>
+</head>
+<body>
+  <h1>🔥 Seed LearnPaddi DB</h1>
+  <button onclick="seedData()" class="bg-green-500 text-white px-8 py-4 text-xl rounded-xl font-bold">Run Seed</button>
+  <div id="status"></div>
+
+  <script type="module">
+    import * as f from './firebase.js';
+
+    const sampleCourses = [
+      {
+        title: 'Career Skills Improvement',
+        description: 'Master career growth and leadership skills.',
+        thumbnail: 'https://via.placeholder.com/400x240/2563EB/FFFFFF?text=Career+Skills',
+        instructor: 'Ajitha S.',
+        duration: '8 hours',
+        level: 'Beginner',
+        modules: [
+          { title: 'Career Planning', duration: 30, description: 'Lorem ipsum...', videoUrl: '' },
+          { title: 'Leadership', duration: 60, description: 'Dolor sit...', videoUrl: '' },
+          { title: 'Problem Solving', duration: 90, description: 'Amet...', videoUrl: '' }
+        ],
+        quiz: {
+          questions: [
+            { q: 'First step?', options: ['Goal', 'Quit', 'Apply'], correct: 0 },
+            { q: 'Best leader?', options: ['A', 'B', 'C'], correct: 0 }
+          ]
+        },
+        certificateEnabled: true
+      },
+      {
+        title: 'Soft Skills Lab',
+        description: 'Communication & teamwork mastery.',
+        thumbnail: 'https://via.placeholder.com/400x240/06B6D4/FFFFFF?text=Soft+Skills',
+        instructor: 'Anjali R.',
+        duration: '6 hours',
+        level: 'Intermediate',
+        modules: [{ title: 'Communication', duration: 45 }, { title: 'Teamwork', duration: 75 }],
+        certificateEnabled: true
+      },
+      {
+        title: 'Digital Literacy',
+        description: 'Modern digital skills.',
+        thumbnail: 'https://via.placeholder.com/400x240/EB4899/FFFFFF?text=Digital',
+        instructor: 'Jothi K.',
+        duration: '4 hours',
+        level: 'Beginner',
+        modules: [{ title: 'Basics', duration: 30 }, { title: 'Safety', duration: 60 }],
+        certificateEnabled: true
+      },
+      {
+        title: 'Industry Connect',
+        description: 'Corporate networking.',
+        thumbnail: 'https://via.placeholder.com/400x240/F59E0B/FFFFFF?text=Industry',
+        instructor: 'Saran M.',
+        duration: '5 hours',
+        level: 'Advanced',
+        modules: [{ title: 'Networking', duration: 45 }, { title: 'Interviews', duration: 90 }],
+        certificateEnabled: true
+      }
+    ];
+
+    window.seedData = async () => {
+      const status = document.getElementById('status');
+      status.innerHTML = 'Seeding courses...';
+
+      try {
+        for (let course of sampleCourses) {
+          await f.db.collection('courses').add(course);
+        }
+        // Sample admin
+        await f.db.collection('admins').doc('admin1').set({ email: 'admin@learnpaddi.in' });
+        
+        status.innerHTML = '<div class="bg-green-500 text-white p-6 rounded-xl mt-4 font-bold text-xl">✅ Database seeded! Refresh LMS pages.</div>';
+      } catch (e) {
+        status.innerHTML = '<div class="bg-red-500 text-white p-6 rounded-xl mt-4">Error: ' + e.message + '</div>';
+      }
+    };
+  </script>
+</body>
+</html>
