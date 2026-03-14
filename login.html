@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - LearnPaddi</title>
+  <!-- LMS + Public Styles -->
+  <link rel="stylesheet" href="css/lms.css">
+  <link rel="stylesheet" href="css/public.css">
+  
+  <!-- Google Fonts etc. -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="public-mode bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div id="header-placeholder"></div>
+  <script>
+    fetch('lms/_header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('header-placeholder').innerHTML = html;
+        document.getElementById('page-title').textContent = 'Login';
+      });
+  </script>
+  <main class="main-content flex items-center justify-center p-4 min-h-screen">
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 space-y-8">
+  <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 space-y-8">
+    <!-- Logo -->
+    <div class="text-center">
+      <a href="/" class="inline-block mb-6"><img src="images/Logo.png" alt="LearnPaddi" class="h-14 mx-auto"></a>
+      <h1 class="text-3xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Sign In</h1>
+      <p class="text-gray-600">Access your LearnPaddi dashboard</p>
+    </div>
+
+    <!-- Form -->
+    <form id="login-form" class="space-y-6">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+        <input type="email" id="login-email" required class="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-gray-50" placeholder="john@example.com">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+        <input type="password" id="login-password" required class="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-gray-50" placeholder="••••••••">
+      </div>
+      <button type="submit" class="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-5 px-8 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 text-lg">
+        <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="relative text-center text-sm text-gray-500">
+      <div class="absolute inset-0 flex items-center">
+        <span class="w-full border-t border-gray-200"></span>
+      </div>
+      <div class="relative bg-white px-4">or continue with</div>
+    </div>
+
+    <!-- Google Button -->
+    <button id="google-login" class="w-full border border-gray-300 px-4 py-4 rounded-2xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center gap-3">
+      <i class="fab fa-google text-xl text-gray-700"></i>
+      Continue with Google
+    </button>
+
+    <!-- Forgot Password -->
+    <div class="text-center">
+      <button id="forgot-password" class="text-primary font-semibold hover:underline text-sm">Forgot Password?</button>
+    </div>
+
+    <!-- Link to register -->
+    <div class="text-center pt-6 border-t border-gray-200">
+      <p class="text-gray-600">New to LearnPaddi? <a href="register.html" class="text-primary font-semibold hover:underline">Create account</a></p>
+    </div>
+
+    <!-- Message -->
+    <div id="message" class="hidden p-4 rounded-2xl font-semibold text-center"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      signInWithPopup, 
+      GoogleAuthProvider, 
+      sendPasswordResetEmail
+    } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPEap7ixlThhtBvPlUJaancN_hPsMNp8Q",
+      authDomain: "learnpaddi-1aee9.firebaseapp.com",
+      projectId: "learnpaddi-1aee9",
+      storageBucket: "learnpaddi-1aee9.firebasestorage.app",
+      messagingSenderId: "633908800301",
+      appId: "1:633908800301:web:02bda958c51bf6b183c1a4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    document.getElementById('login-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = '/lms/index.html';  // LMS Homepage
+      } catch (error) {
+        showMessage(errorCodeToMessage(error.code) || 'Login failed', 'error');
+      }
+    };
+
+    document.getElementById('google-login').onclick = async () => {
+      try {
+        await signInWithPopup(auth, googleProvider);
+        window.location.href = '/lms/index.html';
+      } catch (e) {
+        showMessage('Google login failed', 'error');
+      }
+    };
+
+    document.getElementById('forgot-password').onclick = async () => {
+      const email = prompt('Enter your email to reset password:');
+      if (email) {
+        try {
+          await sendPasswordResetEmail(auth, email);
+          showMessage('Password reset email sent! Check your inbox.', 'success');
+        } catch (error) {
+          showMessage('Reset failed. Try again.', 'error');
+        }
+      }
+    };
+
+    function errorCodeToMessage(code) {
+      const messages = {
+        'auth/user-not-found': 'No account found. <a href="register.html">Register?</a>',
+        'auth/wrong-password': 'Incorrect password',
+        'auth/invalid-email': 'Invalid email format',
+        'auth/too-many-requests': 'Too many attempts. Try later.'
+      };
+      return messages[code] || `Error: ${code}`;
+    }
+
+    function showMessage(html, type) {
+      const msg = document.getElementById('message');
+      msg.innerHTML = html;
+      msg.className = `p-4 rounded-2xl font-semibold text-center ${type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-green-100 text-green-800 border border-green-200'}`;
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 6000);
+    }
+  </script>
+</body>
+</html>

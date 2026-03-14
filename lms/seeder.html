@@ -1,84 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LearnPaddi DB Seeder</title>
+  <!-- LMS CSS System -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
+  <title>LearnPaddi - Generate 50 Demo Courses</title>
   <script type="module" src="./firebase.js"></script>
+  <script type="module" src="./course-generator.js"></script>
+
 </head>
 <body>
-  <h1>🔥 Seed LearnPaddi DB</h1>
-  <button onclick="seedData()" class="bg-green-500 text-white px-8 py-4 text-xl rounded-xl font-bold">Run Seed</button>
+  <div class="max-w-2xl mx-auto bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-12 text-center border border-white/50">
+    <h1 class="text-5xl font-black bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent mb-4">🚀 LearnPaddi Demo Generator</h1>
+    <p class="text-xl text-gray-600 mb-8 max-w-md mx-auto">Generate 50 realistic courses across 10 categories for full LMS testing</p>
+  <button onclick="seedData()" class="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-10 py-4 text-xl rounded-2xl font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all">🚀 Generate 50 Demo Courses</button>
   <div id="status"></div>
 
   <script type="module">
-    import * as f from './firebase.js';
-
-    const sampleCourses = [
-      {
-        title: 'Career Skills Improvement',
-        description: 'Master career growth and leadership skills.',
-        thumbnail: 'https://via.placeholder.com/400x240/2563EB/FFFFFF?text=Career+Skills',
-        instructor: 'Ajitha S.',
-        duration: '8 hours',
-        level: 'Beginner',
-        modules: [
-          { title: 'Career Planning', duration: 30, description: 'Lorem ipsum...', videoUrl: '' },
-          { title: 'Leadership', duration: 60, description: 'Dolor sit...', videoUrl: '' },
-          { title: 'Problem Solving', duration: 90, description: 'Amet...', videoUrl: '' }
-        ],
-        quiz: {
-          questions: [
-            { q: 'First step?', options: ['Goal', 'Quit', 'Apply'], correct: 0 },
-            { q: 'Best leader?', options: ['A', 'B', 'C'], correct: 0 }
-          ]
-        },
-        certificateEnabled: true
-      },
-      {
-        title: 'Soft Skills Lab',
-        description: 'Communication & teamwork mastery.',
-        thumbnail: 'https://via.placeholder.com/400x240/06B6D4/FFFFFF?text=Soft+Skills',
-        instructor: 'Anjali R.',
-        duration: '6 hours',
-        level: 'Intermediate',
-        modules: [{ title: 'Communication', duration: 45 }, { title: 'Teamwork', duration: 75 }],
-        certificateEnabled: true
-      },
-      {
-        title: 'Digital Literacy',
-        description: 'Modern digital skills.',
-        thumbnail: 'https://via.placeholder.com/400x240/EB4899/FFFFFF?text=Digital',
-        instructor: 'Jothi K.',
-        duration: '4 hours',
-        level: 'Beginner',
-        modules: [{ title: 'Basics', duration: 30 }, { title: 'Safety', duration: 60 }],
-        certificateEnabled: true
-      },
-      {
-        title: 'Industry Connect',
-        description: 'Corporate networking.',
-        thumbnail: 'https://via.placeholder.com/400x240/F59E0B/FFFFFF?text=Industry',
-        instructor: 'Saran M.',
-        duration: '5 hours',
-        level: 'Advanced',
-        modules: [{ title: 'Networking', duration: 45 }, { title: 'Interviews', duration: 90 }],
-        certificateEnabled: true
-      }
-    ];
+    import { generateAllDemoCourses, checkCoursesExist } from './course-generator.js';
+    import { doc, setDoc, db } from './firebase.js';
 
     window.seedData = async () => {
       const status = document.getElementById('status');
-      status.innerHTML = 'Seeding courses...';
+      const button = document.querySelector('button');
+      button.disabled = true;
+      button.textContent = 'Generating...';
+
+      status.innerHTML = '<div class="bg-blue-500 text-white p-4 rounded-xl mb-4">🔄 Checking existing courses...</div>';
 
       try {
-        for (let course of sampleCourses) {
-          await f.db.collection('courses').add(course);
+        const exists = await checkCoursesExist();
+        if (exists) {
+          throw new Error('Demo courses already exist! Clear Firestore "courses" collection first.');
         }
-        // Sample admin
-        await f.db.collection('admins').doc('admin1').set({ email: 'admin@learnpaddi.in' });
-        
-        status.innerHTML = '<div class="bg-green-500 text-white p-6 rounded-xl mt-4 font-bold text-xl">✅ Database seeded! Refresh LMS pages.</div>';
-      } catch (e) {
-        status.innerHTML = '<div class="bg-red-500 text-white p-6 rounded-xl mt-4">Error: ' + e.message + '</div>';
+
+        status.innerHTML = '<div class="bg-blue-500 text-white p-4 rounded-xl mb-4">🚀 Generating 50 demo courses across 10 categories... <div id="progress" class="w-full bg-gray-200 rounded-full h-3 mt-2"><div class="bg-green-500 h-3 rounded-full transition-all" style="width:0%"></div></div></div>';
+
+        await generateAllDemoCourses();
+
+        // Keep admin
+        await setDoc(doc(db, 'admins', 'admin1'), { email: 'admin@learnpaddi.in' });
+
+        const progress = document.querySelector('#progress div');
+        progress.style.width = '100%';
+
+        setTimeout(() => {
+          status.innerHTML = '<div class="bg-green-500 text-white p-8 rounded-2xl mt-4 font-bold text-2xl shadow-2xl">🎉 SUCCESS! 50 demo courses generated across 10 categories. <br><br>🔥 Refresh dashboard.html or course pages to see them! <br>📱 Admin added: admin@learnpaddi.in</div>';
+          button.textContent = '✅ Generated!';
+          button.className = 'bg-green-600 text-white px-10 py-4 text-xl rounded-2xl font-bold shadow-xl cursor-not-allowed';
+        }, 1000);
+
+      } catch (error) {
+        console.error('Generation error:', error);
+        status.innerHTML = `<div class="bg-red-500 text-white p-6 rounded-xl mt-4 font-bold text-xl shadow-xl">❌ Error: ${error.message}</div>`;
+        button.disabled = false;
+        button.textContent = '🚀 Generate 50 Demo Courses';
       }
     };
   </script>

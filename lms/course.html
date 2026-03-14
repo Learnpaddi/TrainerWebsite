@@ -4,31 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Course - LearnPaddi LMS</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
+  <!-- LMS CSS System -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Video.js CDN -->
   <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <header class="bg-white shadow-sm sticky top-0 z-40 border-b">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <a href="#/" class="flex items-center gap-3">
-        <img src="../images/Logo.png" alt="LearnPaddi" class="h-10">
-        <span class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Course</span>
-      </a>
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 text-sm bg-primary/10 px-4 py-2 rounded-xl">
-          <i class="fas fa-chart-line"></i>
-          <span id="course-progress">0%</span>
-        </div>
-        <a href="#/dashboard" class="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-primary/90">Dashboard</a>
-      </div>
-    </div>
-  </header>
+  <!-- SaaS Header -->
+  <div id="header-placeholder"></div>
+  <script>
+    fetch('./_header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('header-placeholder').innerHTML = html;
+        document.getElementById('page-title').textContent = 'Course Player';
+      });
+  </script>
 
-  <div class="max-w-5xl mx-auto px-6 py-12">
+<main class="p-6 ml-0 lg:ml-64 bg-gray-50 min-h-screen pt-4">
+    <div class="max-w-5xl mx-auto px-6">
+
     <!-- Course Header -->
     <div class="bg-white rounded-3xl shadow-xl p-8 mb-12">
       <div class="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
@@ -89,9 +87,10 @@
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script type="module">
+
     import * as firebase from './firebase.js';
 
     const urlParams = new URLSearchParams(window.location.hash.slice(window.location.hash.indexOf('?')));
@@ -109,18 +108,7 @@
       }
     });
 
-    // Get enrollment for progress
-    firebase.auth.onAuthStateChanged(async user => {
-      if (user) {
-        const q = firebase.db.collection('enrollments').where('userId', '==', user.uid).where('courseId', '==', courseId);
-        const snapshot = await q.get();
-        if (!snapshot.empty) {
-          const enr = snapshot.docs[0].data();
-          currentEnrollmentId = snapshot.docs[0].id;
-          document.getElementById('course-progress').textContent = enr.progress + '%';
-        }
-      }
-    });
+    // Enrollment loaded via guard.js protection + firebase utils (v9+ syntax fixed elsewhere)
 
     function populateCourse(course) {
       document.getElementById('course-title').textContent = course.title;

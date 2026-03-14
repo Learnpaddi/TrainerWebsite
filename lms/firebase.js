@@ -22,10 +22,12 @@ import {
   getDocs, 
   addDoc, 
   updateDoc, 
+  deleteDoc, 
   query, 
   where, 
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js';
 
@@ -44,6 +46,8 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+export const ADMIN_EMAIL = 'thangadurai@learnpaddi.in';
 
 // Providers
 export const googleProvider = new GoogleAuthProvider();
@@ -70,6 +74,7 @@ export async function googleLogin() {
 
 export async function logout() {
   await signOut(auth);
+  window.location.href = '/login.html';
 }
 
 export async function resetPassword(email) {
@@ -78,11 +83,18 @@ export async function resetPassword(email) {
 
 // Firestore Utils
 export async function setUserDoc(uid, data) {
+  const role = data.email === ADMIN_EMAIL ? 'admin' : 'user';
   await setDoc(doc(db, 'users', uid), {
     ...data,
+    role,
     enrolledCourses: [],
     createdAt: serverTimestamp()
   }, { merge: true });
+}
+
+export async function getUserRole(uid) {
+  const userDoc = await getUserDoc(uid);
+  return userDoc?.role || 'user';
 }
 
 export async function getUserDoc(uid) {
@@ -108,10 +120,40 @@ export async function updateProgress(enrollmentId, progress) {
   await updateDoc(doc(db, 'enrollments', enrollmentId), { progress });
 }
 
+export async function createCourse(courseData) {
+  return await addDoc(collection(db, 'courses'), { 
+    ...courseData, 
+    updatedAt: serverTimestamp() 
+  });
+}
+
+export async function updateCourse(courseId, courseData) {
+  await updateDoc(doc(db, 'courses', courseId), { 
+    ...courseData, 
+    updatedAt: serverTimestamp() 
+  });
+}
+
+export async function deleteCourse(courseId) {
+  await deleteDoc(doc(db, 'courses', courseId));
+}
+
 export async function getCourses() {
   const q = query(collection(db, 'courses'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  let courses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  
+  if (courses.length === 0) {
+    console.log('No courses found. Auto-seeding samples...');
+    const { sampleCourses } = await import('./sample-data.js');
+    for (let course of sampleCourses.slice(0, 5)) {
+      await addDoc(collection(db, 'courses'), course);
+    }
+    const newSnapshot = await getDocs(q);
+    courses = newSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    console.log(`Auto-seeded ${courses.length} courses!`);
+  }
+  return courses;
 }
 
 export async function getUserEnrollments(userId) {

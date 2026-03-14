@@ -1,110 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LearnPaddi LMS - Browse Courses</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: { primary: '#2563EB', accent: '#06B6D4' },
-          fontFamily: { sans: ['Inter', 'sans-serif'] }
-        }
-      }
-    }
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>LearnPaddi LMS - Home</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <!-- LMS Header (shared) -->
-  <header class="bg-white shadow-sm sticky top-0 z-40 border-b">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <a href="#" class="flex items-center gap-3">
-        <img src="../images/Logo.png" alt="LearnPaddi" class="h-10">
-        <span class="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">LMS</span>
-      </a>
-      <nav class="flex items-center gap-6">
-        <a href="#" class="nav-login text-primary font-semibold flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-primary/10">
-          <i class="fas fa-sign-in-alt"></i> Login
-        </a>
-        <a id="nav-user" class="nav-dashboard hidden text-gray-700 font-semibold flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100" style="display:none;">
-          Dashboard <i class="fas fa-tachometer-alt"></i>
-        </a>
-        <button class="nav-logout hidden bg-red-500 text-white px-6 py-2 rounded-xl font-semibold hover:bg-red-600 ml-2" style="display:none;">
-          Logout
-        </button>
-      </nav>
-    </div>
-  </header>
 
-  <!-- Main App Container -->
-  <div id="app" class="max-w-7xl mx-auto px-6 py-12">
-    <!-- Loading -->
-    <div class="text-center py-24">
-      <i class="fas fa-spinner fa-spin text-4xl text-primary mb-4 block"></i>
-      <p class="text-xl text-gray-600">Loading LearnPaddi courses...</p>
-    </div>
-  </div>
+<body>
 
-  <!-- Firebase + App Init -->
-  <script type="module">
-    import * as firebase from './firebase.js';
-    import * as app from './app.js';
+<!-- HEADER -->
+<div id="header-placeholder"></div>
 
-    // Load homepage content
-    fetch('./lms-index-placeholder.html') // Placeholder or static
-      .then(() => {
-        // Fetch & render dynamic courses
-        firebase.getCourses().then(courses => {
-          const appDiv = document.getElementById('app');
-          appDiv.innerHTML = `
-            <div class="text-center mb-16">
-              <h1 class="text-5xl font-black mb-6 bg-gradient-to-r from-gray-900 via-primary to-accent bg-clip-text text-transparent">
-                Choose Your Learning Path
-              </h1>
-              <p class="text-xl text-gray-600 max-w-2xl mx-auto">Browse our expert-led courses and start your career transformation today.</p>
-            </div>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              ${courses.map(course => `
-                <div class="group bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-3 transition-all border hover:border-primary/30">
-                  <img src="${course.thumbnail || '../images/Logo.png'}" alt="${course.title}" class="w-full h-48 object-cover rounded-2xl mb-6">
-                  <h3 class="text-2xl font-bold mb-4">${course.title}</h3>
-                  <p class="text-gray-600 mb-6">${course.description.substring(0,100)}...</p>
-                  <div class="flex gap-4 mb-6 text-sm text-gray-500">
-                    <span><i class="fas fa-clock mr-1"></i>${course.duration}</span>
-                    <span><i class="fas fa-user mr-1"></i>${course.instructor}</span>
-                    <span><i class="fas fa-certificate mr-1 text-primary"></i>Certificate</span>
-                  </div>
-                  <button onclick="enroll('${course.id}')" class="w-full bg-gradient-to-r from-primary to-accent text-white py-4 rounded-2xl font-bold hover:shadow-xl hover:-translate-y-1 transition-all">
-                    Enroll Now <i class="fas fa-arrow-right ml-2"></i>
-                  </button>
-                </div>
-              `).join('')}
-            </div>
-          `;
-        }).catch(err => {
-          document.getElementById('app').innerHTML = '<p class="text-center text-red-500">Error loading courses. Please refresh.</p>';
-        });
-      });
-    
-    window.enroll = async (courseId) => {
-      // Auth check
-      const user = firebase.auth.currentUser;
-      if (!user) {
-        app.showNotification('Please login first', 'error');
-        window.location.hash = '/auth';
-        return;
-      }
-      try {
-        await firebase.enrollCourse(user.uid, courseId);
-        app.showNotification('Enrolled successfully!', 'success');
-      } catch (err) {
-        app.showNotification('Enrollment failed', 'error');
-      }
-    };
-  </script>
+<script>
+fetch('./_header.html')
+.then(res => res.text())
+.then(html => {
+document.getElementById("header-placeholder").innerHTML =
+html.replace("[PAGE]","Home")
+})
+.catch(()=>{
+console.error("Header failed to load")
+})
+</script>
+
+<!-- MAIN APP -->
+
+<main id="app" class="ml-0 lg:ml-64 p-6 bg-gray-50 min-h-screen">
+
+<div class="loading-state">
+
+<i class="fas fa-spinner fa-spin"></i>
+<p>Loading LearnPaddi courses...</p>
+
+</div>
+
+</main>
+
+<!-- APP SCRIPT -->
+
+
+
+<script src="guard.js" defer></script>
+
+
+
 </body>
 </html>
