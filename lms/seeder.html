@@ -5,7 +5,51 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
   <title>LearnPaddi - Generate 50 Demo Courses</title>
-  <script type="module" src="./firebase.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut, 
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  updateProfile
+} from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  onSnapshot,
+  serverTimestamp,
+  arrayUnion
+} from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCPEap7ixlThhtBvPlUJaancN_hPsMNp8Q",
+  authDomain: "learnpaddi-1aee9.firebaseapp.com",
+  projectId: "learnpaddi-1aee9",
+  storageBucket: "learnpaddi-1aee9.firebasestorage.app",
+  messagingSenderId: "633908800301",
+  appId: "1:633908800301:web:02bda958c51bf6b183c1a4"
+};
+
+window.app = initializeApp(firebaseConfig);
+window.auth = getAuth(window.app);
+window.db = getFirestore(window.app);
+window.storage = getStorage(window.app);
+</script>
   <script type="module" src="./course-generator.js"></script>
 
 </head>
@@ -18,7 +62,7 @@
 
   <script type="module">
     import { generateAllDemoCourses, checkCoursesExist } from './course-generator.js';
-    import { doc, setDoc, db } from './firebase.js';
+    // Firebase already initialized globally
 
     window.seedData = async () => {
       const status = document.getElementById('status');
@@ -39,7 +83,7 @@
         await generateAllDemoCourses();
 
         // Keep admin
-        await setDoc(doc(db, 'admins', 'admin1'), { email: 'admin@learnpaddi.in' });
+        await setDoc(doc(window.db, 'admins', 'admin1'), { email: 'admin@learnpaddi.in' });
 
         const progress = document.querySelector('#progress div');
         progress.style.width = '100%';

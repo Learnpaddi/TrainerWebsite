@@ -100,7 +100,9 @@
     let courseData = {};
     let currentEnrollment = null;
     let currentLesson = 0;
-    let lessonProgress = new Set(); // Track completed lessons
+    let lessonProgress = new Set(); // Local cache
+    let totalLessons = 0;
+    let quizAttempts = 0;
 
     // Wait for auth then init
     window.initApp = async () => {
@@ -109,19 +111,40 @@
       // Auto-enroll if needed
       currentEnrollment = await firebase.enrollIfNotExists(window.currentUser.uid, courseId);
       
-      // Load course data (v9 syntax)
+      // Load course data (stable)
       const courseSnap = await firebase.getDoc(firebase.doc(firebase.db, 'courses', courseId));
-      if (courseSnap.exists()) {
-        courseData = courseSnap.data();
-        populateCourse(courseData);
-        updateProgressBar();
-      } else {
+      if (!courseSnap.exists()) {
         document.getElementById('lesson-content').innerHTML = '<div class="text-center p-12"><h2 class="text-2xl font-bold text-red-500 mb-4">Course not found</h2><a href="courses.html" class="text-primary underline">← Back to Courses</a></div>';
+        return;
       }
+      courseData = courseSnap.data();
+      
+      // Real-time enrollment listener
+      const unsub = firebase.onSnapshot(firebase.doc(firebase.db, 'enrollments', currentEnrollment.id), (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          currentEnrollment = { id: currentEnrollment.id, ...data };
+          totalLessons = data.totalLessons || courseData.modules.reduce((sum, mod) => sum + (mod.lessons ? mod.lessons.length : 1), 0);
+          lessonProgress = new Set(data.completedLessons || []);
+          
+          // Refresh UI
+          document.getElementById('lesson-count').textContent = totalLessons;
+          populateCourse(courseData);
+          updateProgressBar();
+          
+          // Quiz unlock
+          if (data.quizUnlocked && courseData.quiz) {
+            document.getElementById('take-quiz').style.display = 'block';
+          }
+        }
+      });
+      
+      // Cleanup on unload
+      window.addEventListener('beforeunload', unsub);
     };
 
-    // Course title in header
-    document.getElementById('page-title').textContent = 'Loading Course...'; // Fallback
+// Cleanup old title set (done in header load)
+    // document.getElementById('page-title').textContent = 'Loading Course...'; // Fallback
 
     // Enrollment loaded via guard.js protection + firebase utils (v9+ syntax fixed elsewhere)
 
@@ -132,103 +155,100 @@
       document.getElementById('course-duration').innerHTML = `<i class="fas fa-clock mr-2"></i> ${course.duration}`;
       document.getElementById('course-level').innerHTML = `<i class="fas fa-level-up-alt mr-2"></i> ${course.level}`;
       document.getElementById('course-thumbnail').src = course.thumbnail || '../images/Logo.png';
-      document.getElementById('lesson-count').textContent = course.modules.length;
 
-      // Lessons
+      // Flatten lessons for flat index 0..total-1
+      const allLessons = [];
+      course.modules.forEach(mod => {
+        if (mod.lessons && mod.lessons.length) {
+          mod.lessons.forEach(lesson => allLessons.push({ ...lesson, moduleTitle: mod.title }));
+        } else {
+          allLessons.push({ title: mod.title, moduleTitle: 'Introduction', duration: 30 });
+        }
+      });
+
+      // Lessons list
       const list = document.getElementById('lessons-list');
-      course.modules.forEach((lesson, idx) => {
+      list.innerHTML = '';
+      allLessons.forEach((lesson, idx) => {
+        const completed = lessonProgress.has(idx);
+        const active = idx === currentLesson;
         list.innerHTML += `
-          <button onclick="loadLesson(${idx})" class="w-full text-left p-4 rounded-xl hover:bg-primary/10 transition-all flex items-center gap-3 ${idx === currentLesson ? 'bg-primary/20 border border-primary/30 font-semibold' : ''}">
-            <i class="fas fa-${idx === currentLesson ? 'play' : 'circle'} text-primary"></i>
-            <span>${lesson.title} (${lesson.duration}m)</span>
+          <button onclick="loadLesson(${idx})" class="w-full text-left p-4 rounded-xl hover:bg-primary/10 transition-all flex items-center gap-3 ${active ? 'bg-primary/20 border-2 border-primary/50 font-semibold shadow-md' : completed ? 'bg-emerald-50 text-emerald-800' : ''}">
+            <i class="fas fa-${active ? 'play-circle' : completed ? 'check-circle' : 'circle-thin'} ${active ? 'text-primary' : completed ? 'text-emerald-500' : 'text-gray-400'}"></i>
+            <div class="flex-1 min-w-0">
+              <span class="font-medium truncate">${lesson.title}</span>
+              <span class="text-xs text-gray-500 ml-2">(${lesson.duration}m)</span>
+            </div>
+            ${completed ? '<i class="fas fa-check ml-auto text-emerald-500"></i>' : ''}
           </button>
         `;
       });
     }
 
-    window.loadLesson = (index) => {
-      currentLesson = index;
-      const course = courseData.modules[index];
-      const content = document.getElementById('lesson-content');
-      content.innerHTML = `
-        <div class="w-full">
-          <video class="w-full rounded-2xl shadow-xl" controls preload="metadata">
-            <source src="${course.videoUrl}" type="video/mp4">
-            <p>Your browser doesn't support video.</p>
-          </video>
-          <h3 class="text-2xl font-bold mt-6 mb-4">${course.title}</h3>
-          <p class="text-lg text-gray-700">${course.description}</p>
-          <button onclick="completeLesson()" class="mt-8 bg-emerald-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl">
-            <i class="fas fa-check mr-2"></i> Mark as Complete
-          </button>
-        </div>
-      `;
-      updateLessonButtons();
-    };
+    // Remove duplicate/older loadLesson
 
-    // Progress bar
-    function updateProgressBar() {
-      const totalLessons = courseData.modules ? courseData.modules.reduce((sum, m) => sum + m.lessons?.length || 1, 0) : 0;
-      const completedLessons = lessonProgress.size;
-      const progress = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+    // Progress bar (uses cached totalLessons)
+    async function updateProgressBar() {
+      const completedCount = lessonProgress.size;
+      const progress = totalLessons ? Math.round((completedCount / totalLessons) * 100) : 0;
       
       if (currentEnrollment) {
-        firebase.updateProgress(currentEnrollment.id, progress);
+        await firebase.updateProgress(currentEnrollment.id, progress);
+        if (progress === 100 && courseData.quiz && !currentEnrollment.quizUnlocked) {
+          await firebase.unlockQuiz(currentEnrollment.id);
+          document.getElementById('take-quiz').style.display = 'block';
+        }
       }
       
-      // Update header progress (add if missing)
+      // Update header progress
       const progressEl = document.getElementById('course-progress') || document.createElement('div');
       progressEl.id = 'course-progress';
       progressEl.className = 'text-2xl font-bold text-primary mb-4';
-      progressEl.textContent = `${progress}% Complete`;
+      progressEl.textContent = `${progress}% Complete (${completedCount}/${totalLessons})`;
       if (!document.getElementById('course-progress')) {
-        document.querySelector('.flex.gap-4')?.parentNode.insertBefore(progressEl, document.querySelector('.flex.gap-4'));
-      }
-      
-      if (progress >= 100 && courseData.quiz) {
-        document.getElementById('mark-complete').style.display = 'none';
-        document.getElementById('take-quiz').style.display = 'block';
+        const btnContainer = document.querySelector('.flex.gap-4');
+        if (btnContainer) btnContainer.parentNode.insertBefore(progressEl, btnContainer);
       }
     }
 
     window.loadLesson = async (index) => {
       currentLesson = index;
-      const moduleIdx = Math.floor(index / 3); // Assume 3 lessons/module
-      const lessonInModule = index % 3;
-      const lesson = courseData.modules[moduleIdx].lessons[lessonInModule];
+      const allLessons = []; // Rebuild flat list
+      courseData.modules.forEach(mod => {
+        if (mod.lessons) mod.lessons.forEach(l => allLessons.push(l));
+      });
+      const lesson = allLessons[index] || { title: 'Lesson', description: 'Content', duration: 30 };
       
-      const content = document.getElementById('lesson-content');
-      content.innerHTML = `
+      document.getElementById('lesson-content').innerHTML = `
         <div class="w-full space-y-6">
           <video class="w-full rounded-2xl shadow-xl" controls preload="metadata" poster="https://picsum.photos/800/450?random=${index}">
-            <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" type="video/mp4">
-            Video placeholder - mark as complete to progress.
+            <source src="${lesson.videoUrl || 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4'}" type="video/mp4">
+            Video placeholder.
           </video>
           <div>
             <h3 class="text-2xl font-bold mb-4">${lesson.title}</h3>
             <p class="text-lg text-gray-700">${lesson.description}</p>
           </div>
-          <button onclick="completeLesson(${index})" class="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl flex items-center gap-2">
-            <i class="fas fa-check"></i> Mark Complete & Next
+          <button id="complete-btn-${index}" onclick="completeLesson(${index})" class="bg-emerald-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-xl flex items-center gap-2 ${lessonProgress.has(index) ? 'bg-gray-500 cursor-not-allowed' : ''}">
+            <i class="fas fa-check"></i> ${lessonProgress.has(index) ? 'Completed ✓' : 'Mark Complete & Next'}
           </button>
         </div>
       `;
       
       updateLessonButtons();
-      if (!lessonProgress.has(index)) {
-        lessonProgress.add(index);
-        updateProgressBar();
-      }
     };
 
     window.completeLesson = async (lessonIndex) => {
-      lessonProgress.add(lessonIndex);
-      updateProgressBar();
-      showNotification('✅ Lesson completed!');
+      if (lessonProgress.has(lessonIndex)) return;
       
-      // Next lesson
+      lessonProgress.add(lessonIndex);
+      await firebase.completeLesson(currentEnrollment.id, lessonIndex);
+      await updateProgressBar();
+      showNotification('✅ Lesson completed & saved!');
+      
+      // Auto next
       const nextIdx = lessonIndex + 1;
-      if (courseData.modules[Math.floor(nextIdx / 3)]?.lessons[nextIdx % 3]) {
+      if (nextIdx < totalLessons) {
         loadLesson(nextIdx);
       }
     };
@@ -248,46 +268,87 @@
     }
 
     // Quiz
-    document.getElementById('take-quiz').onclick = () => {
-      if (!courseData.quiz?.questions) {
-        showNotification('Quiz not available yet', 'error');
+    document.getElementById('take-quiz').onclick = async () => {
+      if (!currentEnrollment.quizUnlocked) {
+        showNotification('Complete all lessons first!', 'error');
+        return;
+      }
+      if (!courseData.quiz?.questions || courseData.quiz.questions.length !== 10) {
+        showNotification('Quiz not ready (10 questions required)', 'error');
         return;
       }
       
       const questions = courseData.quiz.questions;
-      document.getElementById('quiz-questions').innerHTML = questions.map((q, i) => `
-        <div class="mb-6 p-4 border rounded-xl">
-          <h4 class="font-bold mb-4">Q${i+1}: ${q.q}</h4>
-          ${q.options.map((opt, j) => `
-            <label class="block p-3 border-2 rounded-xl cursor-pointer hover:border-primary/50 mb-2 ${j===0?'border-primary':''}">
-              <input type="radio" name="q${i}" value="${j}" class="mr-3"> ${opt}
-            </label>
-          `).join('')}
+      let qidx = 0;
+      document.getElementById('quiz-questions').innerHTML = `
+        <div id="current-question" class="mb-6 p-6 border-2 border-primary/30 rounded-2xl bg-primary/5">
+          <div class="flex justify-between mb-4">
+            <span class="font-bold">Q<span id="q-number">1</span>/10</span>
+            <button onclick="retryQuiz()" class="text-sm text-gray-500 underline hover:text-gray-700">Retry Quiz</button>
+          </div>
+          <h4 id="quiz-question" class="font-bold mb-6 text-xl">${questions[0].q}</h4>
+          <div id="quiz-options"></div>
+          <button id="next-question" class="mt-8 bg-primary text-white px-8 py-3 rounded-xl font-bold hover:shadow-xl w-full">
+            Next Question
+          </button>
         </div>
-      `).join('');
-      
+      `;
+      renderQuizOptions(0);
+      document.getElementById('quiz-score').innerHTML = '<button id="start-quiz-retry" class="text-sm text-blue-500 underline">Quiz Retries: <span id="attempt-count">0</span></button>';
       document.getElementById('quiz-modal').classList.remove('hidden');
     };
 
-    document.getElementById('submit-quiz').onclick = async () => {
+    // Progressive quiz functions
+    window.renderQuizOptions = (qidx) => {
+      const questions = courseData.quiz.questions;
+      if (qidx >= 10) return showQuizResult();
+      document.getElementById('q-number').textContent = qidx + 1;
+      document.getElementById('quiz-question').textContent = questions[qidx].q;
+      document.getElementById('quiz-options').innerHTML = questions[qidx].options.map((opt, j) => 
+        `<label class="block p-4 border rounded-xl cursor-pointer hover:border-primary/50 mb-3 bg-white shadow-sm">
+          <input type="radio" name="q${qidx}" value="${j}" class="mr-3 w-4 h-4 text-primary"> ${opt}
+        </label>`
+      ).join('');
+      document.getElementById('next-question').onclick = () => nextQuizQuestion();
+    };
+
+    window.nextQuizQuestion = () => {
+      const selected = document.querySelector(`input[name="q${currentQuizIdx}"]:checked`);
+      if (!selected) return showNotification('Please select an answer', 'error');
+      currentQuizIdx++;
+      renderQuizOptions(currentQuizIdx);
+    };
+
+    let currentQuizIdx = 0;
+    window.retryQuiz = () => {
+      currentQuizIdx = 0;
+      renderQuizOptions(0);
+    };
+
+    window.showQuizResult = async () => {
       let score = 0;
       courseData.quiz.questions.forEach((q, i) => {
         const selected = document.querySelector(`input[name="q${i}"]:checked`);
         if (selected && parseInt(selected.value) === q.correct) score++;
       });
       
-      const result = await firebase.submitQuiz(currentEnrollment.id, score, courseData.quiz.questions.length);
-      document.getElementById('quiz-score').textContent = `Score: ${score}/${courseData.quiz.questions.length} (${Math.round((score/courseData.quiz.questions.length)*100)}%)`;
-      
-      if (result.passed) {
-        showNotification(`🎉 Quiz passed! Certificate generated: ${result.certId}`);
-        setTimeout(() => window.open(`certificate.html?cert=${result.certId}`, '_blank'), 1500);
-      } else {
-        showNotification('📚 Keep studying! Quiz score below 80%', 'error');
-      }
-      
-      document.getElementById('quiz-modal').classList.add('hidden');
+      const result = await firebase.submitQuiz(currentEnrollment.id, score, 10);
+      document.getElementById('quiz-score').innerHTML = `
+        <div class="text-2xl font-bold text-center mb-6">
+          Score: <span class="text-3xl ${result.passed ? 'text-emerald-500' : 'text-red-500'}">${score}/10</span> 
+          (${Math.round((score/10)*100)}%)
+        </div>
+        ${result.passed ? '<div class="text-emerald-500 text-xl">🎉 Passed! Certificate ready.</div>' : '<div class="text-red-500 text-xl">Try again!</div>'}
+        <div class="flex gap-4 mt-6">
+          <button onclick="window.open(\`certificate.html?cert=${result.certId}\`, '_blank')" class="flex-1 bg-emerald-500 text-white py-3 px-6 rounded-xl font-bold">View Certificate</button>
+          <button onclick="retryQuiz()" class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-xl font-bold">Retry Quiz</button>
+        </div>
+      `;
+      if (result.passed) showNotification(`🎉 Certificate generated: ${result.certId}`);
+      else showNotification('📚 Quiz score below 70% (7/10). Retry!', 'error');
     };
+
+    document.getElementById('submit-quiz').style.display = 'none'; // Hide old
 
     window.closeQuiz = () => document.getElementById('quiz-modal').classList.add('hidden');
 

@@ -1,2 +1,30 @@
 rules_version = '2';
-service
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public courses read
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if request.auth != null && resource.data.instructor == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email;
+    }
+    
+    // Users own their data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Enrollments: own + own course
+    match /enrollments/{enrollmentId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/enrollments/$(enrollmentId)).data.userId == request.auth.uid;
+    }
+    
+    // Certificates: own only
+    match /certificates/{certId} {
+      allow read: if true; // Public verify
+      allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+  }
+}

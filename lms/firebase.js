@@ -103,17 +103,25 @@ export async function getUserDoc(uid) {
 }
 
 export async function enrollCourse(userId, courseId) {
+  // Calculate totalLessons from course
+  const totalLessons = await getTotalLessons(courseId);
+  
   const enrollmentRef = await addDoc(collection(db, 'enrollments'), {
     userId,
     courseId,
     progress: 0,
     completed: false,
+    quizUnlocked: false,
+    completedLessons: [],
+    totalLessons: totalLessons,
+    quizAttempts: [],
     enrolledAt: serverTimestamp()
   });
   // Update user enrolledCourses
   await updateDoc(doc(db, 'users', userId), {
     enrolledCourses: arrayUnion(enrollmentRef.id)
   });
+  return { id: enrollmentRef.id, totalLessons };
 }
 
 export async function updateProgress(enrollmentId, progress) {
@@ -162,6 +170,23 @@ export async function getUserEnrollments(userId) {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+export async function getTotalLessons(courseId) {
+  const courseSnap = await getDoc(doc(db, 'courses', courseId));
+  if (!courseSnap.exists()) return 0;
+  const course = courseSnap.data();
+  return course.modules ? course.modules.reduce((sum, mod) => sum + (mod.lessons?.length || 1), 0) : 0;
+}
+
+export async function completeLesson(enrollmentId, lessonIndex) {
+  await updateDoc(doc(db, 'enrollments', enrollmentId), {
+    completedLessons: arrayUnion(lessonIndex)
+  });
+}
+
+export async function unlockQuiz(enrollmentId) {
+  await updateDoc(doc(db, 'enrollments', enrollmentId), { quizUnlocked: true });
+}
+
 // NEW: Get single enrollment
 export async function getEnrollment(userId, courseId) {
   const q = query(
@@ -177,7 +202,8 @@ export async function getEnrollment(userId, courseId) {
 export async function enrollIfNotExists(userId, courseId) {
   let enrollment = await getEnrollment(userId, courseId);
   if (!enrollment) {
-    enrollment = await enrollCourse(userId, courseId);
+    const newEnrollment = await enrollCourse(userId, courseId);
+    enrollment = { id: newEnrollment.id, totalLessons: newEnrollment.totalLessons };
   }
   return enrollment;
 }
@@ -207,17 +233,18 @@ export async function generateCertificate(userId, courseId, courseTitle, userNam
   return certId;
 }
 
-// NEW: Submit quiz results
+// NEW: Submit quiz results (7/10 = 70% pass)
 export async function submitQuiz(enrollmentId, score, totalQuestions) {
   const percentage = (score / totalQuestions) * 100;
+  const attempt = { score, percentage, timestamp: serverTimestamp() };
   await updateDoc(doc(db, 'enrollments', enrollmentId), {
     quizScore: percentage,
-    completed: percentage >= 80, // Pass threshold
-    completedAt: percentage >= 80 ? serverTimestamp() : null
+    quizAttempts: arrayUnion(attempt),
+    completed: percentage >= 70,
+    completedAt: percentage >= 70 ? serverTimestamp() : null
   });
   
-  if (percentage >= 80) {
-    // Auto-generate cert (user doc fetch async)
+  if (percentage >= 70) {
     const enrollmentSnap = await getDoc(doc(db, 'enrollments', enrollmentId));
     const enr = { id: enrollmentId, ...enrollmentSnap.data() };
     const courseSnap = await getDoc(doc(db, 'courses', enr.courseId));

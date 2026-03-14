@@ -32,7 +32,7 @@
       <i class="fas fa-cog w-5"></i>
       <span>Settings</span>
     </a>
-    <a href="#" onclick="window.currentUser ? import('./firebase.js').then(m => m.logout()) : location.href='/login.html'" class="sidebar-link flex items-center gap-4 px-6 py-3 hover:bg-gray-800 rounded-r-lg transition-colors text-red-400 hover:text-red-300">
+    <a href="login.html" onclick="logoutUser()" class="sidebar-link flex items-center gap-4 px-6 py-3 hover:bg-gray-800 rounded-r-lg transition-colors text-red-400 hover:text-red-300">
       <i class="fas fa-sign-out-alt w-5"></i>
       <span>Logout</span>
     </a>
@@ -50,21 +50,17 @@
     </div>
     
     <div class="flex items-center gap-3">
-      <!-- Search -->
       <div class="relative hidden md:block">
         <input type="text" id="global-search" placeholder="Search courses..." class="w-64 pl-10 pr-4 py-2 rounded-2xl bg-gray-100 border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm">
         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
       </div>
-      <!-- Notifications -->
       <button class="p-2 rounded-xl hover:bg-gray-100 text-gray-700 relative" title="Notifications">
         <i class="fas fa-bell text-xl"></i>
         <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
       </button>
-      <!-- User Dropdown -->
       <div class="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-100 cursor-pointer group relative" id="user-dropdown">
         <div class="user-avatar w-8 h-8 bg-primary text-white text-sm font-bold rounded-full flex items-center justify-center" id="user-initials">U</div>
         <i class="fas fa-chevron-down text-sm transition-transform group-hover:rotate-180"></i>
-        <!-- Dropdown Menu -->
         <div class="absolute top-12 right-0 bg-white shadow-2xl rounded-2xl border py-2 w-48 hidden z-40 whitespace-nowrap" id="user-menu-dropdown">
           <div class="px-4 py-3 border-b">
             <div class="font-semibold text-gray-900" id="user-name">User</div>
@@ -76,7 +72,7 @@
           <a href="profile.html#settings" class="block px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-3 text-gray-700">
             <i class="fas fa-cog w-4"></i> Settings
           </a>
-          <button onclick="window.currentUser ? import('./firebase.js').then(m => m.logout()) : location.href='/login.html'" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+          <button onclick="logoutUser()" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-3 text-gray-700">
             <i class="fas fa-sign-out-alt w-4 text-red-500"></i> Logout
           </button>
         </div>
@@ -124,23 +120,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- Firebase Integration -->
+<!-- Firebase Integration - Global logoutUser -->
 <script type="module">
+window.logoutUser = async () => {
+  try {
+    const { logout } = await import('./firebase.js');
+    await logout();
+  } catch (error) {
+    console.error('Logout failed:', error);
+    window.location.href = '/login.html';
+  }
+};
+
 import * as firebase from './firebase.js';
 
 let currentUser = null;
 
 firebase.auth.onAuthStateChanged(user => {
   currentUser = user;
-  if (user) {
-    document.getElementById('user-initials').textContent = (user.displayName || user.email?.[0] || 'U').toUpperCase();
-    document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
-    document.getElementById('user-email').textContent = user.email;
+  const initialsEl = document.getElementById('user-initials');
+  const nameEl = document.getElementById('user-name');
+  const emailEl = document.getElementById('user-email');
+  if (user && initialsEl && nameEl && emailEl) {
+    initialsEl.textContent = (user.displayName || user.email?.[0] || 'U').toUpperCase();
+    nameEl.textContent = user.displayName || user.email.split('@')[0];
+    emailEl.textContent = user.email;
   }
 });
-
-// Removed custom logoutUser - use firebase.logout() globally
-
 
 // Global search
 document.getElementById('global-search')?.addEventListener('keypress', (e) => {
@@ -151,7 +157,5 @@ document.getElementById('global-search')?.addEventListener('keypress', (e) => {
 });
 </script>
 
-<!-- Usage: -->
-<!-- <div id="header-placeholder"></div> -->
-<!-- <script>fetch('./_header.html').then(r=>r.text()).then(html=>{document.getElementById('header-placeholder').innerHTML=html; document.getElementById('page-title').textContent='Your Page Title';});</script> -->
-<!-- <main class="ml-0 lg:ml-64 p-6 bg-gray-50 min-h-screen">Page content</main> -->
+<!-- Usage: Place <div id="header-placeholder"></div> where needed -->
+
