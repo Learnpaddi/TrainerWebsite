@@ -1,31 +1,42 @@
-# Multi-Tenant SaaS LMS Conversion TODO
+# LMS Refactoring TODO
+Status: In Progress
 
-## Plan Breakdown (Approved)
+## Approved Plan Steps:
 
-**Backend Multi-Tenancy**
-1. [x] Create tenants module/service/controller (tenant entity, CRUD).
-2. [x] Add TenantMiddleware for subdomain → tenantId extraction (integrated in main.ts).
-3. [x] Update FirebaseService with tenant-aware query wrapper (add .where('tenantId', '==', currentTenantId)).
-4. [x] Extend auth: JWT payload + tenantId; update validate/login.
-5. [x] Update roles.enum.ts (+ TENANT_ADMIN, SUPER_ADMIN); update RolesGuard for tenant-scoped roles.
-6. [x] Migrate services (courses, users, payments, enrollments): add tenantId to DTOs/queries (courses, payments, users done).
+### 1. Setup root configs ✅
+- Created root `vite.config.ts`
+- Created root `tailwind.config.ts`
+- Created root `tsconfig.json`
 
-**Frontend**
-7. [ ] Update layout.tsx: detect subdomain → tenantId (API call/middleware).
-8. [ ] Build tenant-aware pages (admin/courses, etc.) with Shadcn UI.
-9. [ ] Migrate legacy lms/admin HTML to Next.js components.
+- Create root `vite.config.ts` (merged from lms-admin)
+- Create root `tailwind.config.ts` (move)
+- Create root `tsconfig.json` (app)
+- Update paths/aliases for @src, @admin, @student, @shared
 
-**Data & Testing**
-10. [x] Migration script: Add tenantId to existing Firestore data. *(Pending implementation)*
-11. [x] Install deps, test isolation (npm i @nestjs/config stripe). *(Deps command executed)*
-12. [ ] Superadmin dashboard for tenant management.
+### 2. Migrate folders ✅
+- Moved lms-admin/src/* → src/admin/
+- Move lms-student/src/* → src/student/pages/
+- Extract static HTML content → src/student/pages/*.jsx (AboutUs, Contact, Careers, Help, etc.)
+- Ensure src/shared/ intact
 
-**Progress Tracking**: Mark as [x] when complete. Next step after each: Update TODO + confirm.
+### 3. Implement routing [PENDING]
+- Create src/routes/ with index.tsx, AdminRoutes.tsx, StudentRoutes.tsx, AuthGuard
+- Update src/admin/App.tsx for routing
+- Single root index.html as Vite entry
 
-**Recent Fixes (by BLACKBOXAI)**:
-- Removed duplicate frontend/tailwind.config.js
-- Installed missing deps: tailwindcss-animate (frontend), @nestjs/config stripe (backend)
+### 4. Fix imports & role guards [PENDING]
+- Update all imports to new aliases
+- Add Firebase Auth guards (/admin/* requires isAdmin)
 
-**Next Priorities**:
-- Lint & test both front/backend
-- Implement frontend tenant detection (step 7)
+### 5. Cleanup [PENDING]
+- Delete lms-admin/, lms-student/, lms/, admin/, frontend/, backend/
+- Delete migrated static HTMLs
+- Test: npm run dev, check admin/student routes
+
+### 6. Dependencies & test [PENDING]
+- Install missing: react-router-dom, react-firebase-hooks/auth
+- Test Firebase CRUD, routing, role protection
+
+### 7. Final verification [PENDING]
+- Run preview
+- Check scalability
