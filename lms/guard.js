@@ -25,6 +25,15 @@
       window.currentUserDoc = await getUserDoc(user.uid);
       console.log('Auth guard: User loaded', user.uid);
       
+      // Admin portal protection
+      if (window.location.pathname.startsWith('/admin/')) {
+        const { isAdmin } = await import('./firebase.js');
+        if (!isAdmin(user.email)) {
+          window.location.href = window.currentUser ? '/lms/dashboard.html' : '/login.html';
+          return;
+        }
+      }
+      
       // Trigger app init if exists
       if (window.initApp) window.initApp(user);
     });

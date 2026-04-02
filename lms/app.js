@@ -9,7 +9,7 @@ const routes = {
   '/auth': '/lms/auth.html',
   '/dashboard': '/lms/dashboard.html',
   '/course/:id': '/lms/course.html',
-  '/admin': '/lms/admin.html',
+  // '/admin': '/lms/admin.html', // Moved to separate admin portal
   '/verify': '/lms/verify.html'
 };
 

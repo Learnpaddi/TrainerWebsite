@@ -71,16 +71,24 @@
       const password = document.getElementById('login-password').value;
       
       try {
-        await firebase.login(email, password);
-        window.location.href = 'dashboard.html';
+        const userCred = await firebase.login(email, password);
+        if (await firebase.isAdmin(userCred.user.email)) {
+          window.location.href = 'admin/index.html';
+        } else {
+          window.location.href = 'lms/dashboard.html';
+        }
       } catch (error) {
         showMessage(errorCodeToMessage(error.code) || 'Login failed', 'error');
       }
     };
 
     document.getElementById('google-login').onclick = () => {
-      firebase.googleLogin().then(() => {
-        window.location.href = 'dashboard.html';
+      firebase.googleLogin().then(async (result) => {
+        if (await firebase.isAdmin(result.user.email)) {
+          window.location.href = 'admin/index.html';
+        } else {
+          window.location.href = 'lms/dashboard.html';
+        }
       }).catch(e => showMessage('Google login failed', 'error'));
     };
 

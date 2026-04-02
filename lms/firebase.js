@@ -49,6 +49,10 @@ export const storage = getStorage(app);
 
 export const ADMIN_EMAIL = 'thangadurai@learnpaddi.in';
 
+export function isAdmin(email) {
+  return email === ADMIN_EMAIL;
+}
+
 // Providers
 export const googleProvider = new GoogleAuthProvider();
 
