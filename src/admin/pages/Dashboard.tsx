@@ -1,59 +1,30 @@
 import { useEffect, useState } from 'react';
-import { 
-  auth, 
-  onAuthChange, 
-  getCourses, 
-  createCourse, 
-  updateCourse, 
-  deleteCourse, 
-  logout, 
-  isAdmin,
-  Course 
-} from '@shared/firebase';
-import type { User } from 'firebase/auth';
-import './Dashboard.css';  // Copy from lms-admin/src/App.css if exists
+import { useAuth } from '@/hooks/useAuth';
+import { useCourses } from '@/hooks/useCourses';
+import { createCourse, updateCourse, deleteCourse, type Course } from '@/services/firebase/courseService';
+import { logout } from '@/services/firebase/authService';
+import { Loader2, Plus, Edit3, Trash2, Users, DollarSign, BarChart3, GraduationCap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { isAdmin } from '@/services/firebase/config';
 
 const Dashboard = () => {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [newCourse, setNewCourse] = useState<Partial<Course>>({
+  const { user, loading: authLoading } = useAuth();
+  const { courses, loading: coursesLoading, refetch } = useCourses();
+  const [newCourse, setNewCourse] = useState({
     title: '',
-    description: ''
+    description: '',
+    price: 0,
+    duration: '4 weeks'
   });
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-
-  useEffect(() => {
-  const unsubscribe = onAuthChange(async (firebaseUser: User) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        try {
-          const courseList = await getCourses();
-          setCourses(courseList);
-        } catch (error) {
-          console.error('Failed to load courses:', error);
-        }
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
+  const isLoading = authLoading || coursesLoading;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !newCourse.title) return;
-
-    if (!isAdmin(user.email || '')) {
-      alert('Admin access required');
-      return;
-    }
-
     try {
-      await createCourse(newCourse);
-      const updated = await getCourses();
-      setCourses(updated);
-      setNewCourse({ title: '', description: '' });
+      await createCourse(newCourse as any);
+      refetch();
+      setNewCourse({ title: '', description: '', price: 0, duration: '4 weeks' });
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -61,12 +32,10 @@ const Dashboard = () => {
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingCourse || !user) return;
-
+    if (!editingCourse) return;
     try {
       await updateCourse(editingCourse.id, editingCourse);
-      const updated = await getCourses();
-      setCourses(updated);
+      refetch();
       setEditingCourse(null);
     } catch (error) {
       console.error('Update failed:', error);
@@ -74,23 +43,22 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (courseId: string) => {
-    if (!user || !confirm('Delete course?')) return;
-
-    if (!isAdmin(user.email || '')) {
-      alert('Admin access required');
-      return;
-    }
-
+    if (!confirm('Delete course?')) return;
     try {
       await deleteCourse(courseId);
-      setCourses(courses.filter(c => c.id !== courseId));
+      refetch();
     } catch (error) {
       console.error('Delete failed:', error);
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-2" />
+        <span className="text-xl text-gray-600">Loading dashboard...</span>
+      </div>
+    );
   }
 
   return (

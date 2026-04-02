@@ -1,27 +1,64 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@shared/firebase/config';
-import { isAdmin } from '@shared/firebase/auth';
-import Dashboard from '@admin/pages/Dashboard';
-import Home from '@student/pages/Home';  // Placeholder
-import About from '@student/pages/AboutUs';
-import Contact from '@student/pages/Contact';
+import Login from '@/auth/Login';
+import Register from '@/auth/Register';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import Dashboard from '@/admin/pages/Dashboard';
+import Home from '@/student/pages/Home';
+import MyCourses from '@/student/pages/MyCourses';
+import CourseDetail from '@/student/pages/CourseDetail';
+import { useAuth } from '@/hooks/useAuth';
 
 const AppRoutes = () => {
-  const [user, loading] = useAuthState(auth);
-  if (loading) return <div>Loading...</div>;
+  const { loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="text-xl font-medium text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/admin/*" element={
-          user && isAdmin(user.email || '') ? <Dashboard /> : <Navigate to="/login" />
+        {/* Auth Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Public/Student Routes */}
+        <Route path="/" element={
+          <ProtectedRoute requireAuth={false}>
+            <Home />
+          </ProtectedRoute>
         } />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/" element={<Home />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/courses" element={
+          <ProtectedRoute requireAuth={false}>
+            <Home />
+          </ProtectedRoute>
+        } />
+        <Route path="/course/:courseId" element={<CourseDetail />} />
+        <Route path="/my-courses" element={
+          <ProtectedRoute requireRole="student">
+            <MyCourses />
+          </ProtectedRoute>
+        } />
+        
+        {/* Trainer Admin Panel */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute requireRole="trainer">
+            <div className="min-h-screen bg-gray-50">
+              <Routes>
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="/" element={<Navigate to="dashboard" replace />} />
+              </Routes>
+            </div>
+          </ProtectedRoute>
+        } />
+        
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
