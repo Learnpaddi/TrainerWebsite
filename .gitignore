@@ -1,0 +1,40 @@
+# Standard Node.js / Vite / Firebase ignores
+
+# Dependencies
+node_modules/
+.DS_Store
+
+# Environment variables
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log
+firestore-debug.log
+
+# Coverage
+.nyc_output
+coverage/
+
+# Build outputs
+dist/
+build/
+.out/
+
+# VSCode
+.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Firebase (keep configs)
+!firebase.json
+!firestore.rules
+!firestore.indexes.json

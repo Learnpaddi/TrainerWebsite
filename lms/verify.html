@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Certificate - LearnPaddi</title>
+  <!-- LMS CSS System -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+      <div class="max-w-4xl mx-auto px-6 py-8 text-center">
+        <img src="images/Logo.png" alt="LearnPaddi" class="h-16 mx-auto mb-6">
+        <h1 class="text-4xl font-black bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-4">Certificate Verification</h1>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">Enter certificate ID to verify authenticity on the LearnPaddi blockchain</p>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 flex items-center justify-center px-4">
+      <div class="max-w-2xl w-full bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-12">
+        <div class="text-center mb-12">
+          <i class="fas fa-search text-6xl text-primary mb-6 opacity-50"></i>
+          <h2 class="text-3xl font-bold mb-2">Verify Certificate</h2>
+          <p class="text-gray-600">Enter the unique certificate ID</p>
+        </div>
+
+        <div class="space-y-6">
+          <div class="relative">
+            <input type="text" id="cert-id-input" placeholder="e.g. CERT-2025-001" class="w-full p-6 text-xl rounded-2xl border-2 border-gray-200 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all text-center tracking-wider" maxlength="20">
+            <button onclick="verifyCert()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-gradient-to-r from-primary to-accent text-white p-4 rounded-xl hover:shadow-xl hover:scale-105 transition-all">
+              <i class="fas fa-check"></i>
+            </button>
+          </div>
+
+          <!-- Result -->
+          <div id="verify-result" class="hidden p-8 rounded-2xl shadow-lg">
+            <div id="result-content"></div>
+            <div class="mt-8 pt-8 border-t flex flex-wrap gap-4 justify-center">
+              <button onclick="viewCertificate()" class="bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:shadow-xl">View Certificate</button>
+              <a id="share-link" class="bg-gray-800 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-xl flex items-center gap-2" target="_blank">
+                <i class="fas fa-share-alt"></i> Share
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Examples -->
+        <div class="mt-16 p-8 bg-gray-50 rounded-2xl">
+          <p class="text-center text-sm text-gray-500 mb-4">Example IDs:</p>
+          <div class="flex flex-wrap gap-4 justify-center text-xs bg-white px-6 py-4 rounded-xl shadow-sm">
+            <code>CERT-2025-001</code>
+            <code>CERT-2025-ABC123</code>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white/50 backdrop-blur-sm border-t mt-auto py-8">
+      <div class="max-w-4xl mx-auto px-6 text-center text-sm text-gray-600">
+        <p>© 2025 LearnPaddi.in | All certificates are blockchain verified</p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import * as firebase from './firebase.js';
+
+    window.verifyCert = async () => {
+      const certId = document.getElementById('cert-id-input').value.trim().toUpperCase();
+      if (!certId) return;
+
+      const result = document.getElementById('verify-result');
+      const content = document.getElementById('result-content');
+
+      try {
+        const doc = await firebase.db.collection('certificates').doc(certId).get();
+        if (doc.exists) {
+          const cert = doc.data();
+          content.innerHTML = `
+            <div class="text-center">
+              <i class="fas fa-check-circle text-6xl text-emerald-500 mb-6"></i>
+              <h2 class="text-3xl font-bold text-emerald-600 mb-4">✅ Valid Certificate</h2>
+              <div class="bg-emerald-50 p-6 rounded-2xl mb-6">
+                <p><strong>Student:</strong> ${cert.userName}</p>
+                <p><strong>Course:</strong> ${cert.courseTitle}</p>
+                <p><strong>Completed:</strong> ${cert.issuedDate.toDate().toLocaleDateString()}</p>
+              </div>
+            </div>
+          `;
+          document.getElementById('share-link').href = `?cert=${certId}`;
+        } else {
+          content.innerHTML = `
+            <div class="text-center">
+              <i class="fas fa-times-circle text-6xl text-red-500 mb-6"></i>
+              <h2 class="text-3xl font-bold text-red-600 mb-4">❌ Invalid Certificate ID</h2>
+              <p class="text-lg text-gray-600">No matching certificate found. Please check the ID and try again.</p>
+            </div>
+          `;
+        }
+        result.classList.remove('hidden');
+      } catch (error) {
+        content.innerHTML = '<p class="text-center text-red-600">Verification failed. Try again.</p>';
+        result.classList.remove('hidden');
+      }
+    };
+
+    window.viewCertificate = () => {
+      const certId = document.getElementById('cert-id-input').value.trim();
+      window.open(`certificate.html?cert=${certId}`, '_blank');
+    };
+
+    // Enter key
+    document.getElementById('cert-id-input').addEventListener('keypress', e => {
+      if (e.key === 'Enter') verifyCert();
+    });
+  </script>
+</body>
+</html>

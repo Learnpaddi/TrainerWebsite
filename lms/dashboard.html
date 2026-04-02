@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="images/IcoLogo.ico" type="image/x-icon">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - LearnPaddi LMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = {theme: {extend: {colors: {primary: '#2563EB', accent: '#06B6D4'}, fontFamily: {sans: ['Inter', 'sans-serif']}}}} </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div id="header-placeholder"></div>
+  <script>
+    fetch('./_header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('header-placeholder').innerHTML = html;
+        document.getElementById('page-title').textContent = 'Dashboard';
+      });
+  </script>
+
+<main class="p-6 ml-0 lg:ml-64 bg-gray-50 min-h-screen pt-4">
+    <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <h1 class="text-5xl font-black mb-6 bg-gradient-to-r from-gray-900 via-primary to-accent bg-clip-text text-transparent">
+        Welcome Back!
+      </h1>
+      <p id="welcome-text" class="text-xl text-gray-600">Loading your dashboard...</p>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8 mb-12">
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 md:p-10 shadow-xl">
+          <h2 class="text-xl md:text-2xl lg:text-2xl font-bold mb-8 flex items-center gap-3">
+            <i class="fas fa-book-open text-primary"></i> Enrolled Courses
+          </h2>
+          <div id="enrolled-courses" class="space-y-4 md:space-y-6">
+          </div>
+        </div>
+      <div class="bg-gradient-to-br from-primary to-accent text-white rounded-3xl p-6 md:p-8 shadow-2xl">
+          <h3 class="text-lg md:text-xl font-bold mb-6">Your Progress</h3>
+          <div class="space-y-3 md:space-y-4">
+            <div class="text-2xl md:text-3xl font-black" id="total-progress">0%</div>
+          <div class="w-full bg-white/30 rounded-full h-3">
+            <div id="progress-bar" class="bg-white h-3 rounded-full transition-all" style="width:0%"></div>
+          </div>
+          <div id="completed-courses" class="text-sm opacity-90">0/0 Completed</div>
+          <div class="flex gap-4 mt-6">
+            <a href="certificate.html" class="flex-1 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl font-semibold hover:bg-white/30">
+              Certificates
+            </a>
+            <a href="profile.html" class="flex-1 text-center bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl font-semibold hover:bg-white/30">
+              Profile
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xl">
+          <h2 class="text-xl md:text-2xl font-bold mb-8 flex items-center gap-3">
+            <i class="fas fa-certificate text-primary"></i> Certificates
+          </h2>
+      <div id="certificates-preview" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="text-center p-8 border-2 border-dashed border-gray-200 rounded-2xl hover:border-primary/50 transition-all">
+          <i class="fas fa-certificate text-4xl text-gray-400 mb-4"></i>
+          <p class="text-gray-500">No certificates yet. Complete courses to earn them!</p>
+          <a href="certificate.html" class="text-primary font-semibold mt-4 block hover:underline">View All Certificates</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  </main>
+
+  <script type="module">
+    window.initApp = async (user) => {
+      const { getUserDoc, getUserEnrollments, getUserCertificates, query, where, onSnapshot, doc, getDoc, collection, db } = await import('./firebase.js');
+      
+      const userDoc = await getUserDoc(user.uid);
+      document.getElementById('welcome-text').textContent = `Hello, ${userDoc?.name || user.displayName || user.email}!`;
+
+      const enrollmentsQuery = query(collection(db, 'enrollments'), where('userId', '==', user.uid));
+      let enrollmentsUnsub;
+      let certsUnsub;
+      
+      const refreshDashboard = async () => {
+        const [enrollments, certs] = await Promise.all([
+          getUserEnrollments(user.uid),
+          getUserCertificates(user.uid)
+        ]);
+        
+        await Promise.all(enrollments.map(async (enr) => {
+          const courseSnap = await getDoc(doc(db, 'courses', enr.courseId));
+          enr.courseTitle = courseSnap.exists() ? courseSnap.data().title : 'Unknown Course';
+          enr.courseThumbnail = courseSnap.exists() ? courseSnap.data().thumbnail : '';
+        }));
+
+        const enrolledDiv = document.getElementById('enrolled-courses');
+        let totalProgress = 0;
+        let completedCount = 0;
+        
+        if (enrollments.length === 0) {
+          enrolledDiv.innerHTML = `
+            <div class="text-center py-12 text-gray-500">
+              <i class="fas fa-book text-4xl mb-4 opacity-50"></i>
+              <p>No enrolled courses yet. <a href="courses.html" class="underline font-semibold hover:text-primary">Browse courses</a> to get started!</p>
+            </div>
+          `;
+          updateStats(0, 0, 0);
+        } else {
+          totalProgress = enrollments.reduce((sum, enr) => sum + (enr.progress || 0), 0);
+          completedCount = enrollments.filter(e => e.completed).length;
+          
+          enrolledDiv.innerHTML = enrollments.map(enr => `
+            <div class="group p-6 bg-gray-50 rounded-2xl hover:bg-white transition-all border hover:border-primary/30 hover:shadow-lg">
+              <div class="flex gap-6">
+                <img src="${enr.courseThumbnail}" alt="${enr.courseTitle}" class="w-20 h-20 object-cover rounded-xl flex-shrink-0 bg-gray-200">
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-bold text-xl mb-2 truncate">${enr.courseTitle}</h3>
+                  <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
+                    <div class="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all" style="width: ${enr.progress || 0}%"></div>
+                  </div>
+                  <p class="text-sm text-gray-500">${Math.round(enr.progress || 0)}% Complete</p>
+                </div>
+                <div class="flex flex-col gap-2 self-start ml-auto">
+                  <a href="course.html?id=${enr.courseId}" class="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-primary/90 whitespace-nowrap">Continue</a>
+                  ${enr.completed ? '<span class="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-semibold text-center">Completed</span>' : ''}
+                  ${enr.quizScore ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${enr.quizScore?.toFixed(0)}% Quiz</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `).join('');
+          
+          updateStats(totalProgress / enrollments.length, completedCount, enrollments.length);
+        }
+        
+        loadCertificates(certs);
+      };
+      
+      enrollmentsUnsub = onSnapshot(enrollmentsQuery, async () => await refreshDashboard());
+      certsUnsub = onSnapshot(query(collection(db, 'certificates'), where('userId', '==', user.uid)), () => refreshDashboard());
+      
+      await refreshDashboard();
+      
+      window.addEventListener('beforeunload', () => {
+        enrollmentsUnsub && enrollmentsUnsub();
+        certsUnsub && certsUnsub();
+      });
+    };
+
+    function updateStats(avgProgress, completed, total) {
+      document.getElementById('total-progress').textContent = Math.round(avgProgress) + '%';
+      document.getElementById('progress-bar').style.width = avgProgress + '%';
+      document.getElementById('completed-courses').textContent = `${completed}/${total} Completed`;
+    }
+
+    function loadCertificates(certs) {
+      const certDiv = document.getElementById('certificates-preview');
+      if (certs.length === 0) {
+        certDiv.innerHTML = `
+          <div class="text-center p-8 border-2 border-dashed border-gray-200 rounded-2xl hover:border-primary/50 transition-all col-span-full">
+            <i class="fas fa-certificate text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-500">No certificates yet. Complete courses to earn them!</p>
+            <a href="certificate.html" class="text-primary font-semibold mt-4 block hover:underline">View All Certificates</a>
+          </div>
+        `;
+      } else {
+        certDiv.innerHTML = certs.map(cert => `
+          <div class="group cursor-pointer p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border hover:shadow-xl hover:-translate-y-1 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center">
+                <i class="fas fa-certificate text-white text-xl"></i>
+              </div>
+              <div>
+                <h4 class="font-bold">${cert.courseTitle}</h4>
+                <p class="text-sm text-gray-500">${cert.issuedDate?.toDate ? cert.issuedDate.toDate().toLocaleDateString() : 'Recent'}</p>
+              </div>
+            </div>
+            <a href="certificate.html?cert=${cert.id}" class="text-primary font-semibold underline text-sm hover:no-underline">View Certificate →</a>
+          </div>
+        `).join('');
+      }
+    }
+  </script>
+
+  <script src="guard.js" defer></script>
+</body>
+</html>
+

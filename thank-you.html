@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Thank you for contacting LearnPaddi. We have received your message and will get back to you soon." />
+    <title>Thank You - LearnPaddi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="icon" href="images/IcoLogo.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js"></script>
+    <style>
+        /* Combined Thank You Page Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Inter', Arial, sans-serif;
+            background: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .thank-you-container {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .thank-you-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+            z-index: 0;
+        }
+
+        .thank-you-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(251, 191, 36, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+            animation: bgPulse 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgPulse {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Main Content */
+        .thank-you-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        /* SVG Checkmark Circle */
+        .checkmark-circle {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 1.5rem;
+            animation: scaleIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .checkmark-circle circle {
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .checkmark-circle .checkmark {
+            stroke: #fff;
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: checkmarkDraw 0.6s ease forwards 0.4s;
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes checkmarkDraw {
+            0% {
+                stroke-dashoffset: 48;
+            }
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* Thank You Text */
+        .thank-you-content h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 1rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 0.6s ease forwards 0.6s;
+            opacity: 0;
+        }
+
+        .thank-you-content p {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 0 2rem;
+            line-height: 1.6;
+            animation: fadeInUp 0.6s ease forwards 0.8s;
+            opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Additional Message Box */
+        .message-box {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease forwards 1s;
+            opacity: 0;
+        }
+
+        .message-box p {
+            font-size: 1rem;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Back to Home Button */
+        .thank-you-content a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            background: #fff;
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease forwards 1.2s;
+            opacity: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .thank-you-content a:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            background: #fbbf24;
+            color: #1f2937;
+        }
+
+        .thank-you-content a i {
+            transition: transform 0.3s ease;
+        }
+
+        .thank-you-content a:hover i {
+            transform: translateX(-4px);
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .thank-you-content h1 {
+                font-size: 2.25rem;
+            }
+            
+            .thank-you-content p {
+                font-size: 1rem;
+            }
+            
+            .checkmark-circle {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .message-box {
+                padding: 1rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="thank-you-container">
+        <!-- Animated Background -->
+        <div class="thank-you-bg"></div>
+        
+        <!-- Floating Particles -->
+        <div class="particles"></div>
+        
+        <!-- Main Content -->
+        <div class="thank-you-content">
+            <svg class="checkmark-circle" viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="25" />
+                <path class="checkmark" fill="none" stroke="#fff" stroke-width="4" d="M14 27l7 7 16-16" />
+            </svg>
+            <h1>Thank You!</h1>
+            <p>Your submission has been received.<br>We appreciate your interest and will get back to you soon.</p>
+            
+            <div class="message-box">
+                <p><i class="fas fa-envelopevelope-open-text" style="margin-right: 0.5rem;"></i> Check your email for confirmation details.</p>
+            </div>
+            
+            <a href="index.html">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Home</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Create floating particles
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.particles');
+            if (!container) return;
+
+            const particleCount = 25;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                particle.style.width = (5 + Math.random() * 15) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                container.appendChild(particle);
+            }
+        });
+    </script>
+</body>
+</html>
+
