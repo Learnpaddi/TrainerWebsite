@@ -1,0 +1,40 @@
+import React, { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
+
+const ThemeToggle: React.FC = () => {
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme') === 'dark';
+      setDarkMode(saved);
+      if (saved) {
+        document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark');
+  };
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all backdrop-blur-sm relative"
+      aria-label="Toggle dark mode"
+    >
+      {darkMode ? (
+        <Sun className="w-5 h-5 text-yellow-500" />
+      ) : (
+        <Moon className="w-5 h-5 text-gray-600" />
+      )}
+    </button>
+  );
+};
+
+export default ThemeToggle;
+

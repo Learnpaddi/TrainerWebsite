@@ -33,30 +33,11 @@ const LMSDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-white/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="p-3 bg-indigo-100 hover:bg-indigo-200 rounded-2xl text-indigo-700 hover:text-indigo-900 transition-all group">
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            </Link>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-                LMS Dashboard
-              </h1>
-Welcome back, {user?.doc?.email?.split('@')[0] || 'Learner'}
-            </div>
-            <div className="text-right text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                <GraduationCap className="w-4 h-4" />
-                <span>Student Mode</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-black text-gray-900 mb-2">LMS Dashboard</h1>
+          <p className="text-xl text-gray-600">Welcome back, {user?.doc?.email?.split('@')[0] || 'Learner'}</p>
+        </div>
         {/* Stats Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50 hover:shadow-2xl transition-all">

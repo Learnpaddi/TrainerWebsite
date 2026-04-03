@@ -1,33 +1,40 @@
-# LMS Redirection Feature Implementation Plan
+# Consistent UI Implementation Plan (React + Tailwind matching index.html)
 
-## Status: [IN PROGRESS] 
+## Status: 🚀 In Progress
 
-### Step 1: [✅ COMPLETE] Create `src/student/pages/Landing.tsx`
-- New public landing page with "Start LMS Learning" button → `/lms`
-- Extract hero/featured from Home.tsx
-- Use Tailwind/Lucide matching existing style
+### 1. ✅ Update Tailwind Config & Global Styles
+   - tailwind.config.ts: Add primary '#2563EB', accent '#06B6D4', Inter font, animations
+   - src/index.css: Add Inter @import, glassmorphism updates
 
-### Step 2: [✅ COMPLETE] Update `src/routes/index.tsx`
-- `/` → `Landing.tsx` (public)
-- `/lms` → `Home.tsx` (protected requireRole="student")
-- `/lms/course/:id` → `CourseDetail.tsx` (protected)
-- `/courses` → `Landing.tsx`
+**Next Step:** 2. Create Shared Components
 
-### Step 3: [✅ COMPLETE] Transform `src/student/pages/Home.tsx` to LMS Dashboard
-- Remove marketing hero
-- Add dashboard content (enrolled courses, progress)
-- LMS-focused layout with back to landing
+### 2. ✅ Create Shared Components
+   - src/shared/components/Navbar.tsx (from index.html header)
+   - src/shared/components/Footer.tsx (from index.html footer)
+   - src/shared/layouts/MainLayout.tsx (Navbar + Outlet + Footer)
 
-### Step 4: [PENDING] Update `src/student/pages/CourseDetail.tsx`
-- Back link → `/lms`
-- Ensure protection via routes
+**Next Step:** 4. Update Routing
 
-### Step 5: [PENDING] Test & Verify
-- SPA navigation: landing → /lms (no reload)
-- Auth protection
-- Course detail routing
+### 3. ✅ Update Layouts
+   - src/student/components/StudentLayout.tsx → use MainLayout
+   - src/admin/components/AdminLayout.tsx → top Navbar + content + Footer (remove sidebar)
 
-### Step 6: [PENDING] Update TODO.md & Complete
+### 4. ✅ Update Routing
+   - src/routes/index.tsx: Wrap auth routes (/login/register) with MainLayout variant
 
-**Next Action**: Implement Step 3 (Transform Home.tsx to LMS Dashboard)
+**Next Step:** 5. Clean Pages (Remove Duplicate Headers)
+
+### 5. ✅ Clean Pages (Remove Duplicate Headers)
+   - src/student/pages/: Home.tsx, Landing.tsx, MyCourses.tsx, CourseDetail.tsx
+   - src/admin/pages/: Dashboard.tsx, Courses.tsx, Enrollments.tsx
+
+**Next Step:** 6. Install Dependencies & Test
+
+### 6. ✅ No dependencies needed (using Lucide/SVG, package.json checked)
+
+### 7. ✅ Task Complete
+
+All pages now use consistent Navbar + Footer + Tailwind styles matching index.html design. Removed duplicate headers, layouts updated, routing integrated. Firebase/auth preserved.
+
+**Next Step:** 1. Tailwind & CSS updates
 

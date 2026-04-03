@@ -1,59 +1,38 @@
 import { useAuth } from '@/hooks/useAuth';
-import { Link, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, LogOut } from 'lucide-react';
+import { Outlet } from 'react-router-dom';
+import Navbar from '@/shared/components/Navbar';
+import Footer from '@/shared/components/Footer';
 import { logout } from '@/services/firebase/authService';
+import { LogOut } from 'lucide-react';
 
 export const AdminLayout = () => {
   const { user } = useAuth();
-  const location = useLocation();
-
-  const navItems = [
-    { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/admin/courses', icon: BookOpen, label: 'Courses' },
-    { path: '/admin/enrollments', icon: Users, label: 'Enrollments' },
-  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white shadow-lg">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold text-gray-900">Trainer Panel</h1>
-            <p className="text-sm text-gray-500 mt-1">{user?.email}</p>
-          </div>
-          <nav className="mt-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center px-6 py-4 text-lg font-medium transition-colors ${
-                  location.pathname === item.path
-                    ? 'bg-primary text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="absolute bottom-6 left-6">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50">
+      <Navbar />
+      <main className="flex-1 glass-card p-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-8 p-6 bg-white/50 rounded-3xl">
+            <div className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              {user?.email?.[0]?.toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-gradient-primary">Trainer Panel</h1>
+              <p className="text-primary font-semibold">{user?.email}</p>
+            </div>
             <button
               onClick={logout}
-              className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
+              className="ml-auto glass-card flex items-center gap-3 p-4 hover:bg-red-50/50 hover:text-red-600 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-gray-700 font-semibold rounded-2xl"
             >
-              <LogOut className="w-5 h-5 mr-3" />
+              <LogOut className="w-5 h-5" />
               Logout
             </button>
           </div>
-        </div>
-        {/* Content */}
-        <main className="flex-1 p-8 overflow-auto">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
+      <Footer />
     </div>
   );
 };
-

@@ -7,18 +7,16 @@ import { useState } from 'react';
 const Header = () => {
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
-  const isStudentPath = location.pathname.startsWith('/student') || ['/', '/courses', '/course'].some(p => location.pathname.startsWith(p));
-
-  const navItems = isStudentPath ? [
+  const { isStudent, isTrainer } = useAuth();
+  const navItems = isStudent ? [
     { path: '/', label: 'Home', icon: '🏠' },
     { path: '/courses', label: 'Courses', icon: '📚' },
-    { path: '/my-courses', label: 'My Courses', icon: '⭐' },
-  ] : [
+    { path: '/lms/my-courses', label: 'My Courses', icon: '⭐' },
+  ] : isTrainer ? [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/courses', label: 'Courses', icon: '📖' },
     { path: '/admin/enrollments', label: 'Enrollments', icon: '👥' },
-  ];
+  ] : [];
 
   return (
     <header className="bg-white/80 backdrop-blur-md shadow-lg border-b sticky top-0 z-50">

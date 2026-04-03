@@ -11,6 +11,8 @@ import Home from '@/student/pages/Home';
 import Landing from '@/student/pages/Landing';
 import MyCourses from '@/student/pages/MyCourses';
 import CourseDetail from '@/student/pages/CourseDetail';
+import MainLayout from '@/shared/layouts/MainLayout';
+import { StudentLayout } from '@/student/components/StudentLayout';
 import { useAuth } from '@/hooks/useAuth';
 
 const AppRoutes = () => {
@@ -28,8 +30,16 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         {/* Auth Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={
+          <MainLayout>
+            <Login />
+          </MainLayout>
+        } />
+        <Route path="/register" element={
+          <MainLayout>
+            <Register />
+          </MainLayout>
+        } />
         
         {/* Public/Student Routes */}
         <Route path="/" element={
@@ -42,21 +52,15 @@ const AppRoutes = () => {
             <Landing />
           </ProtectedRoute>
         } />
-        <Route path="/lms" element={
+        <Route path="/lms/*" element={
           <ProtectedRoute requireRole="student">
-            <Home />
+            <StudentLayout />
           </ProtectedRoute>
-        } />
-        <Route path="/lms/course/:courseId" element={
-          <ProtectedRoute requireRole="student">
-            <CourseDetail />
-          </ProtectedRoute>
-        } />
-        <Route path="/my-courses" element={
-          <ProtectedRoute requireRole="student">
-            <MyCourses />
-          </ProtectedRoute>
-        } />
+        }>
+          <Route index element={<Home />} />
+          <Route path="course/:courseId" element={<CourseDetail />} />
+          <Route path="my-courses" element={<MyCourses />} />
+        </Route>
         
         {/* Trainer Admin Panel */}
         <Route path="/admin/*" element={

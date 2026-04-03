@@ -3,37 +3,41 @@ import { useCourses } from '@/hooks/useCourses';
 import { Link } from 'react-router-dom';
 import { Plus, GraduationCap, Play } from 'lucide-react';
 
-const Landing = () => {
+  const Landing = () => {
   const { user } = useAuth();
   const { courses, loading } = useCourses();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCourses = courses.filter(course => 
+    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Hero */}
-      <section className="relative py-24 px-6 max-w-7xl mx-auto text-center">
+      <section className="relative py-24 px-6 max-w-7xl mx-auto text-center bg-gradient-to-br from-primary/5 to-accent/5 rounded-3xl mx-4 -mt-24">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-gray-900 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-gray-900 via-primary to-accent bg-clip-text text-transparent mb-6 leading-tight dark:from-gray-100">
             Fueling Today's Mind
             <span className="block text-transparent bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text">for Tomorrow's Success</span>
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed dark:text-gray-400">
             Discover expert-led courses. Track progress. Earn certificates. Transform your career.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            {/* Start LMS Learning Button */}
             <Link 
               to="/lms" 
-              className="group bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-12 py-6 text-xl font-bold rounded-2xl shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all max-w-sm w-full text-center"
+              className="group bg-gradient-to-r from-primary to-accent text-white px-12 py-6 text-xl font-bold rounded-2xl shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all max-w-sm w-full text-center btn-primary"
             >
               <span className="flex items-center justify-center gap-3">
                 Start LMS Learning <GraduationCap className="w-5 h-5 group-hover:translate-x-1" />
               </span>
             </Link>
             <Link 
-              to="/courses" 
-              className="px-12 py-6 text-xl font-bold text-gray-700 bg-white/80 border-2 border-gray-200 rounded-2xl hover:border-emerald-400 hover:text-emerald-600 hover:shadow-xl transition-all max-w-sm w-full text-center"
-            >
+              to="/lms/my-courses" 
+              className="px-12 py-6 text-xl font-bold text-gray-700 bg-white/80 border-2 border-gray-200 rounded-2xl hover:border-primary hover:text-primary hover:shadow-xl transition-all max-w-sm w-full text-center dark:bg-gray-800/80 dark:border-gray-600 dark:text-gray-200 dark:hover:border-primary dark:hover:bg-gray-700">
               Browse Courses <Plus className="w-5 h-5 ml-1" />
             </Link>
           </div>
