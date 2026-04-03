@@ -54,5 +54,5 @@ export const deleteCourse = async (id: string): Promise<void> => {
 
 export const getCourseById = async (id: string): Promise<Course | null> => {
   const docSnap = await getDoc(doc(db, 'courses', id));
-  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() as Course } : null;
+  return docSnap.exists() ? { ...docSnap.data() as Course, id: docSnap.id } : null;
 };

@@ -3,7 +3,11 @@ export interface Enrollment {
   userId: string;
   courseId: string;
   enrolledAt: string;
-  status: 'active' | 'completed';
+  status: 'active' | 'completed' | 'payment_pending' | 'paid';
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  paymentAmount: number;
   progress?: number; // 0-100
 }
 

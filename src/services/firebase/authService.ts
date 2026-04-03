@@ -1,16 +1,16 @@
 import { 
-  User, 
+  type User, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signInWithPopup, 
   signOut as signOutAuth, 
   sendPasswordResetEmail,
   updateProfile,
-  UserCredential
+  type UserCredential
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './config';
-import { setUserDoc } from './userService';
+
 
 export interface RegisterPayload {
   email: string;

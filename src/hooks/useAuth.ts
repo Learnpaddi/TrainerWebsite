@@ -1,10 +1,10 @@
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useEffect, useState } from 'react';
 import { auth } from '@/services/firebase/config';
-import { getUserDoc, UserDoc } from '@/services/firebase/userService';
-import { User } from 'firebase/auth';
+import { getUserDoc, type UserDoc } from '@/services/firebase/userService';
+import type { User as FirebaseUser } from 'firebase/auth';
 
-export interface AuthUser extends User {
+export interface AuthUser extends FirebaseUser {
   role?: 'student' | 'trainer';
   doc?: UserDoc | null;
 }

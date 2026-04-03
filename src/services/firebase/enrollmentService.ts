@@ -12,15 +12,21 @@ export interface Enrollment {
   userId: string;
   courseId: string;
   enrolledAt: string;
-  status: 'active' | 'completed';
+  status: 'active' | 'completed' | 'payment_pending' | 'paid';
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  paymentAmount: number;
 }
 
-export const createEnrollment = async (userId: string, courseId: string): Promise<string> => {
+export const createEnrollment = async (userId: string, courseId: string, amount: number, razorpayOrderId?: string): Promise<string> => {
   const docRef = await addDoc(collection(db, 'enrollments'), {
     userId,
     courseId,
     enrolledAt: new Date().toISOString(),
-    status: 'active' as const
+    status: razorpayOrderId ? 'payment_pending' : 'active' as const,
+    paymentAmount: amount,
+    razorpayOrderId
   });
   return docRef.id;
 };

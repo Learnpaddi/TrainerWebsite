@@ -2,15 +2,17 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCourses } from '@/hooks/useCourses';
 import { useEnrollments } from '@/hooks/useEnrollments';
-import { enrollInCourse } from '@/services/firebase/enrollmentService'; // TODO: add this function
-import { Loader2, Play, GraduationCap, Users, DollarSign, Clock, Star } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/services/firebase/config';
+import { loadRazorpay, RAZORPAY_CONFIG } from '@/services/razorpay/client';
+import { Loader2, Play, GraduationCap, Users, DollarSign, Clock, Star, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
   const { courses, loading: coursesLoading } = useCourses();
-  const { enrollments, enrollInCourse: enrollAction, enrollLoading } = useEnrollments();
+  const { enrollments, enrollLoading } = useEnrollments();
   const [enrolling, setEnrolling] = useState(false);
 
   const course = courses.find(c => c.id === courseId);
@@ -18,13 +20,43 @@ const CourseDetail = () => {
   const loading = coursesLoading || enrollLoading;
 
   const handleEnroll = async () => {
-    if (!user || !courseId || isEnrolled) return;
+    if (!user || !course || isEnrolled) return;
     setEnrolling(true);
     try {
-      await enrollAction(courseId);
-      // Refetch would happen in useEnrollments
+      const createOrder = httpsCallable(functions, 'createRazorpayOrder');
+      const orderResponse = await createOrder({
+        amount: course.price * 100, // paise
+        currency: 'INR',
+        courseId: course.id,
+        userId: user.uid
+      });
+      
+      await loadRazorpay();
+      
+      const options = {
+        key: RAZORPAY_CONFIG.key_id,
+        amount: (orderResponse.data as any).order.amount,
+        currency: (orderResponse.data as any).order.currency,
+        name: RAZORPAY_CONFIG.name,
+        description: course.title,
+        order_id: (orderResponse.data as any).order.id,
+        handler: async (response: any) => {
+          // Verify payment
+          const verifyPayment = httpsCallable(functions, 'verifyRazorpayPayment');
+          await verifyPayment({
+            orderId: response.razorpay_order_id,
+            paymentId: response.razorpay_payment_id,
+            signature: response.razorpay_signature
+          });
+          // Enrollment created in backend
+        },
+        theme: { color: RAZORPAY_CONFIG.theme.color }
+      };
+      
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (error) {
-      console.error('Enrollment failed:', error);
+      console.error('Payment failed:', error);
     } finally {
       setEnrolling(false);
     }

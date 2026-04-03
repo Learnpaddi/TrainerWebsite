@@ -1,9 +1,12 @@
-import React from 'react';
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from '@/auth/Login';
 import Register from '@/auth/Register';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AdminLayout } from '@/admin/components/AdminLayout';
 import Dashboard from '@/admin/pages/Dashboard';
+import CoursesPage from '@/admin/pages/Courses';
+import EnrollmentsPage from '@/admin/pages/Enrollments';
 import Home from '@/student/pages/Home';
 import MyCourses from '@/student/pages/MyCourses';
 import CourseDetail from '@/student/pages/CourseDetail';
@@ -48,14 +51,13 @@ const AppRoutes = () => {
         {/* Trainer Admin Panel */}
         <Route path="/admin/*" element={
           <ProtectedRoute requireRole="trainer">
-            <div className="min-h-screen bg-gray-50">
-              <Routes>
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="/" element={<Navigate to="dashboard" replace />} />
-              </Routes>
-            </div>
+            <AdminLayout />
           </ProtectedRoute>
-        } />
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="courses" element={<CoursesPage />} />
+          <Route path="enrollments" element={<EnrollmentsPage />} />
+        </Route>
         
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />

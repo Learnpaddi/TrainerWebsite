@@ -33,12 +33,15 @@ service cloud.firestore {
       );
     }
     
-    // Enrollments: students manage own, trainers read own students
+    // Enrollments: students own, trainers own course students
     match /enrollments/{enrollmentId} {
-      allow read, create, update, delete: if request.auth != null 
-        && resource.data.userId == request.auth.uid;
-      allow list, read: if request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainer';
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'trainer' &&
+         resource.data.courseId in get(/databases/$(database)/documents/courses/{courseId}).data.trainerId == request.auth.uid)
+      );
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
     // Progress tracking per enrollment

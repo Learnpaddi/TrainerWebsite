@@ -13,7 +13,7 @@ export interface UserDoc extends DocumentData {
 export const getUserDoc = async (uid: string): Promise<UserDoc | null> => {
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
-  return userSnap.exists() ? { uid, ...(userSnap.data() as UserDoc) } : null;
+  return userSnap.exists() ? { ...userSnap.data() as UserDoc, uid } : null;
 };
 
 export const setUserDoc = async (uid: string, data: Partial<UserDoc>): Promise<void> => {

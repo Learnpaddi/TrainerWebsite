@@ -1,11 +1,11 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useCourses } from '@/hooks/useCourses';
-import { Button } from '@/components/ui/button'; // Placeholder - add shadcn later
+
 import { Plus, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
-  const { user, isStudent, isTrainer } = useAuth();
+  const { user } = useAuth();
   const { courses, loading } = useCourses();
 
   return (
@@ -60,7 +60,7 @@ const Home = () => {
               <GraduationCap className="w-24 h-24 mx-auto mb-8 opacity-50" />
               <h3 className="text-2xl font-bold mb-4">No courses available</h3>
               <p>Be the first trainer to create courses</p>
-              {isTrainer && (
+{ user?.doc?.role === 'trainer' && (
                 <Link to="/admin/courses" className="mt-8 inline-block bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-xl">
                   Create First Course
                 </Link>
