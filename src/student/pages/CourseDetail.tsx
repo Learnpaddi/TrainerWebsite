@@ -76,7 +76,7 @@ const CourseDetail = () => {
         <div className="text-center">
           <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Course not found</h1>
-          <Link to="/courses" className="text-blue-600 hover:underline">Browse courses</Link>
+          <Link to="/lms" className="text-blue-600 hover:underline">Back to LMS</Link>
         </div>
       </div>
     );
@@ -87,7 +87,7 @@ const CourseDetail = () => {
       <div className="max-w-6xl mx-auto">
         {/* Back + Breadcrumb */}
         <Link 
-          to="/courses" 
+          to="/lms" 
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mb-12"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

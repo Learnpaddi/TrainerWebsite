@@ -8,6 +8,7 @@ import Dashboard from '@/admin/pages/Dashboard';
 import CoursesPage from '@/admin/pages/Courses';
 import EnrollmentsPage from '@/admin/pages/Enrollments';
 import Home from '@/student/pages/Home';
+import Landing from '@/student/pages/Landing';
 import MyCourses from '@/student/pages/MyCourses';
 import CourseDetail from '@/student/pages/CourseDetail';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,15 +34,24 @@ const AppRoutes = () => {
         {/* Public/Student Routes */}
         <Route path="/" element={
           <ProtectedRoute requireAuth={false}>
-            <Home />
+            <Landing />
           </ProtectedRoute>
         } />
         <Route path="/courses" element={
           <ProtectedRoute requireAuth={false}>
+            <Landing />
+          </ProtectedRoute>
+        } />
+        <Route path="/lms" element={
+          <ProtectedRoute requireRole="student">
             <Home />
           </ProtectedRoute>
         } />
-        <Route path="/course/:courseId" element={<CourseDetail />} />
+        <Route path="/lms/course/:courseId" element={
+          <ProtectedRoute requireRole="student">
+            <CourseDetail />
+          </ProtectedRoute>
+        } />
         <Route path="/my-courses" element={
           <ProtectedRoute requireRole="student">
             <MyCourses />
