@@ -1,6 +1,6 @@
 // Central types export
 export * from '@/services/firebase/types';
-export type { Course, Enrollment, UserDoc } from '@/services/firebase/types';
+export type { Course, Enrollment } from '@/services/firebase/types';
 
 // UI types
 export interface NavItem {

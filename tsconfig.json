@@ -26,6 +26,6 @@
       "@services/*": ["./src/services/*"]
     }
   },
-  "include": ["src"]
+"include":["src", "src/vite-env.d.ts"]
 }
 

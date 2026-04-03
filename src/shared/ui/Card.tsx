@@ -1,11 +1,11 @@
-import React, { ReactNode as ReactNodeType } from 'react'
+import type { ReactNode } from 'react'
 
 
 interface CardProps {
-  children: ReactNodeType
+  children: ReactNode
   className?: string
-  header?: ReactNodeType
-  footer?: ReactNodeType
+  header?: ReactNode
+  footer?: ReactNode
 }
 
 const Card: React.FC<CardProps> = ({

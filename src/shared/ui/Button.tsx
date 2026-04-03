@@ -1,6 +1,6 @@
 import React from 'react'
-import { ButtonHTMLAttributes } from 'react'
-import { theme } from '../styles/theme'
+import type { ButtonHTMLAttributes } from 'react'
+// Design theme reference (Tailwind covers styles)
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive'
 type ButtonSize = 'sm' | 'md' | 'lg'

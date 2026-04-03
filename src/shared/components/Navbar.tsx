@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 
 interface NavItem {
@@ -15,7 +15,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, isStudent, isTrainer } = useAuth();
+  const { isStudent, isTrainer } = useAuth();
 
   const commonNavItems: NavItem[] = [
     { path: '/#features', label: 'Features' },

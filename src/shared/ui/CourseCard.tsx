@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Clock, CheckCircle, Star } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 
 interface CourseCardProps {
   id: string;

@@ -1,17 +1,9 @@
-import { useAuth } from '@/hooks/useAuth';
 import { useCourses } from '@/hooks/useCourses';
 import { Link } from 'react-router-dom';
 import { Plus, GraduationCap, Play } from 'lucide-react';
 
   const Landing = () => {
-  const { user } = useAuth();
   const { courses, loading } = useCourses();
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const filteredCourses = courses.filter(course => 
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
