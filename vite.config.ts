@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  publicDir: false,
+  publicDir: 'public',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -15,7 +15,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000
+    port: 3000,
+    historyApiFallback: true
   }
 })
 
