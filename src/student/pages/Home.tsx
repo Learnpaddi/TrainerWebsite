@@ -111,7 +111,7 @@ const LMSDashboard = () => {
                 {enrolledCourses.slice(0, 6).map(({ enrollment, course, progress }) => (
                   <Link 
                     key={enrollment.id} 
-                    to={`/lms/course/${enrollment.courseId}`}
+                    to={`/course/${enrollment.courseId}`}
                     className="group bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all border border-white/50 hover:border-indigo-200 overflow-hidden"
                   >
                     <div className="w-full h-40 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-2xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform">

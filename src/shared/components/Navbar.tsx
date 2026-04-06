@@ -26,7 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
 
   const studentNavItems: NavItem[] = [
     ...commonNavItems,
-    { path: '/lms', label: 'LMS Dashboard' },
+    { path: '/dashboard', label: 'LMS Dashboard' },
   ];
 
   const trainerNavItems: NavItem[] = [
@@ -71,7 +71,7 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
               </Link>
             ))}
             <Link
-              to="/lms"
+              to="/dashboard"
               className="text-lg font-bold bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
             >
               Start LMS Learning 
@@ -109,7 +109,7 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
             </Link>
           ))}
           <Link
-            to="/lms"
+            to="/dashboard"
             className="block py-3 px-6 font-bold text-primary bg-primary/10 dark:bg-primary/20 rounded-xl hover:bg-primary/20 dark:hover:bg-primary/30 transition-all border border-primary/20"
             onClick={toggleMobileMenu}
           >

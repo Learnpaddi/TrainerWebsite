@@ -5,6 +5,15 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        lms: path.resolve(__dirname, 'lms/index.html'),
+        legacyLmsEntry: path.resolve(__dirname, 'src/LMSindex.html'),
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

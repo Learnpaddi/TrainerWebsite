@@ -11,7 +11,7 @@ const Header = () => {
   const navItems = isStudent ? [
     { path: '/', label: 'Home', icon: '🏠' },
     { path: '/courses', label: 'Courses', icon: '📚' },
-    { path: '/lms/my-courses', label: 'My Courses', icon: '⭐' },
+    { path: '/my-courses', label: 'My Courses', icon: '⭐' },
   ] : isTrainer ? [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/courses', label: 'Courses', icon: '📖' },

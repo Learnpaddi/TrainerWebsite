@@ -20,7 +20,7 @@ import { Plus, GraduationCap, Play } from 'lucide-react';
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <Link 
-              to="/lms" 
+              to="/dashboard" 
               className="group bg-gradient-to-r from-primary to-accent text-white px-12 py-6 text-xl font-bold rounded-2xl shadow-2xl hover:shadow-3xl hover:-translate-y-2 transition-all max-w-sm w-full text-center btn-primary"
             >
               <span className="flex items-center justify-center gap-3">
@@ -28,7 +28,7 @@ import { Plus, GraduationCap, Play } from 'lucide-react';
               </span>
             </Link>
             <Link 
-              to="/lms/my-courses" 
+              to="/my-courses" 
               className="px-12 py-6 text-xl font-bold text-gray-700 bg-white/80 border-2 border-gray-200 rounded-2xl hover:border-primary hover:text-primary hover:shadow-xl transition-all max-w-sm w-full text-center dark:bg-gray-800/80 dark:border-gray-600 dark:text-gray-200 dark:hover:border-primary dark:hover:bg-gray-700">
               Browse Courses <Plus className="w-5 h-5 ml-1" />
             </Link>
@@ -91,7 +91,7 @@ import { Plus, GraduationCap, Play } from 'lucide-react';
             Click Start LMS Learning and begin your journey with 5K+ students
           </p>
           <Link 
-            to="/lms" 
+            to="/dashboard" 
             className="inline-block bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-6 px-12 rounded-3xl text-xl hover:shadow-2xl hover:-translate-y-2 transition-all shadow-xl group"
           >
             <span className="flex items-center justify-center gap-3">

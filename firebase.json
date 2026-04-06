@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/lms{,/**}",
+        "destination": "/lms/index.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -41,7 +41,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   };
 
   return (
-    <Link to={`/lms/course/${id}`} className="group bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-3 transition-all border border-white/50 hover:border-primary/30 overflow-hidden h-full flex flex-col">
+    <Link to={`/course/${id}`} className="group bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-3 transition-all border border-white/50 hover:border-primary/30 overflow-hidden h-full flex flex-col">
       {/* Thumbnail */}
       <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-accent/10 rounded-2xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
         {thumbnail ? (
