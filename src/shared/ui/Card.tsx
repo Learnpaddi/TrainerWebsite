@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { FC, ReactNode } from 'react'
 
 
 interface CardProps {
@@ -8,7 +8,7 @@ interface CardProps {
   footer?: ReactNode
 }
 
-const Card: React.FC<CardProps> = ({
+const Card: FC<CardProps> = ({
   children,
   className = '',
   header,
@@ -34,4 +34,3 @@ const Card: React.FC<CardProps> = ({
 }
 
 export { Card }
-

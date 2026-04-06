@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTrainerCourses } from '@/hooks/useTrainerCourses';
 import { useTrainerEnrollments } from '@/hooks/useTrainerEnrollments';
@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const isLoading = authLoading || coursesLoading;
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
     try {
@@ -34,7 +34,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleEdit = async (e: React.FormEvent) => {
+  const handleEdit = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingCourse) return;
     try {
@@ -259,4 +259,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
