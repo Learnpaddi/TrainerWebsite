@@ -20,8 +20,22 @@ export interface Course {
   duration: string;
   thumbnail: string;
   trainerId: string;
-  modules?: string[];
+  modules?: CourseModule[];
   createdAt: string;
+}
+
+export interface CourseLesson {
+  id: string;
+  title: string;
+  duration?: string;
+  videoUrl?: string;
+  videoPath?: string;
+}
+
+export interface CourseModule {
+  id: string;
+  title: string;
+  lessons: CourseLesson[];
 }
 
 export const getCourses = async (): Promise<Course[]> => {
@@ -54,5 +68,27 @@ export const deleteCourse = async (id: string): Promise<void> => {
 
 export const getCourseById = async (id: string): Promise<Course | null> => {
   const docSnap = await getDoc(doc(db, 'courses', id));
-  return docSnap.exists() ? { ...docSnap.data() as Course, id: docSnap.id } : null;
+  if (!docSnap.exists()) return null;
+  const raw = { ...docSnap.data() as Course, id: docSnap.id };
+  if (!raw.modules || raw.modules.length === 0) {
+    raw.modules = [
+      {
+        id: 'module_1',
+        title: 'Getting Started',
+        lessons: [
+          { id: 'lesson_1', title: 'Welcome & Course Overview', duration: '8 min' },
+          { id: 'lesson_2', title: 'Setup and Foundations', duration: '14 min' },
+        ],
+      },
+      {
+        id: 'module_2',
+        title: 'Core Concepts',
+        lessons: [
+          { id: 'lesson_3', title: 'Hands-on Walkthrough', duration: '20 min' },
+          { id: 'lesson_4', title: 'Applied Practice', duration: '18 min' },
+        ],
+      },
+    ];
+  }
+  return raw;
 };

@@ -47,7 +47,7 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 glass-header shadow-sm">
+    <header className="sticky top-0 z-40 glass-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
@@ -59,26 +59,26 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-3 rounded-full border border-white/70 bg-white/70 px-3 py-2 shadow-lg backdrop-blur">
             {navItems.map(({ path, label }) => (
               <Link
                 key={path}
                 to={path}
-                className="text-lg font-medium text-gray-700 hover:text-primary transition-colors duration-200 py-2 relative group"
+                className="text-sm lg:text-base font-semibold text-gray-700 hover:text-primary transition-colors duration-200 py-2 px-4 rounded-full relative group hover:bg-white/80"
               >
                 {label}
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-accent group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
             <Link
-              to="/dashboard"
-              className="text-lg font-bold bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-xl hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
+              to="/#lms-courses"
+              className="primary-cta px-6 py-3 text-sm lg:text-base"
             >
               Start LMS Learning 
             </Link>
             <Link
               to="/aboutus.html"
-              className="text-lg font-bold text-primary bg-primary/10 px-6 py-3 rounded-xl hover:bg-primary/20 transition-all duration-200 border border-primary/20 hover:shadow-lg ml-4"
+              className="secondary-cta px-6 py-3 text-sm lg:text-base ml-2"
             >
               About Us
             </Link>
@@ -97,27 +97,27 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
         </div>
 
         {/* Mobile Menu */}
-        <div className={`md:hidden ${mobileOpen ? '' : 'hidden'} pb-4 space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur`}>
+        <div className={`md:hidden ${mobileOpen ? '' : 'hidden'} mt-2 rounded-3xl border border-white/70 bg-white/85 shadow-xl backdrop-blur p-4 space-y-3`}>
           {navItems.map(({ path, label }) => (
             <Link
               key={path}
               to={path}
-              className="block min-h-[44px] py-3 px-4 text-lg font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-all flex items-center"
+              className="block min-h-[44px] py-3 px-4 text-base font-semibold text-gray-700 hover:text-primary hover:bg-slate-50 rounded-2xl transition-all flex items-center"
               onClick={toggleMobileMenu}
             >
               {label}
             </Link>
           ))}
           <Link
-            to="/dashboard"
-            className="block py-3 px-6 font-bold text-primary bg-primary/10 dark:bg-primary/20 rounded-xl hover:bg-primary/20 dark:hover:bg-primary/30 transition-all border border-primary/20"
+            to="/#lms-courses"
+            className="primary-cta w-full py-3 px-6 text-base"
             onClick={toggleMobileMenu}
           >
             Start LMS Learning
           </Link>
           <Link
             to="/aboutus.html"
-            className="block py-3 px-6 font-bold text-primary bg-primary/10 dark:bg-primary/20 rounded-xl hover:bg-primary/20 dark:hover:bg-primary/30 transition-all border border-primary/20"
+            className="secondary-cta w-full py-3 px-6 text-base"
             onClick={toggleMobileMenu}
           >
             About Us
@@ -129,4 +129,3 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
 };
 
 export default Navbar;
-

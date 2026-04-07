@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { register, googleSignIn } from '@/services/firebase/authService';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getAuthErrorMessage, register, googleSignIn } from '@/services/firebase/authService';
+import { enrollInCourse } from '@/services/firebase/enrollmentService';
+import { getCourseById } from '@/services/firebase/courseService';
+import { getPostLoginPath } from '@/services/firebase/userService';
+import { consumePendingCourseIntent } from '@/student/lib/courseIntent';
+import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,15 +19,41 @@ const Register: React.FC = () => {
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
+  const resolveDestination = async (firebaseUser: Parameters<typeof getPostLoginPath>[0]) => {
+    const pendingCourseId = consumePendingCourseIntent();
+    if (pendingCourseId) {
+      const selectedCourse = await getCourseById(pendingCourseId);
+      await enrollInCourse(firebaseUser.uid, pendingCourseId, selectedCourse?.price || 0);
+      return `/course/${pendingCourseId}`;
+    }
+
+    return getPostLoginPath(firebaseUser);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
     try {
-      await register(formData);
-      navigate('/');
-    } catch (error: any) {
-      setMessage(error.message || 'Registration failed');
+      const user = await register(formData);
+      const destination = await resolveDestination(user);
+      navigate(destination, { replace: true });
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, 'Registration failed. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const credential = await googleSignIn();
+      const destination = await resolveDestination(credential.user);
+      navigate(destination, { replace: true });
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, 'Google sign-in failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +153,8 @@ const Register: React.FC = () => {
             </div>
 
             {message && (
-              <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-2xl">
+              <div className="flex items-start gap-3 p-4 bg-red-100 border border-red-300 text-red-700 rounded-2xl">
+                <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
                 {message}
               </div>
             )}
@@ -139,7 +170,7 @@ const Register: React.FC = () => {
           </form>
 
           <button 
-            onClick={googleSignIn}
+            onClick={handleGoogleSignIn}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/80 border-2 border-gray-200/50 hover:border-emerald-300 hover:shadow-xl transition-all font-semibold shadow-lg"
           >
@@ -152,7 +183,7 @@ const Register: React.FC = () => {
 
           <div className="text-center pt-8 border-t border-gray-200/50">
             <p className="text-sm text-gray-600">
-              Have account? <a href="/login" className="font-bold text-emerald-600 hover:text-emerald-700">Sign In</a>
+              Have account? <Link to="/login" className="font-bold text-emerald-600 hover:text-emerald-700">Sign In</Link>
             </p>
           </div>
         </div>

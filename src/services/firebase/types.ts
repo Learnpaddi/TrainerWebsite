@@ -15,10 +15,13 @@ export interface Progress {
   id: string;
   userId: string;
   courseId: string;
-  currentModule: number;
-  currentLesson: number;
+  currentModule?: number;
+  currentLesson?: number;
+  completedLessons?: string[];
+  totalLessons?: number;
   percentage: number;
   updatedAt: string;
+  certificateUrl?: string;
 }
 
 export interface Review {
@@ -49,4 +52,3 @@ export interface Course {
   }>;
   createdAt: string;
 }
-

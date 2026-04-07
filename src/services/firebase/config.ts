@@ -4,13 +4,13 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCPEap7ixlThhtBvPlUJaancN_hPsMNp8Q",
-  authDomain: "learnpaddi-1aee9.firebaseapp.com",
-  projectId: "learnpaddi-1aee9",
-  storageBucket: "learnpaddi-1aee9.firebasestorage.app",
-  messagingSenderId: "633908800301",
-  appId: "1:633908800301:web:02bda958c51bf6b183c1a4"
+export const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCPEap7ixlThhtBvPlUJaancN_hPsMNp8Q",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "learnpaddi-1aee9.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "learnpaddi-1aee9",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "learnpaddi-1aee9.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "633908800301",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:633908800301:web:02bda958c51bf6b183c1a4"
 };
 
 export const app = initializeApp(firebaseConfig);

@@ -9,12 +9,13 @@ export const useTrainerCourses = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user?.uid || !user.doc?.trainerId) {
+    if (!user?.uid) {
       setLoading(false);
       return;
     }
 
-    getUserCourses(user.doc.trainerId).then((data) => {
+    const trainerId = user.doc?.trainerId || user.uid;
+    getUserCourses(trainerId).then((data) => {
       setCourses(data);
       setLoading(false);
     }).catch((err) => {
@@ -24,12 +25,11 @@ export const useTrainerCourses = () => {
   }, [user]);
 
   const refetch = () => {
-    if (user?.doc?.trainerId) {
+    if (user?.uid) {
       setLoading(true);
-      getUserCourses(user.doc.trainerId).then(setCourses).catch(setError).finally(() => setLoading(false));
+      getUserCourses(user.doc?.trainerId || user.uid).then(setCourses).catch(setError).finally(() => setLoading(false));
     }
   };
 
   return { courses, loading: authLoading || loading, error, refetch };
 };
-

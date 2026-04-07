@@ -22,7 +22,14 @@ const LMSDashboard = () => {
   const loading = coursesLoading || enrollLoading;
 
   if (!user) {
-    return null; // Protected by route
+    return (
+      <div className="max-w-3xl mx-auto px-6 py-16">
+        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-10 text-center shadow-xl backdrop-blur-sm">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">LMS loading</h1>
+          <p className="text-gray-600">We are preparing your dashboard.</p>
+        </div>
+      </div>
+    );
   }
 
   const enrolledCourses = enrollments.map(enrollment => {
@@ -32,60 +39,73 @@ const LMSDashboard = () => {
   }).filter(item => item.course); // Only show with course data
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-100">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-gray-900 mb-2">LMS Dashboard</h1>
-          <p className="text-xl text-gray-600">Welcome back, {user?.doc?.email?.split('@')[0] || 'Learner'}</p>
-        </div>
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50 hover:shadow-2xl transition-all">
+    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-100">
+      <div className="max-w-7xl mx-auto px-6 py-10 lg:py-14">
+        <section className="section-shell px-6 py-10 md:px-10">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">Student Workspace</p>
+              <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">LMS Dashboard</h1>
+              <p className="text-lg text-gray-600">Welcome back, {user?.doc?.email?.split('@')[0] || 'Learner'}</p>
+            </div>
+            <Link
+              to="/my-courses"
+              className="primary-cta px-6 py-4 text-base"
+            >
+              <BookOpen className="w-5 h-5" />
+              View My Courses
+            </Link>
+          </div>
+        </section>
+
+        <div className="grid md:grid-cols-3 gap-6 mt-10 mb-12">
+          <div className="metric-card p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white">
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <CheckCircle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-2xl text-gray-900">{enrolledCourses.filter(c => c.progress.percentage === 100).length}</h3>
-                <p className="text-gray-600">Completed</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Completed</p>
+                <h3 className="font-black text-3xl text-gray-900">{enrolledCourses.filter(c => c.progress.percentage === 100).length}</h3>
               </div>
             </div>
+            <p className="text-gray-600">Courses you have fully completed.</p>
           </div>
-          
-          <div className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50 hover:shadow-2xl transition-all">
+
+          <div className="metric-card p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <Clock className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-2xl text-gray-900">
-                  {enrolledCourses.length}
-                </h3>
-                <p className="text-gray-600">Active Courses</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Active</p>
+                <h3 className="font-black text-3xl text-gray-900">{enrolledCourses.length}</h3>
               </div>
             </div>
+            <p className="text-gray-600">Courses currently in your learning queue.</p>
           </div>
-          
-          <div className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50 hover:shadow-2xl transition-all">
+
+          <div className="metric-card p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-2xl text-gray-900">{enrolledCourses.reduce((sum, c) => sum + (c.progress.percentage || 0), 0) / Math.max(1, enrolledCourses.length)}%</h3>
-                <p className="text-gray-600">Avg Progress</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Average Progress</p>
+                <h3 className="font-black text-3xl text-gray-900">{Math.round(enrolledCourses.reduce((sum, c) => sum + (c.progress.percentage || 0), 0) / Math.max(1, enrolledCourses.length))}%</h3>
               </div>
             </div>
+            <p className="text-gray-600">Your average completion rate across courses.</p>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24">
+          <div className="flex items-center justify-center rounded-[2rem] border border-white/70 bg-white/80 py-24 shadow-xl">
             <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mr-4" />
             <span className="text-xl text-gray-600">Loading your dashboard...</span>
           </div>
         ) : enrolledCourses.length === 0 ? (
-          <div className="text-center py-32 bg-white/50 rounded-4xl backdrop-blur border border-white/30 shadow-2xl">
+          <div className="text-center py-24 px-8 bg-white/80 rounded-[2rem] backdrop-blur border border-white/50 shadow-2xl">
             <LayoutDashboard className="w-28 h-28 text-gray-400 mx-auto mb-8" />
             <h2 className="text-4xl font-black text-gray-900 mb-6">Welcome to LMS!</h2>
             <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
@@ -112,10 +132,12 @@ const LMSDashboard = () => {
                   <Link 
                     key={enrollment.id} 
                     to={`/course/${enrollment.courseId}`}
-                    className="group bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all border border-white/50 hover:border-indigo-200 overflow-hidden"
+                    className="metric-card group p-8 overflow-hidden"
                   >
-                    <div className="w-full h-40 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-2xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <div className="text-4xl opacity-75 font-bold text-white">{course?.title?.[0]}</div>
+                    <div className="w-full h-40 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-3xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-accent text-3xl font-black text-white shadow-lg">
+                        {course?.title?.[0]}
+                      </div>
                     </div>
                     <h3 className="text-2xl font-bold mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
                       {course?.title}
@@ -159,7 +181,7 @@ const LMSDashboard = () => {
 
             {/* Quick Stats */}
             <section className="grid md:grid-cols-2 gap-8 mb-16">
-              <div className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50">
+              <div className="bg-white/80 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-white/50">
                 <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                   <Users className="w-6 h-6 text-blue-600" />
                   Learning Stats
@@ -167,7 +189,12 @@ const LMSDashboard = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span>Total Lessons Completed:</span>
-(c.progress as any).completedLessons || 0
+                    <span className="font-bold text-gray-900">
+                      {enrolledCourses.reduce(
+                        (sum, currentCourse) => sum + (((currentCourse.progress as any)?.completedLessons) || 0),
+                        0,
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Certificates Earned:</span>
@@ -176,7 +203,7 @@ const LMSDashboard = () => {
                 </div>
               </div>
               
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur rounded-3xl p-8 shadow-xl border border-indigo-200/50">
+              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-indigo-200/50">
                 <h3 className="text-xl font-bold text-indigo-900 mb-6">Recommendations</h3>
                 <p className="text-indigo-800 mb-6">Courses similar to your progress (coming soon)</p>
                 <Link to="/" className="text-indigo-700 hover:text-indigo-900 font-semibold flex items-center gap-2">
@@ -204,4 +231,3 @@ const LMSDashboard = () => {
 };
 
 export default LMSDashboard;
-

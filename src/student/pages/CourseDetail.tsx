@@ -64,7 +64,7 @@ const CourseDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="rounded-[2rem] border border-white/70 bg-white/80 py-24 shadow-xl flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
       </div>
     );
@@ -72,8 +72,8 @@ const CourseDetail = () => {
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
+      <div className="max-w-3xl mx-auto px-6 py-16">
+        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-10 text-center shadow-xl backdrop-blur-sm">
           <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Course not found</h1>
           <Link to="/dashboard" className="text-blue-600 hover:underline">Back to LMS</Link>
@@ -83,8 +83,8 @@ const CourseDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="max-w-6xl mx-auto px-6 py-10 lg:py-14">
         {/* Back + Breadcrumb */}
         <Link 
           to="/dashboard" 
@@ -99,16 +99,21 @@ const CourseDetail = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Hero Section */}
           <div className="space-y-8">
-            <div className="w-full h-64 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-3xl flex items-center justify-center border-4 border-white/50 shadow-2xl backdrop-blur-sm">
-              <div className="text-center text-white drop-shadow-2xl">
-                <GraduationCap className="w-24 h-24 mx-auto mb-6 opacity-80" />
-                <h1 className="text-4xl font-black mb-2">{course.title}</h1>
-                <p className="text-xl opacity-90">{course.description}</p>
+            <div className="w-full rounded-[2rem] bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-10 text-white shadow-2xl">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 backdrop-blur mb-8">
+                <GraduationCap className="w-8 h-8" />
+              </div>
+              <h1 className="text-4xl font-black mb-4">{course.title}</h1>
+              <p className="text-lg opacity-90 leading-relaxed">{course.description}</p>
+              <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold">
+                <span className="rounded-full bg-white/15 px-4 py-2">8 Modules</span>
+                <span className="rounded-full bg-white/15 px-4 py-2">32 Lessons</span>
+                <span className="rounded-full bg-white/15 px-4 py-2">Certificate Included</span>
               </div>
             </div>
 
             {/* Enroll CTA */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/50 sticky top-24">
+            <div className="bg-white/80 backdrop-blur-sm rounded-[2rem] p-8 shadow-xl border border-white/50 sticky top-24">
               <div className="flex items-center gap-3 mb-6">
                 <DollarSign className="w-6 h-6 text-emerald-500" />
                 <span className="text-3xl font-bold text-emerald-600">₹{course.price || 0}</span>
@@ -149,7 +154,7 @@ const CourseDetail = () => {
           {/* Course Content */}
           <div className="space-y-8">
             {/* What you'll learn */}
-            <section className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50">
+            <section className="bg-white/80 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-white/50">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                 <BookOpen className="w-7 h-7 text-blue-600" />
                 What you'll learn
@@ -171,7 +176,7 @@ const CourseDetail = () => {
             </section>
 
             {/* Modules Preview */}
-            <section className="bg-white/70 backdrop-blur rounded-3xl p-8 shadow-xl border border-white/50">
+            <section className="bg-white/80 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-white/50">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Content</h2>
               <div className="space-y-4">
                 <div className="p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-r-2xl pl-6">
@@ -208,4 +213,3 @@ const CourseDetail = () => {
 };
 
 export default CourseDetail;
-

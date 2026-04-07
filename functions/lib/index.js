@@ -36,118 +36,235 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.api = exports.sendWelcomeEmail = exports.calculateRevenue = exports.generateCertificate = exports.verifyRazorpayPayment = exports.createRazorpayOrder = void 0;
+exports.generateCertificate = exports.verifyRazorpayPayment = exports.createRazorpayOrder = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-// Initialize Firebase Admin
+const razorpay_1 = __importDefault(require("razorpay"));
+const crypto = __importStar(require("crypto"));
+const pdf_lib_1 = require("pdf-lib");
 admin.initializeApp();
 const db = admin.firestore();
-// Razorpay 
-const razorpay_1 = __importDefault(require("razorpay"));
+const storage = admin.storage();
 const razorpay = new razorpay_1.default({
-    key_id: process.env.RAZORPAY_KEY_ID || functions.config().razorpay?.key_id || '',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || functions.config().razorpay?.key_secret || '',
+    key_id: functions.config().razorpay.key_id || 'rzp_test_4EXAMPLE_TEST_KEY_ID',
+    key_secret: functions.config().razorpay.key_secret || 'EXAMPLE_SECRET',
 });
-// ===== PAYMENTS =====
+/**
+ * Create Razorpay Order
+ */
 exports.createRazorpayOrder = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in.');
+        throw new functions.https.HttpsError('unauthenticated', 'Auth required');
     }
-    const { courseId, amount } = data;
-    const courseSnap = await db.collection('courses').doc(courseId).get();
-    if (!courseSnap.exists) {
-        throw new functions.https.HttpsError('not-found', 'Course not found.');
-    }
-    const order = await razorpay.orders.create({
-        amount: amount * 100, // paise
-        currency: 'INR',
-        receipt: `receipt_${Date.now()}`,
-        notes: { courseId }
-    });
-    return { orderId: order.id, amount: order.amount };
-});
-exports.verifyRazorpayPayment = functions.https.onCall(async (data, context) => {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, courseId } = data;
-    // Verify signature
-    const crypto = require('crypto');
-    const expectedSignature = crypto
-        .createHmac('sha256', functions.config().razorpay.key_secret)
-        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-        .digest('hex');
-    if (expectedSignature !== razorpay_signature) {
-        throw new functions.https.HttpsError('invalid-argument', 'Invalid signature');
-    }
-    // Fetch order & verify status
-    const order = await razorpay.orders.fetch(razorpay_order_id);
-    if (order.status !== 'paid') {
-        throw new functions.https.HttpsError('failed-precondition', 'Payment not completed.');
-    }
-    // Create enrollment (use context.auth.uid if available)
-    const paymentRef = await db.collection('payments').add({
-        razorpay_order_id,
-        razorpay_payment_id,
-        courseId,
-        amount: order.amount / 100,
-        currency: order.currency,
-        status: 'completed',
-        userId: context.auth?.uid, // from client context
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    if (context.auth?.uid) {
-        // Add to user enrolledCourses
-        await db.collection('users').doc(context.auth.uid).update({
-            [`enrolledCourses.${courseId}`]: {
-                enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
-                status: 'active'
-            }
+    const { amount, currency = 'INR', courseId, userId } = data;
+    try {
+        const order = await razorpay.orders.create({
+            amount,
+            currency,
+            receipt: `course_${courseId}_${userId}`,
         });
-        // Create enrollment doc
-        await db.collection('enrollments').doc(`${context.auth.uid}_${courseId}`).set({
-            userId: context.auth.uid,
+        // Create pending enrollment
+        await db.collection('enrollments').add({
+            userId,
             courseId,
-            paymentId: paymentRef.id,
-            status: 'active',
-            enrolledAt: admin.firestore.FieldValue.serverTimestamp()
+            enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'payment_pending',
+            paymentAmount: amount / 100,
+            razorpayOrderId: order.id
         });
+        return { order, enrollmentCreated: true };
     }
-    return { success: true, paymentId: paymentRef.id };
+    catch (error) {
+        console.error('Order creation failed:', error);
+        throw new functions.https.HttpsError('internal', 'Payment setup failed');
+    }
 });
-// ===== CERTIFICATES ===== 
-exports.generateCertificate = functions.firestore
-    .document('user_progress/{userId}_{courseId}_final')
-    .onCreate(async (snap) => {
-    const data = snap.data();
-    if (data.completed !== true)
-        return;
-    // PDF generation logic here (pdf-lib)
-    // Email certificate
-});
-// ===== ADMIN ANALYTICS =====
-exports.calculateRevenue = functions.pubsub.schedule('every 24 hours').onRun(async () => {
-    const payments = await db.collection('payments')
-        .where('status', '==', 'completed')
-        .get();
-    let totalRevenue = 0;
-    payments.forEach(doc => {
-        totalRevenue += doc.data().amount;
-    });
-    // Update analytics doc
-    await db.collection('analytics').doc('global').set({
-        totalRevenue,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-});
-// ===== USER CREATED =====
-exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
-    // Send welcome email (nodemailer)
-});
-exports.api = functions.https.onRequest((req, res) => {
-    cors()(req, res, () => {
-        // Razorpay webhook endpoint
-        if (req.path === '/razorpay-webhook') {
-            // Verify webhook signature & update payment
+/**
+ * Verify Razorpay Payment
+ */
+exports.verifyRazorpayPayment = functions.https.onCall(async (data, context) => {
+    const { orderId, paymentId, signature } = data;
+    try {
+        // Verify signature
+        const generated_signature = crypto
+            .createHmac('sha256', functions.config().razorpay.key_secret || '')
+            .update(orderId + '|' + paymentId)
+            .digest('hex');
+        if (generated_signature !== signature) {
+            throw new Error('Invalid signature');
         }
-        res.status(200).send('OK');
-    });
+        // Fetch payment
+        const payment = await razorpay.payments.fetch(paymentId);
+        if (payment.status !== 'captured') {
+            throw new Error('Payment not captured');
+        }
+        // Update enrollment to paid
+        const enrollmentSnapshot = await db.collection('enrollments')
+            .where('razorpayOrderId', '==', orderId)
+            .limit(1)
+            .get();
+        if (enrollmentSnapshot.empty) {
+            throw new Error('Enrollment not found');
+        }
+        const enrollmentDoc = enrollmentSnapshot.docs[0];
+        await enrollmentDoc.ref.update({
+            status: 'paid',
+            razorpayPaymentId: paymentId,
+            razorpaySignature: signature
+        });
+        return { success: true, payment };
+    }
+    catch (error) {
+        console.error('Payment verification failed:', error);
+        throw new functions.https.HttpsError('internal', 'Payment verification failed');
+    }
+});
+/**
+ * Generate a completion certificate PDF and upload to Storage.
+ * Requires:
+ * 1) authenticated user
+ * 2) enrollment exists
+ * 3) progress >= 100
+ */
+exports.generateCertificate = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+    }
+    const uid = context.auth.uid;
+    const courseId = (data?.courseId || '').toString();
+    if (!courseId) {
+        throw new functions.https.HttpsError('invalid-argument', 'courseId is required');
+    }
+    try {
+        const [userSnap, courseSnap, progressSnap, enrollmentSnap] = await Promise.all([
+            db.collection('users').doc(uid).get(),
+            db.collection('courses').doc(courseId).get(),
+            db.collection('progress').doc(`${uid}_${courseId}`).get(),
+            db.collection('enrollments').doc(`${uid}_${courseId}`).get(),
+        ]);
+        if (!courseSnap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Course not found');
+        }
+        if (!enrollmentSnap.exists) {
+            throw new functions.https.HttpsError('failed-precondition', 'User is not enrolled in this course');
+        }
+        const progressData = progressSnap.data() || {};
+        const percentage = Number(progressData.percentage || 0);
+        if (percentage < 100) {
+            throw new functions.https.HttpsError('failed-precondition', 'Course must be 100% completed before generating certificate');
+        }
+        const userData = userSnap.data() || {};
+        const courseData = courseSnap.data() || {};
+        const studentName = (userData.name || context.auth.token.email || 'Learner').toString();
+        const courseTitle = (courseData.title || 'Course').toString();
+        const pdfDoc = await pdf_lib_1.PDFDocument.create();
+        const page = pdfDoc.addPage([842, 595]); // A4 landscape
+        const { width, height } = page.getSize();
+        const titleFont = await pdfDoc.embedFont(pdf_lib_1.StandardFonts.HelveticaBold);
+        const bodyFont = await pdfDoc.embedFont(pdf_lib_1.StandardFonts.Helvetica);
+        page.drawRectangle({ x: 0, y: 0, width, height, color: (0, pdf_lib_1.rgb)(0.98, 0.99, 1) });
+        page.drawRectangle({ x: 26, y: 26, width: width - 52, height: height - 52, borderWidth: 2, borderColor: (0, pdf_lib_1.rgb)(0.15, 0.39, 0.92) });
+        page.drawText('CERTIFICATE OF COMPLETION', {
+            x: 190,
+            y: 500,
+            size: 34,
+            font: titleFont,
+            color: (0, pdf_lib_1.rgb)(0.12, 0.2, 0.45),
+        });
+        page.drawText('This is proudly awarded to', {
+            x: 322,
+            y: 430,
+            size: 14,
+            font: bodyFont,
+            color: (0, pdf_lib_1.rgb)(0.24, 0.3, 0.4),
+        });
+        page.drawText(studentName, {
+            x: 140,
+            y: 385,
+            size: 40,
+            font: titleFont,
+            color: (0, pdf_lib_1.rgb)(0.08, 0.14, 0.22),
+        });
+        page.drawText('for successfully completing', {
+            x: 320,
+            y: 338,
+            size: 14,
+            font: bodyFont,
+            color: (0, pdf_lib_1.rgb)(0.24, 0.3, 0.4),
+        });
+        page.drawText(courseTitle, {
+            x: 135,
+            y: 290,
+            size: 30,
+            font: titleFont,
+            color: (0, pdf_lib_1.rgb)(0.02, 0.55, 0.56),
+        });
+        page.drawText(`Issued on ${new Date().toDateString()}`, {
+            x: 330,
+            y: 220,
+            size: 13,
+            font: bodyFont,
+            color: (0, pdf_lib_1.rgb)(0.32, 0.38, 0.46),
+        });
+        page.drawText('LearnPaddi LMS', {
+            x: 340,
+            y: 108,
+            size: 16,
+            font: titleFont,
+            color: (0, pdf_lib_1.rgb)(0.15, 0.39, 0.92),
+        });
+        const pdfBytes = await pdfDoc.save();
+        const storagePath = `certificates/${uid}/${courseId}.pdf`;
+        const bucket = storage.bucket();
+        const file = bucket.file(storagePath);
+        await file.save(Buffer.from(pdfBytes), {
+            metadata: {
+                contentType: 'application/pdf',
+                metadata: {
+                    uid,
+                    courseId,
+                    source: 'cloud-function',
+                },
+            },
+            resumable: false,
+        });
+        const [signedUrl] = await file.getSignedUrl({
+            action: 'read',
+            expires: '2100-01-01',
+        });
+        const certificateDocId = `${uid}_${courseId}`;
+        await Promise.all([
+            db.collection('certificates').doc(certificateDocId).set({
+                id: certificateDocId,
+                userId: uid,
+                courseId,
+                studentName,
+                courseTitle,
+                certificateUrl: signedUrl,
+                storagePath,
+                issuedAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true }),
+            db.collection('progress').doc(`${uid}_${courseId}`).set({
+                certificateUrl: signedUrl,
+                updatedAt: new Date().toISOString(),
+            }, { merge: true }),
+            db.collection('users').doc(uid).set({
+                certificates: admin.firestore.FieldValue.arrayUnion(courseId),
+                updatedAt: new Date().toISOString(),
+            }, { merge: true }),
+        ]);
+        return {
+            success: true,
+            certificateUrl: signedUrl,
+            storagePath,
+        };
+    }
+    catch (error) {
+        console.error('Certificate generation failed:', error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', 'Certificate generation failed');
+    }
 });
 //# sourceMappingURL=index.js.map

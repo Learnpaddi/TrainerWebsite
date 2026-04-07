@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { getUserEnrollments } from '../services/firebase/enrollmentService';
+import { enrollInCourse, getUserEnrollments } from '../services/firebase/enrollmentService';
+import { getCourseById } from '../services/firebase/courseService';
+import { getCourseProgress } from '../services/firebase/progressService';
 import type { Enrollment, Progress } from '../services/firebase/types';
 
 export const useEnrollments = () => {
@@ -9,41 +11,40 @@ export const useEnrollments = () => {
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [enrollLoading, setEnrollLoading] = useState(false);
 
+  const fetchEnrollments = async () => {
+    if (!user) return;
+    setEnrollLoading(true);
+    try {
+      const userEnrollments = await getUserEnrollments(user.uid);
+      setEnrollments(userEnrollments);
+
+      const progressData: Record<string, Progress> = {};
+      for (const enrollment of userEnrollments) {
+        const course = await getCourseById(enrollment.courseId);
+        const progressDoc = await getCourseProgress(user.uid, enrollment.courseId, course);
+        progressData[enrollment.courseId] = progressDoc as Progress;
+      }
+      setProgress(progressData);
+    } catch (error) {
+      console.error('Failed to fetch enrollments:', error);
+    } finally {
+      setEnrollLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setEnrollments([]);
       setProgress({});
       return;
     }
-
-    const fetchEnrollments = async () => {
-      setEnrollLoading(true);
-      try {
-        const userEnrollments = await getUserEnrollments(user.uid);
-        setEnrollments(userEnrollments);
-
-        // Fetch progress for each enrollment
-        const progressData: Record<string, Progress> = {};
-        for (const enrollment of userEnrollments) {
-        // TODO: Implement getEnrollmentProgress in enrollmentService
-        progressData[enrollment.courseId] = { id: '', userId: user.uid, courseId: enrollment.courseId, currentModule: 0, currentLesson: 0, percentage: 0, updatedAt: new Date().toISOString() } as Progress;
-        }
-        setProgress(progressData);
-      } catch (error) {
-        console.error('Failed to fetch enrollments:', error);
-      } finally {
-        setEnrollLoading(false);
-      }
-    };
-
     fetchEnrollments();
   }, [user]);
 
-  const enrollInCourse = async (courseId: string) => {
+  const enroll = async (courseId: string, amount = 0) => {
     if (!user) return;
-    // TODO: Implement enrollmentService.enroll(user.uid, courseId)
-    console.log('Enroll in course:', courseId);
-    // refetch();
+    await enrollInCourse(user.uid, courseId, amount);
+    await fetchEnrollments();
   };
 
   return {
@@ -51,8 +52,7 @@ export const useEnrollments = () => {
     progress,
     enrollLoading,
     loading: loading || enrollLoading,
-    refetch: () => {/* implement refetch logic */},
-    enrollInCourse
+    refetch: fetchEnrollments,
+    enrollInCourse: enroll
   };
 };
-

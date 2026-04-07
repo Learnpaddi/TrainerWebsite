@@ -1,25 +1,83 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { login, googleSignIn } from '@/services/firebase/authService';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { getAuthErrorMessage, login, googleSignIn } from '@/services/firebase/authService';
+import { enrollInCourse } from '@/services/firebase/enrollmentService';
+import { getCourseById } from '@/services/firebase/courseService';
+import { getPostLoginPath } from '@/services/firebase/userService';
+import { useAuth } from '@/hooks/useAuth';
+import { consumePendingCourseIntent } from '@/student/lib/courseIntent';
+import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const Login: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [bootstrappingPendingCourse, setBootstrappingPendingCourse] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = typeof location.state?.from === 'string' ? location.state.from : null;
+
+  const resolveDestination = async (firebaseUser: Parameters<typeof getPostLoginPath>[0]) => {
+    const pendingCourseId = consumePendingCourseIntent();
+    if (pendingCourseId) {
+      const selectedCourse = await getCourseById(pendingCourseId);
+      await enrollInCourse(firebaseUser.uid, pendingCourseId, selectedCourse?.price || 0);
+      return `/course/${pendingCourseId}`;
+    }
+
+    if (redirectTo && redirectTo !== '/login' && redirectTo !== '/register') {
+      return redirectTo;
+    }
+
+    return getPostLoginPath(firebaseUser);
+  };
+
+  useEffect(() => {
+    if (typeof location.state?.authMessage === 'string') {
+      setMessage(location.state.authMessage);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (!authLoading && user?.role && !bootstrappingPendingCourse) {
+      setBootstrappingPendingCourse(true);
+      resolveDestination(user)
+        .then((destination) => navigate(destination, { replace: true }))
+        .catch(() => {
+          setMessage('Your account is ready, but we could not start the selected course yet.');
+          navigate(user.role === 'trainer' ? '/admin' : '/dashboard', { replace: true });
+        })
+        .finally(() => setBootstrappingPendingCourse(false));
+    }
+  }, [authLoading, bootstrappingPendingCourse, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
     try {
-      await login(email, password);
-      navigate('/');
-    } catch (error: any) {
-      setMessage(error.message || 'Login failed');
+      const credential = await login(email, password);
+      const destination = await resolveDestination(credential.user);
+      navigate(destination, { replace: true });
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, 'Login failed. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setMessage('');
+    try {
+      const credential = await googleSignIn();
+      const destination = await resolveDestination(credential.user);
+      navigate(destination, { replace: true });
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, 'Google sign-in failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -80,7 +138,8 @@ const Login: React.FC = () => {
             </div>
 
             {message && (
-              <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-2xl">
+              <div className="flex items-start gap-3 p-4 bg-red-100 border border-red-300 text-red-700 rounded-2xl">
+                <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
                 {message}
               </div>
             )}
@@ -106,7 +165,7 @@ const Login: React.FC = () => {
 
           <button 
             type="button"
-            onClick={googleSignIn}
+            onClick={handleGoogleSignIn}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/80 border-2 border-gray-200/50 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1 transition-all font-semibold shadow-lg disabled:opacity-50"
           >
@@ -121,7 +180,7 @@ const Login: React.FC = () => {
 
           <div className="text-center pt-8 border-t border-gray-200/50">
             <p className="text-sm text-gray-600">
-              New? <a href="/register" className="font-bold text-blue-600 hover:text-blue-700">Create Account</a>
+              New? <Link to="/register" className="font-bold text-blue-600 hover:text-blue-700">Create Account</Link>
             </p>
           </div>
         </div>

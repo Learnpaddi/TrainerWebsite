@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { getUserEnrollments, type Enrollment } from '@/services/firebase/enrollmentService';
-import { getCourseById } from '@/services/firebase/courseService';
+import { getCourseEnrollments, type Enrollment } from '@/services/firebase/enrollmentService';
+import { getCourseById, getUserCourses } from '@/services/firebase/courseService';
 import type { Course } from '@/services/firebase/courseService';
+import { getUserDoc } from '@/services/firebase/userService';
 
 export interface TrainerEnrollment extends Enrollment {
   course: Course | null;
+  studentName?: string;
+  studentEmail?: string;
 }
 
 export const useTrainerEnrollments = () => {
@@ -20,15 +23,28 @@ export const useTrainerEnrollments = () => {
       return;
     }
 
-    // Note: This uses user enrollments as proxy; production would query trainer's course enrollments
-    getUserEnrollments(user.uid).then(async (data) => {
-      const enriched = await Promise.all(data.map(async (enroll) => ({
-        ...enroll,
-        course: await getCourseById(enroll.courseId)
-      })));
+    const trainerCourseId = user.doc.trainerId || user.uid;
+    // Fetch trainer-owned courses and pull enrollments for each.
+    getUserCourses(trainerCourseId).then(async (trainerCourses) => {
+      const enrollmentsPerCourse = await Promise.all(
+        trainerCourses.map((course) => getCourseEnrollments(course.id)),
+      );
+      const flattened = enrollmentsPerCourse.flat();
+      const enriched = await Promise.all(flattened.map(async (enroll) => {
+        const [course, student] = await Promise.all([
+          getCourseById(enroll.courseId),
+          getUserDoc(enroll.userId),
+        ]);
+        return {
+          ...enroll,
+          course,
+          studentName: student?.name,
+          studentEmail: student?.email,
+        };
+      }));
       setEnrollments(enriched);
       setLoading(false);
-    }).catch((err) => {
+    }).catch((err: Error) => {
       setError(err.message);
       setLoading(false);
     });
@@ -36,4 +52,3 @@ export const useTrainerEnrollments = () => {
 
   return { enrollments, loading: authLoading || loading, error };
 };
-

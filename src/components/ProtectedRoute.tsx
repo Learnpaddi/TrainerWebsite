@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -13,18 +13,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAuth = true, 
   requireRole 
 }) => {
-  const { user, loading, isStudent, isTrainer } = useAuth();
+  const { user, loading, roleError, isStudent, isTrainer } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
   if (requireAuth && !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname, authMessage: roleError }} />;
+  }
+
+  if (roleError) {
+    return <Navigate to="/login" replace state={{ from: location.pathname, authMessage: roleError }} />;
   }
 
   if (requireRole === 'trainer' && !isTrainer) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (requireRole === 'student' && !isStudent) {

@@ -44,8 +44,8 @@ const EnrollmentsPage = () => {
               {enrollments.map(enroll => (
                 <tr key={enroll.id} className="hover:bg-gray-50">
                   <td className="px-8 py-6">
-                    <div className="font-medium text-gray-900">Student Name</div>
-                    <div className="text-sm text-gray-500">student@example.com</div>
+                    <div className="font-medium text-gray-900">{enroll.studentName || 'Student'}</div>
+                    <div className="text-sm text-gray-500">{enroll.studentEmail || 'N/A'}</div>
                   </td>
                   <td className="px-8 py-6">
                     <div className="font-medium text-gray-900">{enroll.course?.title}</div>
@@ -74,4 +74,3 @@ const EnrollmentsPage = () => {
 };
 
 export default EnrollmentsPage;
-
