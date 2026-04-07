@@ -83,7 +83,7 @@ const CourseDetail = () => {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="lms-stage">
       <div className="max-w-6xl mx-auto px-6 py-10 lg:py-14">
         {/* Back + Breadcrumb */}
         <Link 
@@ -99,21 +99,21 @@ const CourseDetail = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Hero Section */}
           <div className="space-y-8">
-            <div className="w-full rounded-[2rem] bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-10 text-white shadow-2xl">
+            <div className="lms-panel p-10 shadow-2xl">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 backdrop-blur mb-8">
-                <GraduationCap className="w-8 h-8" />
+                <GraduationCap className="w-8 h-8 text-primary" />
               </div>
-              <h1 className="text-4xl font-black mb-4">{course.title}</h1>
-              <p className="text-lg opacity-90 leading-relaxed">{course.description}</p>
-              <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold">
-                <span className="rounded-full bg-white/15 px-4 py-2">8 Modules</span>
-                <span className="rounded-full bg-white/15 px-4 py-2">32 Lessons</span>
-                <span className="rounded-full bg-white/15 px-4 py-2">Certificate Included</span>
+              <h1 className="text-4xl font-black mb-4 text-gray-900">{course.title}</h1>
+              <p className="text-lg text-gray-600 leading-relaxed">{course.description}</p>
+              <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold text-primary">
+                <span className="rounded-full bg-blue-50 px-4 py-2">8 Modules</span>
+                <span className="rounded-full bg-emerald-50 px-4 py-2">32 Lessons</span>
+                <span className="rounded-full bg-indigo-50 px-4 py-2">Certificate Included</span>
               </div>
             </div>
 
             {/* Enroll CTA */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-[2rem] p-8 shadow-xl border border-white/50 sticky top-24">
+            <div className="lms-panel p-8 sticky top-24">
               <div className="flex items-center gap-3 mb-6">
                 <DollarSign className="w-6 h-6 text-emerald-500" />
                 <span className="text-3xl font-bold text-emerald-600">₹{course.price || 0}</span>
@@ -131,7 +131,7 @@ const CourseDetail = () => {
                 <button
                   onClick={handleEnroll}
                   disabled={enrolling || !user}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-6 px-8 rounded-2xl font-bold text-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  className="w-full bg-gradient-to-r from-primary to-accent text-white py-6 px-8 rounded-2xl font-bold text-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                   {enrolling ? <Loader2 className="w-6 h-6 animate-spin" /> : <Play className="w-6 h-6" />}
                   {enrolling ? 'Enrolling...' : 'Enroll Now'}
@@ -154,7 +154,7 @@ const CourseDetail = () => {
           {/* Course Content */}
           <div className="space-y-8">
             {/* What you'll learn */}
-            <section className="bg-white/80 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-white/50">
+            <section className="lms-panel p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                 <BookOpen className="w-7 h-7 text-blue-600" />
                 What you'll learn
@@ -176,7 +176,7 @@ const CourseDetail = () => {
             </section>
 
             {/* Modules Preview */}
-            <section className="bg-white/80 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-white/50">
+            <section className="lms-panel p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Content</h2>
               <div className="space-y-4">
                 <div className="p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-r-2xl pl-6">

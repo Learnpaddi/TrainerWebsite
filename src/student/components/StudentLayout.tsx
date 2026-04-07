@@ -14,9 +14,10 @@ export const StudentLayout = () => {
 
   return (
     <MainLayout contentContainer={false}>
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8 lg:py-10">
+      <div className="lms-stage">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8 lg:py-10">
         <div className="grid lg:grid-cols-[280px_1fr] gap-8">
-          <aside className="metric-card p-5 h-fit lg:sticky lg:top-24">
+          <aside className="lms-panel p-5 h-fit lg:sticky lg:top-24">
             <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold px-3 mb-4">LMS Menu</p>
             <nav className="space-y-2">
               {items.map((item) => {
@@ -29,7 +30,7 @@ export const StudentLayout = () => {
                     className={`flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold transition ${
                       active
                         ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg'
-                        : 'text-gray-700 hover:bg-slate-50'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-primary'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -43,6 +44,7 @@ export const StudentLayout = () => {
             <Outlet />
           </section>
         </div>
+      </div>
       </div>
     </MainLayout>
   );

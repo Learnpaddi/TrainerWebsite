@@ -1,17 +1,29 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Loader2, Play, Sparkles } from 'lucide-react';
 import { useCourses } from '@/hooks/useCourses';
 import { useEnrollments } from '@/hooks/useEnrollments';
+import { useAuth } from '@/hooks/useAuth';
 
 const ExploreCourses = () => {
+  const { user } = useAuth();
   const { courses, loading } = useCourses();
   const { enrollments, enrollInCourse } = useEnrollments();
+  const navigate = useNavigate();
 
   const enrolledIds = new Set(enrollments.map((enrollment) => enrollment.courseId));
 
+  const handleCourseAction = async (courseId: string, amount: number) => {
+    if (!user) {
+      navigate(`/course/${courseId}`);
+      return;
+    }
+
+    await enrollInCourse(courseId, amount);
+  };
+
   if (loading) {
     return (
-      <div className="section-shell p-10 flex items-center justify-center">
+      <div className="lms-panel p-10 flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-primary mr-3" />
         <span className="text-gray-700 font-medium">Loading courses...</span>
       </div>
@@ -20,7 +32,7 @@ const ExploreCourses = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 lg:py-14">
-      <section className="section-shell p-8 md:p-10 mb-10">
+      <section className="lms-panel p-8 md:p-10 mb-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] font-semibold text-primary mb-2">Explore</p>
@@ -38,8 +50,8 @@ const ExploreCourses = () => {
         {courses.map((course) => {
           const enrolled = enrolledIds.has(course.id);
           return (
-            <article key={course.id} className="metric-card p-8">
-              <div className="w-full h-44 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mb-6">
+            <article key={course.id} className="lms-orb-card p-8">
+              <div className="w-full h-44 rounded-3xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center mb-6">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-primary to-accent text-white font-black text-2xl flex items-center justify-center shadow-lg">
                   {(course.title || 'C')[0].toUpperCase()}
                 </div>
@@ -57,10 +69,10 @@ const ExploreCourses = () => {
                   </Link>
                 ) : (
                   <button
-                    onClick={() => enrollInCourse(course.id, course.price || 0)}
+                    onClick={() => handleCourseAction(course.id, course.price || 0)}
                     className="primary-cta flex-1 py-3"
                   >
-                    Enroll Now
+                    {user ? 'Enroll Now' : 'Start Learning'}
                   </button>
                 )}
                 <Link to={`/course/${course.id}`} className="secondary-cta px-4 py-3">

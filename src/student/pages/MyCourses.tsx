@@ -10,18 +10,6 @@ const MyCourses = () => {
   const { courses, loading: coursesLoading } = useCourses();
   const loading = enrollLoading || coursesLoading;
 
-  if (!user) {
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-10 text-center shadow-xl backdrop-blur-sm">
-          <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Please log in</h1>
-          <Link to="/login" className="text-blue-600 hover:underline">Go to login</Link>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="rounded-[2rem] border border-white/70 bg-white/80 py-24 shadow-xl flex items-center justify-center">
@@ -38,15 +26,15 @@ const MyCourses = () => {
   });
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="lms-stage">
       <div className="max-w-6xl mx-auto px-6 py-10 lg:py-14">
-        <div className="rounded-[2rem] border border-white/70 bg-white/80 px-8 py-10 shadow-xl backdrop-blur-sm text-center mb-12">
+        <div className="lms-panel px-8 py-10 text-center mb-12">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">Your Library</p>
           <h2 className="text-4xl font-black text-gray-900 mb-4">
             My Learning
           </h2>
           <p className="text-lg text-gray-600">
-            Continue your enrolled courses and track your progress
+            {user ? 'Continue your enrolled courses and track your progress' : 'Browse available courses and start learning without signing in'}
           </p>
         </div>
 
@@ -68,16 +56,16 @@ const MyCourses = () => {
         ) : (
           <div className="grid gap-8">
             {enrolledCourses.map(({ enrollment, course, progress }) => (
-              <div key={enrollment.id} className="group bg-white/80 backdrop-blur-sm rounded-[2rem] p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all border border-white/50 hover:border-blue-200">
+              <div key={enrollment.id} className="group lms-orb-card p-8">
                 <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center justify-between">
                   {/* Course Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-4 mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-lg">
+                      <div className="w-16 h-16 bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 rounded-3xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 shadow-lg">
                         {course?.title?.[0]?.toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                        <h3 className="text-2xl font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">
                           {course?.title || 'Course Title'}
                         </h3>
                         <p className="text-sm text-gray-500">Enrolled {new Date(enrollment.enrolledAt).toLocaleDateString()}</p>

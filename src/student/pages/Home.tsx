@@ -21,17 +21,6 @@ const LMSDashboard = () => {
   const { enrollments, progress, enrollLoading } = useEnrollments();
   const loading = coursesLoading || enrollLoading;
 
-  if (!user) {
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-10 text-center shadow-xl backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">LMS loading</h1>
-          <p className="text-gray-600">We are preparing your dashboard.</p>
-        </div>
-      </div>
-    );
-  }
-
   const enrolledCourses = enrollments.map(enrollment => {
     const course = courses.find(c => c.id === enrollment.courseId);
     const prog = progress[enrollment.courseId] || { percentage: 0, completedLessons: 0, totalLessons: 1 };
@@ -39,9 +28,9 @@ const LMSDashboard = () => {
   }).filter(item => item.course); // Only show with course data
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-100">
+    <div className="lms-stage">
       <div className="max-w-7xl mx-auto px-6 py-10 lg:py-14">
-        <section className="section-shell px-6 py-10 md:px-10">
+        <section className="lms-panel px-6 py-10 md:px-10">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">Student Workspace</p>
@@ -59,7 +48,7 @@ const LMSDashboard = () => {
         </section>
 
         <div className="grid md:grid-cols-3 gap-6 mt-10 mb-12">
-          <div className="metric-card p-8">
+          <div className="lms-feature-card p-8 bg-gradient-to-br from-indigo-50 to-blue-50">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <CheckCircle className="w-6 h-6" />
@@ -72,7 +61,7 @@ const LMSDashboard = () => {
             <p className="text-gray-600">Courses you have fully completed.</p>
           </div>
 
-          <div className="metric-card p-8">
+          <div className="lms-feature-card p-8 bg-gradient-to-br from-purple-50 to-indigo-50">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <Clock className="w-6 h-6" />
@@ -85,7 +74,7 @@ const LMSDashboard = () => {
             <p className="text-gray-600">Courses currently in your learning queue.</p>
           </div>
 
-          <div className="metric-card p-8">
+          <div className="lms-feature-card p-8 bg-gradient-to-br from-cyan-50 to-blue-50">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                 <Award className="w-6 h-6" />
@@ -132,14 +121,14 @@ const LMSDashboard = () => {
                   <Link 
                     key={enrollment.id} 
                     to={`/course/${enrollment.courseId}`}
-                    className="metric-card group p-8 overflow-hidden"
+                    className="lms-orb-card group p-8 overflow-hidden"
                   >
-                    <div className="w-full h-40 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-3xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <div className="w-full h-40 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl mb-6 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-accent text-3xl font-black text-white shadow-lg">
                         {course?.title?.[0]}
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
+                    <h3 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors line-clamp-2">
                       {course?.title}
                     </h3>
                     <div className="mb-6">
@@ -181,7 +170,7 @@ const LMSDashboard = () => {
 
             {/* Quick Stats */}
             <section className="grid md:grid-cols-2 gap-8 mb-16">
-              <div className="bg-white/80 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-white/50">
+              <div className="lms-panel p-8">
                 <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                   <Users className="w-6 h-6 text-blue-600" />
                   Learning Stats
@@ -203,10 +192,10 @@ const LMSDashboard = () => {
                 </div>
               </div>
               
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur rounded-[2rem] p-8 shadow-xl border border-indigo-200/50">
-                <h3 className="text-xl font-bold text-indigo-900 mb-6">Recommendations</h3>
-                <p className="text-indigo-800 mb-6">Courses similar to your progress (coming soon)</p>
-                <Link to="/" className="text-indigo-700 hover:text-indigo-900 font-semibold flex items-center gap-2">
+              <div className="lms-feature-card p-8 bg-gradient-to-br from-emerald-50 to-cyan-50">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Recommendations</h3>
+                <p className="text-gray-600 mb-6">Courses similar to your progress (coming soon)</p>
+                <Link to="/" className="text-primary hover:text-blue-700 font-semibold flex items-center gap-2">
                   Browse More Courses <ArrowLeft className="w-4 h-4 rotate-180" />
                 </Link>
               </div>

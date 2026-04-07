@@ -12,7 +12,12 @@ export const useEnrollments = () => {
   const [enrollLoading, setEnrollLoading] = useState(false);
 
   const fetchEnrollments = async () => {
-    if (!user) return;
+    if (!user) {
+      setEnrollments([]);
+      setProgress({});
+      setEnrollLoading(false);
+      return;
+    }
     setEnrollLoading(true);
     try {
       const userEnrollments = await getUserEnrollments(user.uid);
@@ -51,7 +56,7 @@ export const useEnrollments = () => {
     enrollments,
     progress,
     enrollLoading,
-    loading: loading || enrollLoading,
+    loading: (user ? loading : false) || enrollLoading,
     refetch: fetchEnrollments,
     enrollInCourse: enroll
   };

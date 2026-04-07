@@ -45,10 +45,10 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="text-xl font-bold mb-6">Programs</h4>
             <ul className="space-y-3 text-slate-300">
-              <li><Link to="/courses" className="hover:text-white transition-colors">Career Skills</Link></li>
-              <li><Link to="/courses" className="hover:text-white transition-colors">Soft Skills</Link></li>
-              <li><Link to="/courses" className="hover:text-white transition-colors">Digital Literacy</Link></li>
-              <li><Link to="/courses" className="hover:text-white transition-colors">Industry Connect</Link></li>
+              <li><Link to="/explore" className="hover:text-white transition-colors">Career Skills</Link></li>
+              <li><Link to="/explore" className="hover:text-white transition-colors">Soft Skills</Link></li>
+              <li><Link to="/explore" className="hover:text-white transition-colors">Digital Literacy</Link></li>
+              <li><Link to="/explore" className="hover:text-white transition-colors">Industry Connect</Link></li>
             </ul>
           </div>
 

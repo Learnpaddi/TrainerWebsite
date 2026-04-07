@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 
@@ -9,13 +8,8 @@ interface NavItem {
   label: string;
 }
 
-interface NavbarProps {
-  roleSpecific?: boolean;
-}
-
-const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
+const Navbar: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isStudent, isTrainer } = useAuth();
 
   const commonNavItems: NavItem[] = [
     { path: '/#features', label: 'Features' },
@@ -23,18 +17,7 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
     { path: '/#how-it-works', label: 'How it Works' },
     { path: '/#trust', label: 'Trust' },
   ];
-
-  const studentNavItems: NavItem[] = [
-    ...commonNavItems,
-    { path: '/dashboard', label: 'LMS Dashboard' },
-  ];
-
-  const trainerNavItems: NavItem[] = [
-    ...commonNavItems,
-    { path: '/admin/dashboard', label: 'Admin Dashboard' },
-  ];
-
-  const navItems = roleSpecific && isStudent ? studentNavItems : roleSpecific && isTrainer ? trainerNavItems : commonNavItems;
+  const navItems = commonNavItems;
 
   const toggleMobileMenu = () => setMobileOpen(!mobileOpen);
 
@@ -71,10 +54,22 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
               </Link>
             ))}
             <Link
-              to="/#lms-courses"
+              to="/auth"
+              className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-primary"
+            >
+              Login
+            </Link>
+            <Link
+              to="/auth"
+              className="secondary-cta px-6 py-3 text-sm lg:text-base"
+            >
+              Sign Up
+            </Link>
+            <Link
+              to="/auth"
               className="primary-cta px-6 py-3 text-sm lg:text-base"
             >
-              Start LMS Learning 
+              Start LMS Learning
             </Link>
             <Link
               to="/aboutus.html"
@@ -109,7 +104,21 @@ const Navbar: React.FC<NavbarProps> = ({ roleSpecific = true }) => {
             </Link>
           ))}
           <Link
-            to="/#lms-courses"
+            to="/auth"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3 px-6 text-center text-base font-semibold text-slate-700 shadow-sm transition hover:text-primary"
+            onClick={toggleMobileMenu}
+          >
+            Login
+          </Link>
+          <Link
+            to="/auth"
+            className="secondary-cta w-full py-3 px-6 text-base"
+            onClick={toggleMobileMenu}
+          >
+            Sign Up
+          </Link>
+          <Link
+            to="/auth"
             className="primary-cta w-full py-3 px-6 text-base"
             onClick={toggleMobileMenu}
           >

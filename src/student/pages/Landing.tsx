@@ -1,15 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useCourses } from '@/hooks/useCourses';
-import { useAuth } from '@/hooks/useAuth';
 import { useEnrollments } from '@/hooks/useEnrollments';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Clock3, GraduationCap, Layers3, Loader2, Play, Plus, Sparkles, X } from 'lucide-react';
 import type { Course } from '@/services/firebase/courseService';
-import { storePendingCourseIntent } from '@/student/lib/courseIntent';
 
 const Landing = () => {
   const { courses, loading, error } = useCourses();
-  const { user } = useAuth();
   const { enrollments, enrollInCourse } = useEnrollments();
   const navigate = useNavigate();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -41,36 +38,28 @@ const Landing = () => {
   const handleStartCourse = async (course: Course) => {
     const isEnrolled = enrolledIds.has(course.id);
 
-    if (!user) {
-      storePendingCourseIntent(course.id);
-      navigate('/register', {
-        state: {
-          from: `/course/${course.id}`,
-          pendingCourseId: course.id,
-        },
-      });
-      return;
-    }
-
     setActionLoading(course.id);
     try {
       if (!isEnrolled) {
         await enrollInCourse(course.id, course.price || 0);
       }
-
-      navigate(`/course/${course.id}`);
+      navigate('/lms/student');
     } finally {
       setActionLoading(null);
     }
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="lms-stage">
       {/* Hero */}
-      <section className="relative max-w-7xl mx-auto px-6 pt-10 pb-20">
-        <div className="section-shell px-6 py-16 md:px-10">
+      <section className="relative overflow-hidden max-w-7xl mx-auto px-6 pt-10 pb-20">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-gradient-to-r from-accent/10 to-emerald-500/10 blur-3xl" />
+        </div>
+        <div className="lms-panel px-6 py-16 md:px-10">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white/80 px-4 py-2 text-sm font-semibold text-primary shadow-sm mb-6">
+            <div className="lms-badge px-4 py-2 text-sm shadow-sm mb-6">
               <GraduationCap className="w-4 h-4" />
               LearnPaddi LMS
             </div>
@@ -84,13 +73,13 @@ const Landing = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
               <Link 
-                to="/#lms-courses" 
+                to="/auth" 
                 className="primary-cta px-10 py-5 text-lg max-w-sm w-full text-center"
               >
                 Start LMS Learning <GraduationCap className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link 
-                to="/my-courses" 
+                to="/lms/student" 
                 className="secondary-cta px-10 py-5 text-lg max-w-sm w-full text-center dark:bg-gray-800/80 dark:border-gray-600 dark:text-gray-200 dark:hover:border-primary dark:hover:bg-gray-700">
                 Browse Courses <Plus className="w-5 h-5" />
               </Link>
@@ -100,7 +89,7 @@ const Landing = () => {
       </section>
 
       {/* Featured Courses */}
-      <section id="lms-courses" className="py-20 bg-white/80 border-y border-white/60 scroll-mt-28">
+      <section id="lms-courses" className="py-20 bg-gradient-to-b from-gray-50 to-white scroll-mt-28">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-gray-900 to-emerald-600 bg-clip-text text-transparent">
@@ -128,25 +117,24 @@ const Landing = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {courses.slice(0, 6).map(course => (
-                <article key={course.id} className="metric-card group p-8 overflow-hidden relative">
-                  <div className="absolute inset-x-8 top-8 h-40 rounded-[2rem] bg-gradient-to-r from-sky-200/40 via-emerald-200/30 to-cyan-100/40 blur-2xl" />
-                  <div className="relative w-full h-48 bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-teal-500/10 rounded-3xl mb-6 flex items-center justify-center group-hover:scale-[1.02] transition-transform">
+              {courses.map(course => (
+                <article key={course.id} className="lms-orb-card group p-10 overflow-hidden relative">
+                  <div className="relative w-full h-48 rounded-3xl mb-6 flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50">
                     <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-accent text-3xl font-black text-white shadow-lg">
                       {course.title[0].toUpperCase()}
                     </div>
                   </div>
                   <div className="relative">
-                  <h3 className="text-2xl font-bold mb-3 group-hover:text-emerald-600 transition-colors line-clamp-2">
+                  <h3 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors line-clamp-2">
                     {course.title}
                   </h3>
                   <p className="text-gray-600 mb-6 line-clamp-3">{course.description}</p>
                   <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="rounded-2xl bg-gray-50 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400 mb-1">Duration</p>
                       <p className="font-bold text-gray-900">{course.duration || 'Self-paced'}</p>
                     </div>
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="rounded-2xl bg-emerald-50 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400 mb-1">Price</p>
                       <p className="font-bold text-emerald-600">₹{course.price || 0}</p>
                     </div>
@@ -173,14 +161,14 @@ const Landing = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-gradient-to-br from-gray-900 to-emerald-900 text-white">
+      <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-black mb-8 drop-shadow-2xl">Ready to Transform?</h2>
-          <p className="text-2xl mb-12 max-w-2xl mx-auto opacity-90 leading-relaxed">
+          <h2 className="text-4xl md:text-5xl font-black mb-8 bg-gradient-to-r from-gray-900 to-primary bg-clip-text text-transparent">Ready to Transform?</h2>
+          <p className="text-2xl mb-12 max-w-2xl mx-auto text-gray-600 leading-relaxed">
             Click Start LMS Learning and begin your journey with 5K+ students
           </p>
           <Link 
-            to="/#lms-courses" 
+            to="/auth" 
             className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-5 px-10 rounded-3xl text-lg hover:shadow-2xl hover:-translate-y-2 transition-all shadow-xl group"
           >
             Start LMS Learning Now <GraduationCap className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
@@ -189,8 +177,8 @@ const Landing = () => {
       </section>
 
       {selectedCourse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm">
-          <div className="relative w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/60 px-4 pb-6 pt-28 backdrop-blur-sm">
+          <div className="relative w-full max-w-6xl max-h-[calc(100vh-8rem)] overflow-hidden rounded-[2rem] bg-white shadow-2xl">
             <button
               type="button"
               onClick={closeCoursePreview}
@@ -200,11 +188,11 @@ const Landing = () => {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="bg-gradient-to-br from-slate-950 via-sky-900 to-emerald-800 p-8 text-white lg:p-10">
+            <div className="grid max-h-[calc(100vh-8rem)] overflow-y-auto lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 p-6 text-gray-900 lg:p-8">
                 <div className="mb-8 flex items-start justify-between gap-4">
                   <div>
-                    <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
+                    <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                       <Sparkles className="h-3.5 w-3.5" />
                       Course Preview
                     </p>
@@ -212,29 +200,29 @@ const Landing = () => {
                   </div>
                 </div>
 
-                <p className="max-w-xl text-base leading-7 text-white/80">{selectedCourse.description}</p>
+                <p className="max-w-xl text-base leading-7 text-gray-600">{selectedCourse.description}</p>
 
                 <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-3xl bg-white/10 p-4">
-                    <Clock3 className="mb-3 h-5 w-5 text-cyan-200" />
-                    <p className="text-xs uppercase tracking-[0.16em] text-white/60">Duration</p>
+                  <div className="rounded-3xl bg-white p-4 shadow-lg">
+                    <Clock3 className="mb-3 h-5 w-5 text-primary" />
+                    <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Duration</p>
                     <p className="mt-1 font-bold">{selectedCourse.duration || 'Self-paced'}</p>
                   </div>
-                  <div className="rounded-3xl bg-white/10 p-4">
-                    <Layers3 className="mb-3 h-5 w-5 text-emerald-200" />
-                    <p className="text-xs uppercase tracking-[0.16em] text-white/60">Modules</p>
+                  <div className="rounded-3xl bg-white p-4 shadow-lg">
+                    <Layers3 className="mb-3 h-5 w-5 text-emerald-500" />
+                    <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Modules</p>
                     <p className="mt-1 font-bold">{getCourseStats(selectedCourse).modulesCount || 1}</p>
                   </div>
-                  <div className="rounded-3xl bg-white/10 p-4">
-                    <BookOpen className="mb-3 h-5 w-5 text-sky-200" />
-                    <p className="text-xs uppercase tracking-[0.16em] text-white/60">Lessons</p>
+                  <div className="rounded-3xl bg-white p-4 shadow-lg">
+                    <BookOpen className="mb-3 h-5 w-5 text-accent" />
+                    <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Lessons</p>
                     <p className="mt-1 font-bold">{getCourseStats(selectedCourse).lessonsCount || 0}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-8 lg:p-10">
-                <div className="mb-8 flex items-center justify-between gap-4">
+              <div className="p-6 lg:p-8">
+                <div className="mb-6 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Enroll</p>
                     <h4 className="mt-2 text-2xl font-black text-gray-900">Register and start learning</h4>
@@ -249,14 +237,10 @@ const Landing = () => {
                   type="button"
                   onClick={() => handleStartCourse(selectedCourse)}
                   disabled={actionLoading === selectedCourse.id}
-                  className="mb-8 inline-flex w-full items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-primary to-accent px-6 py-5 text-lg font-black text-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mb-6 inline-flex w-full items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-primary to-accent px-6 py-4 text-lg font-black text-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {actionLoading === selectedCourse.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" />}
-                  {!user
-                    ? 'Register & Start Learning'
-                    : enrolledIds.has(selectedCourse.id)
-                      ? 'Continue Learning'
-                      : 'Enroll & Start Learning'}
+                  {enrolledIds.has(selectedCourse.id) ? 'Continue Learning' : 'Enter Student LMS'}
                 </button>
 
                 <div className="space-y-4">
@@ -280,7 +264,7 @@ const Landing = () => {
                   </div>
 
                   <p className="text-sm leading-6 text-gray-500">
-                    Selecting the button above will create your learner account if needed, then take you straight into the course workspace.
+                    Selecting the button above will take you directly into the student LMS where the full course dashboard is available.
                   </p>
                 </div>
               </div>

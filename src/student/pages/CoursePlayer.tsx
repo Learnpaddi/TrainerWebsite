@@ -72,8 +72,9 @@ const CoursePlayer = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 lg:py-14">
-      <section className="section-shell p-8 md:p-10 mb-8">
+    <div className="lms-stage">
+      <div className="max-w-7xl mx-auto px-6 py-10 lg:py-14">
+      <section className="lms-panel p-8 md:p-10 mb-8">
         <p className="text-sm uppercase tracking-[0.2em] text-primary font-semibold mb-2">Course Player</p>
         <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">{course.title}</h1>
         <p className="text-muted mb-5">{course.description}</p>
@@ -89,7 +90,7 @@ const CoursePlayer = () => {
       </section>
 
       <div className="grid lg:grid-cols-[1.35fr_1fr] gap-8">
-        <article className="metric-card p-8">
+        <article className="lms-orb-card p-8">
           {videoSrc ? (
             <video
               className="aspect-video w-full rounded-3xl bg-black mb-6"
@@ -98,7 +99,7 @@ const CoursePlayer = () => {
               preload="metadata"
             />
           ) : (
-            <div className="aspect-video rounded-3xl bg-gradient-to-br from-gray-900 to-slate-800 mb-6 p-6 text-white flex flex-col justify-end">
+            <div className="aspect-video rounded-3xl bg-gradient-to-br from-indigo-500 to-cyan-500 mb-6 p-6 text-white flex flex-col justify-end">
               <p className="text-xs uppercase tracking-[0.2em] text-white/70 mb-2">Now Playing</p>
               <h2 className="text-2xl font-bold">{activeLesson?.title || 'Select a lesson'}</h2>
               <p className="text-sm text-white/80 mt-1">{activeLesson?.duration || 'Lesson video'}</p>
@@ -110,11 +111,11 @@ const CoursePlayer = () => {
             className="primary-cta px-6 py-3"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Mark Lesson Complete
+            {user ? 'Mark Lesson Complete' : 'Preview Lesson'}
           </button>
         </article>
 
-        <aside className="metric-card p-6">
+        <aside className="lms-orb-card p-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Lessons</h3>
           <div className="space-y-3 max-h-[520px] overflow-auto pr-1">
             {lessons.map((lesson, index) => {
@@ -125,7 +126,7 @@ const CoursePlayer = () => {
                   key={lesson.id}
                   onClick={() => setActiveLessonId(lesson.id)}
                   className={`w-full text-left rounded-2xl p-4 border transition ${
-                    active ? 'border-primary bg-primary/10' : 'border-gray-200 bg-white/80 hover:border-primary/40'
+                    active ? 'border-primary bg-blue-50' : 'border-slate-200 bg-white/85 hover:border-blue-200'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -144,6 +145,7 @@ const CoursePlayer = () => {
             })}
           </div>
         </aside>
+      </div>
       </div>
     </div>
   );

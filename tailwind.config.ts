@@ -3,8 +3,6 @@ import themeObj from './src/shared/styles/theme'
 export default {
   content: [
     "./index.html",
-    "./lms/index.html",
-    "./public/index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: 'class',
@@ -37,4 +35,3 @@ export default {
   },
   plugins: [],
 }
-
