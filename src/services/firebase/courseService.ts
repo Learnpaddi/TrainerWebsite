@@ -8,9 +8,11 @@ import {
   deleteDoc, 
   query, 
   where, 
-  orderBy 
+  orderBy,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './config';
+import { auth } from './config';
 
 export interface Course {
   id: string;
@@ -51,18 +53,73 @@ export const getUserCourses = async (trainerId: string): Promise<Course[]> => {
 };
 
 export const createCourse = async (courseData: Omit<Course, 'id' | 'createdAt'>): Promise<string> => {
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    throw new Error('You must be signed in as a trainer to create a course.');
+  }
+
+  const trimmedTitle = courseData.title.trim();
+  const duplicateSnapshot = await getDocs(
+    query(
+      collection(db, 'courses'),
+      where('trainerId', '==', currentUser.uid),
+      where('title', '==', trimmedTitle),
+    ),
+  );
+  if (!duplicateSnapshot.empty) {
+    const duplicateError = new Error('Course already exists');
+    (duplicateError as Error & { code?: string }).code = 'course/duplicate-title';
+    throw duplicateError;
+  }
+
   const docRef = await addDoc(collection(db, 'courses'), { 
-    ...courseData, 
-    createdAt: new Date().toISOString() 
+    ...courseData,
+    title: trimmedTitle,
+    trainerId: currentUser.uid,
+    createdAt: serverTimestamp(),
   });
   return docRef.id;
 };
 
 export const updateCourse = async (id: string, data: Partial<Course>): Promise<void> => {
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    throw new Error('You must be signed in to update a course.');
+  }
+
+  const existing = await getDoc(doc(db, 'courses', id));
+  if (!existing.exists()) {
+    throw new Error('Course not found.');
+  }
+
+  const existingData = existing.data() as Course;
+  if (existingData.trainerId !== currentUser.uid) {
+    const forbiddenError = new Error('You can edit only your own courses.');
+    (forbiddenError as Error & { code?: string }).code = 'course/forbidden';
+    throw forbiddenError;
+  }
+
   await updateDoc(doc(db, 'courses', id), data);
 };
 
 export const deleteCourse = async (id: string): Promise<void> => {
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    throw new Error('You must be signed in to delete a course.');
+  }
+
+  const existing = await getDoc(doc(db, 'courses', id));
+  if (!existing.exists()) {
+    return;
+  }
+
+  const existingData = existing.data() as Course;
+  if (existingData.trainerId !== currentUser.uid) {
+    const forbiddenError = new Error('You can delete only your own courses.');
+    (forbiddenError as Error & { code?: string }).code = 'course/forbidden';
+    throw forbiddenError;
+  }
+
   await deleteDoc(doc(db, 'courses', id));
 };
 

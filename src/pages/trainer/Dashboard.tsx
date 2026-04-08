@@ -1,66 +1,119 @@
-import { FolderPlus, GraduationCap, IndianRupee, Users } from 'lucide-react';
+import { BadgeIndianRupee, ChartLine, GraduationCap, Users, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTrainerWorkspace } from '@/hooks/useTrainerWorkspace';
+import Chart from '@/components/Chart';
+import ReviewCard from '@/components/ReviewCard';
+import StatCard from '@/components/StatCard';
 
 const TrainerDashboardPage = () => {
   const { loading, courses, totalLearners, totalRevenue, averageCompletion } = useTrainerWorkspace();
+  const lineData = courses.slice(0, 6).map((course) => ({
+    name: course.title.length > 14 ? `${course.title.slice(0, 14)}…` : course.title,
+    value: course.price,
+  }));
+
+  const engagementData = [
+    { name: 'High Engagement', value: Math.max(Math.round(averageCompletion / 10), 1), color: '#10B981' },
+    { name: 'Medium Engagement', value: 5, color: '#2563EB' },
+    { name: 'Needs Attention', value: 10 - Math.min(Math.round(averageCompletion / 10), 9), color: '#F59E0B' },
+  ];
+
+  const topCourses = [...courses]
+    .sort((left, right) => right.price - left.price)
+    .slice(0, 4);
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: 'Published Courses', value: courses.length, icon: GraduationCap, tone: 'bg-blue-100 text-primary' },
-          { label: 'Active Learners', value: totalLearners, icon: Users, tone: 'bg-emerald-100 text-emerald-600' },
-          { label: 'Catalog Value', value: `₹${totalRevenue}`, icon: IndianRupee, tone: 'bg-amber-100 text-amber-600' },
-          { label: 'Avg Completion', value: `${averageCompletion}%`, icon: FolderPlus, tone: 'bg-violet-100 text-violet-600' },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <article key={item.label} className="metric-card p-6">
-              <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-3xl ${item.tone}`}>
-                <Icon className="h-6 w-6" />
-              </div>
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
-              <p className="mt-2 text-4xl font-black text-slate-950">{item.value}</p>
-            </article>
-          );
-        })}
+    <div className="space-y-6">
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-corporate-muted">Trainer Intelligence Layer</p>
+        <h2 className="mt-2 text-2xl font-semibold text-corporate-text">Your premium analytics command center</h2>
+        <p className="mt-2 max-w-2xl text-sm text-corporate-muted">
+          Monitor revenue flow, student engagement, and course performance from a single operational workspace.
+        </p>
+        <div className="mt-5">
+          <Link to="/trainer/add-course" className="primary-cta px-5 py-3 text-sm">
+            + Create Course
+          </Link>
+        </div>
       </section>
 
-      <section className="lms-panel p-6 lg:p-8">
-        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Trainer Control Center</p>
-            <h2 className="text-3xl font-black text-slate-950">Course operations snapshot</h2>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link to="/trainer/create-course" className="primary-cta px-5 py-3 text-sm">Create Course</Link>
-            <Link to="/trainer/manage-courses" className="secondary-cta px-5 py-3 text-sm">Manage Library</Link>
-          </div>
-        </div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Total Courses" value={courses.length} icon={GraduationCap} tone="blue" hint="Published and active catalog" />
+        <StatCard title="Revenue" value={`₹${totalRevenue}`} icon={Wallet} tone="emerald" hint="Combined course value" />
+        <StatCard title="Active Users" value={totalLearners} icon={Users} tone="amber" hint="Learners currently enrolled" />
+        <StatCard title="Completion Rate" value={`${averageCompletion}%`} icon={ChartLine} tone="violet" hint="Average learner completion" />
+      </section>
 
+      <section className="grid gap-4 xl:grid-cols-[1.45fr_0.85fr]" id="analytics">
         {loading ? (
-          <p className="text-slate-500">Loading trainer workspace...</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 xl:col-span-2">
+            Loading trainer analytics...
+          </div>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-2">
-            {courses.map((course) => (
-              <article key={course.id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-col gap-5 lg:flex-row">
-                  <img src={course.thumbnail} alt={course.title} className="h-36 w-full rounded-[1.5rem] object-cover lg:w-48" />
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{course.category}</p>
-                    <h3 className="mt-2 text-2xl font-black text-slate-950">{course.title}</h3>
-                    <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-600">{course.description}</p>
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600">{course.lessons.length} lessons</span>
-                      <span className="rounded-full bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-600">₹{course.price}</span>
-                    </div>
+          <>
+            <Chart
+              variant="line"
+              title="Earnings by Course"
+              subtitle="Revenue potential across your top course catalog"
+              lineData={lineData}
+              lineXKey="name"
+              lineYKey="value"
+              lineColor="#06B6D4"
+            />
+            <Chart
+              variant="donut"
+              title="Student Engagement"
+              subtitle="Engagement quality mix"
+              donutData={engagementData}
+            />
+          </>
+        )}
+      </section>
+
+      {!loading && courses.length === 0 ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h2 className="text-2xl font-black text-slate-900">No courses created yet</h2>
+          <p className="mt-2 text-sm text-slate-600">Create your first course to see trainer analytics and engagement insights.</p>
+        </section>
+      ) : null}
+
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
+          <p className="text-sm font-semibold text-corporate-text">Top Performing Courses</p>
+          <div className="mt-4 space-y-3">
+            {topCourses.map((course) => (
+              <div key={course.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-corporate-text">{course.title}</p>
+                    <p className="text-xs text-corporate-muted">{course.lessons.length} lessons · {course.category}</p>
+                  </div>
+                  <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-corporate-success">
+                    <BadgeIndianRupee className="h-3.5 w-3.5" />
+                    {course.price}
                   </div>
                 </div>
-              </article>
+              </div>
             ))}
+            {topCourses.length === 0 && <p className="text-sm text-corporate-muted">No courses available yet.</p>}
           </div>
-        )}
+        </article>
+
+        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
+          <p className="text-sm font-semibold text-corporate-text">Recent Learner Reviews</p>
+          <div className="mt-4 space-y-3">
+            {courses.slice(0, 3).map((course, index) => (
+              <ReviewCard
+                key={course.id}
+                name={`${course.title} feedback`}
+                role="Learner review"
+                rating={4.2 + index * 0.25}
+                comment="Strong delivery and practical modules. Students are engaging deeply with assignments."
+              />
+            ))}
+            {courses.length === 0 && <p className="text-sm text-corporate-muted">No reviews yet.</p>}
+          </div>
+        </article>
       </section>
     </div>
   );

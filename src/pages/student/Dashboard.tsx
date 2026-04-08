@@ -1,99 +1,118 @@
-import { Award, BookOpen, PlayCircle, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { BookCheck, BookOpen, Clock3, TrendingUp } from 'lucide-react';
 import { useStudentWorkspace } from '@/hooks/useStudentWorkspace';
+import Chart from '@/components/Chart';
+import ReviewCard from '@/components/ReviewCard';
+import StatCard from '@/components/StatCard';
 
 const StudentDashboardPage = () => {
-  const { loading, enrolledCourses, averageProgress, completedCourses, certificates } = useStudentWorkspace();
+  const { loading, enrolledCourses, averageProgress, completedCourses } = useStudentWorkspace();
+  const pendingCourses = Math.max(enrolledCourses.length - completedCourses, 0);
+
+  const progressTrend = enrolledCourses.slice(0, 6).map(({ course, enrollment }, index) => ({
+    name: course.title.length > 14 ? `${course.title.slice(0, 14)}…` : course.title,
+    value: enrollment.progress,
+    order: index + 1,
+  }));
+
+  const completionSplit = [
+    { name: 'Completed', value: completedCourses, color: '#10B981' },
+    { name: 'Pending', value: pendingCourses, color: '#3B82F6' },
+  ];
+
+  const learnerReviews = enrolledCourses.slice(0, 3).map(({ course, enrollment }, index) => ({
+    name: `Course update: ${course.title}`,
+    role: `Progress • ${enrollment.progress}%`,
+    rating: 4.4 + index * 0.2,
+    comment: enrollment.progress >= 70
+      ? 'Great momentum. Keep the streak going to complete this track.'
+      : 'Steady progress. Finish one lesson this week to move forward.',
+  }));
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: 'Enrolled Courses', value: enrolledCourses.length, icon: BookOpen, tone: 'bg-blue-100 text-primary' },
-          { label: 'Average Progress', value: `${averageProgress}%`, icon: TrendingUp, tone: 'bg-emerald-100 text-emerald-600' },
-          { label: 'Certificates', value: certificates.length, icon: Award, tone: 'bg-amber-100 text-amber-600' },
-          { label: 'Completed Tracks', value: completedCourses, icon: PlayCircle, tone: 'bg-violet-100 text-violet-600' },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <article key={item.label} className="metric-card p-6">
-              <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-3xl ${item.tone}`}>
-                <Icon className="h-6 w-6" />
-              </div>
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
-              <p className="mt-2 text-4xl font-black text-slate-950">{item.value}</p>
-            </article>
-          );
-        })}
+    <div className="space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Courses Enrolled" value={enrolledCourses.length} icon={BookOpen} tone="blue" hint="Active learning paths" />
+        <StatCard title="Completed" value={completedCourses} icon={BookCheck} tone="emerald" hint="Finished tracks" />
+        <StatCard title="Pending" value={pendingCourses} icon={Clock3} tone="amber" hint="In-progress courses" />
+        <StatCard title="Completion Rate" value={`${averageProgress}%`} icon={TrendingUp} tone="violet" hint="Average progress across courses" />
       </section>
 
-      <section className="lms-panel p-6 lg:p-8">
-        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Continue Learning</p>
-            <h2 className="text-3xl font-black text-slate-950">Your active programs</h2>
-          </div>
-          <Link to="/explore" className="secondary-cta px-5 py-3 text-sm">Explore More Courses</Link>
-        </div>
-
+      <section className="grid gap-4 xl:grid-cols-[1.45fr_0.85fr]" id="analytics">
         {loading ? (
-          <p className="text-slate-500">Loading your workspace...</p>
-        ) : enrolledCourses.length === 0 ? (
-          <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-            <h3 className="text-2xl font-black text-slate-950">No courses enrolled yet</h3>
-            <p className="mt-3 text-slate-600">Browse the public marketplace and enroll into your first learning path.</p>
-            <Link to="/explore" className="primary-cta mt-6 px-5 py-3 text-sm">Open Marketplace</Link>
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500 xl:col-span-2">
+            Loading student analytics...
           </div>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-2">
-            {enrolledCourses.map(({ course, enrollment }) => (
-              <article key={course.id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-col gap-5 lg:flex-row">
-                  <img src={course.thumbnail} alt={course.title} className="h-40 w-full rounded-[1.5rem] object-cover lg:w-56" />
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{course.category}</p>
-                    <h3 className="mt-2 text-2xl font-black text-slate-950">{course.title}</h3>
-                    <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-600">{course.description}</p>
-                    <div className="mt-5">
-                      <div className="mb-2 flex items-center justify-between text-sm font-semibold text-slate-600">
-                        <span>Progress</span>
-                        <span>{enrollment.progress}%</span>
-                      </div>
-                      <div className="h-3 rounded-full bg-slate-100">
-                        <div className="h-3 rounded-full bg-gradient-to-r from-primary to-cyan-400" style={{ width: `${enrollment.progress}%` }} />
-                      </div>
-                    </div>
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <Link to={`/student/course/${course.id}`} className="primary-cta px-5 py-3 text-sm">
-                        Continue Learning
-                      </Link>
-                      <span className="secondary-cta px-4 py-3 text-sm">{course.lessons.length} lessons</span>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+          <>
+            <Chart
+              variant="line"
+              title="Learning Progress Trend"
+              subtitle="Track completion level per enrolled course"
+              lineData={progressTrend}
+              lineXKey="name"
+              lineYKey="value"
+              lineColor="#2563EB"
+            />
+            <Chart
+              variant="donut"
+              title="Completion Split"
+              subtitle="Completed vs pending courses"
+              donutData={completionSplit}
+            />
+          </>
         )}
       </section>
 
-      <section className="lms-panel p-6 lg:p-8">
-        <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Certificates</p>
-          <h2 className="text-3xl font-black text-slate-950">Completion rewards</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {certificates.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-              Finish a course to unlock your first certificate.
-            </div>
-          ) : certificates.map((certificate) => (
-            <article key={certificate.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">Verified Certificate</p>
-              <h3 className="mt-3 text-xl font-black text-slate-950">{certificate.certificateNumber}</h3>
-              <p className="mt-2 text-sm text-slate-600">Issued on {new Date(certificate.issuedAt).toLocaleDateString()}</p>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
+          <p className="text-sm font-semibold text-corporate-text">My Activity</p>
+          <div className="mt-4 space-y-3">
+            {enrolledCourses.slice(0, 4).map(({ course, enrollment }) => (
+              <div key={course.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <p className="text-sm font-semibold text-corporate-text">{course.title}</p>
+                <p className="mt-1 text-xs text-corporate-muted">Progress updated to {enrollment.progress}%</p>
+              </div>
+            ))}
+            {enrolledCourses.length === 0 && (
+              <p className="text-sm text-corporate-muted">Enroll in a course to start tracking activity.</p>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
+          <p className="text-sm font-semibold text-corporate-text">Reviews & Guidance</p>
+          <div className="mt-4 space-y-3">
+            {learnerReviews.length > 0 ? learnerReviews.map((review) => (
+              <ReviewCard
+                key={review.name}
+                name={review.name}
+                role={review.role}
+                comment={review.comment}
+                rating={review.rating}
+              />
+            )) : (
+              <p className="text-sm text-corporate-muted">No recent review items yet.</p>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md">
+        <p className="text-sm font-semibold text-corporate-text">Enrolled Courses</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {enrolledCourses.map(({ course, enrollment }) => (
+            <article key={course.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-corporate-muted">{course.category}</p>
+              <h3 className="mt-1 text-sm font-semibold text-corporate-text">{course.title}</h3>
+              <p className="mt-2 text-xs text-corporate-muted">{course.lessons.length} lessons</p>
+              <div className="mt-3 h-2 rounded-full bg-slate-200">
+                <div className="h-2 rounded-full bg-corporate-accent" style={{ width: `${enrollment.progress}%` }} />
+              </div>
             </article>
           ))}
+          {enrolledCourses.length === 0 && (
+            <p className="text-sm text-corporate-muted">No enrolled courses yet.</p>
+          )}
         </div>
       </section>
     </div>

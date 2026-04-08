@@ -23,7 +23,7 @@ const TrainerDashboard = () => {
               <FolderPlus className="h-5 w-5" />
               Upload Course
             </button>
-            <Link to="/auth" className="inline-flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-6 py-4 text-base font-bold text-white">
+            <Link to="/select-role?mode=login" className="inline-flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-6 py-4 text-base font-bold text-white">
               Switch Role
             </Link>
           </div>

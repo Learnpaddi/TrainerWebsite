@@ -1,24 +1,30 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
+  serverTimestamp,
+  Timestamp,
   setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
+import { auth } from '@/services/firebase/config';
 
 export type Role = 'student' | 'trainer';
 
 export interface LessonRecord {
   id: string;
   title: string;
-  duration: string;
-  videoUrl: string;
-  summary: string;
+  youtubeUrl: string;
+  duration?: string;
+  videoUrl?: string;
+  summary?: string;
 }
 
 export interface CourseModuleRecord {
@@ -86,12 +92,21 @@ export interface CreateCourseInput {
   description: string;
   price: number;
   category: string;
-  level: CourseRecord['level'];
   thumbnail: string;
-  trainerId: string;
-  trainerName: string;
-  duration: string;
-  modules: CourseModuleRecord[];
+  trainerId?: string;
+  lessons: Array<Pick<LessonRecord, 'title' | 'youtubeUrl'>>;
+}
+
+type LmsServiceErrorCode = 'course/duplicate-title' | 'course/forbidden' | 'course/unauthenticated';
+
+class LmsServiceError extends Error {
+  code: LmsServiceErrorCode;
+
+  constructor(code: LmsServiceErrorCode, message: string) {
+    super(message);
+    this.name = 'LmsServiceError';
+    this.code = code;
+  }
 }
 
 const STORAGE_KEYS = {
@@ -116,25 +131,13 @@ const fallbackCourses: CourseRecord[] = [
     studentsCount: 1842,
     featured: true,
     createdAt: '2026-01-08T09:00:00.000Z',
-    modules: [
-      {
-        id: 'analytics-foundations',
-        title: 'Analytics Foundations',
-        lessons: [
-          { id: 'lesson-analytics-1', title: 'Metrics That Matter', duration: '14 min', videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', summary: 'Understand north-star metrics and ROI baselines.' },
-          { id: 'lesson-analytics-2', title: 'Building Dashboards for Decisions', duration: '18 min', videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk', summary: 'Design dashboards executives actually use.' },
-        ],
-      },
-      {
-        id: 'analytics-execution',
-        title: 'Execution & Communication',
-        lessons: [
-          { id: 'lesson-analytics-3', title: 'Turning Analysis into Action', duration: '16 min', videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', summary: 'Move from insights to actions with confidence.' },
-          { id: 'lesson-analytics-4', title: 'ROI Narrative for Leadership', duration: '12 min', videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk', summary: 'Present financial value in a persuasive way.' },
-        ],
-      },
+    modules: [],
+    lessons: [
+      { id: 'lesson-analytics-1', title: 'Metrics That Matter', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A' },
+      { id: 'lesson-analytics-2', title: 'Building Dashboards for Decisions', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+      { id: 'lesson-analytics-3', title: 'Turning Analysis into Action', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A' },
+      { id: 'lesson-analytics-4', title: 'ROI Narrative for Leadership', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
     ],
-    lessons: [],
   },
   {
     id: 'course-ai-productivity',
@@ -150,25 +153,13 @@ const fallbackCourses: CourseRecord[] = [
     studentsCount: 2631,
     featured: true,
     createdAt: '2026-02-10T09:00:00.000Z',
-    modules: [
-      {
-        id: 'ai-setup',
-        title: 'AI Workflow Setup',
-        lessons: [
-          { id: 'lesson-ai-1', title: 'Prompting Foundations', duration: '10 min', videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk', summary: 'Write prompts that produce consistent results.' },
-          { id: 'lesson-ai-2', title: 'Building Personal AI Systems', duration: '17 min', videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', summary: 'Create reusable systems for research and execution.' },
-        ],
-      },
-      {
-        id: 'ai-automation',
-        title: 'Automation Layer',
-        lessons: [
-          { id: 'lesson-ai-3', title: 'Agent Handoffs & Workflows', duration: '13 min', videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk', summary: 'Chain work across repeatable automations.' },
-          { id: 'lesson-ai-4', title: 'Operational QA for AI Outputs', duration: '11 min', videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', summary: 'Check quality, reduce hallucinations, and ship safely.' },
-        ],
-      },
+    modules: [],
+    lessons: [
+      { id: 'lesson-ai-1', title: 'Prompting Foundations', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+      { id: 'lesson-ai-2', title: 'Building Personal AI Systems', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A' },
+      { id: 'lesson-ai-3', title: 'Agent Handoffs & Workflows', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+      { id: 'lesson-ai-4', title: 'Operational QA for AI Outputs', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A' },
     ],
-    lessons: [],
   },
   {
     id: 'course-brand-strategy',
@@ -183,25 +174,13 @@ const fallbackCourses: CourseRecord[] = [
     duration: '6h 05m',
     studentsCount: 968,
     createdAt: '2026-03-12T09:00:00.000Z',
-    modules: [
-      {
-        id: 'brand-core',
-        title: 'Brand Core',
-        lessons: [
-          { id: 'lesson-brand-1', title: 'Positioning & Audience', duration: '15 min', videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', summary: 'Define who you serve and why you matter.' },
-          { id: 'lesson-brand-2', title: 'Narrative & Messaging', duration: '19 min', videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk', summary: 'Turn strategy into memorable language.' },
-        ],
-      },
-      {
-        id: 'brand-activation',
-        title: 'Activation',
-        lessons: [
-          { id: 'lesson-brand-3', title: 'Campaign Systems', duration: '14 min', videoUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', summary: 'Design a campaign engine across channels.' },
-          { id: 'lesson-brand-4', title: 'Measurement & Iteration', duration: '12 min', videoUrl: 'https://www.youtube.com/embed/jfKfPfyJRdk', summary: 'Measure impact and refine over time.' },
-        ],
-      },
+    modules: [],
+    lessons: [
+      { id: 'lesson-brand-1', title: 'Positioning & Audience', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A' },
+      { id: 'lesson-brand-2', title: 'Narrative & Messaging', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
+      { id: 'lesson-brand-3', title: 'Campaign Systems', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A' },
+      { id: 'lesson-brand-4', title: 'Measurement & Iteration', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
     ],
-    lessons: [],
   },
 ];
 
@@ -228,7 +207,7 @@ const fallbackReviews: ReviewRecord[] = [
 
 const withDerivedLessons = (course: CourseRecord): CourseRecord => ({
   ...course,
-  lessons: course.modules.flatMap((module) => module.lessons),
+  lessons: course.lessons.length ? course.lessons : course.modules.flatMap((module) => module.lessons),
 });
 
 const fallbackCatalog = fallbackCourses.map(withDerivedLessons);
@@ -252,8 +231,34 @@ const setLocalStore = <T,>(key: string, value: T) => {
   window.localStorage.setItem(key, JSON.stringify(value));
 };
 
+const formatCreatedAt = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && 'toDate' in value && typeof (value as Timestamp).toDate === 'function') {
+    return (value as Timestamp).toDate().toISOString();
+  }
+  return new Date().toISOString();
+};
+
+const normalizeLesson = (rawLesson: Partial<LessonRecord>, index: number): LessonRecord => {
+  const youtubeUrl = rawLesson.youtubeUrl || rawLesson.videoUrl || '';
+  return {
+    id: rawLesson.id || `lesson-${Date.now()}-${index}`,
+    title: rawLesson.title || `Lesson ${index + 1}`,
+    youtubeUrl,
+    videoUrl: youtubeUrl,
+    duration: rawLesson.duration,
+    summary: rawLesson.summary,
+  };
+};
+
 const normalizeCourse = (raw: Partial<CourseRecord>, id: string): CourseRecord => {
-  const modules = raw.modules || [];
+  const legacyModules = raw.modules || [];
+  const directLessons = (raw.lessons || []).map((lesson, index) => normalizeLesson(lesson, index));
+  const moduleLessons = legacyModules.flatMap((module) => (module.lessons || []).map((lesson, index) => normalizeLesson(lesson, index)));
+  const lessons = (directLessons.length ? directLessons : moduleLessons).map((lesson, index) => ({
+    ...lesson,
+    id: lesson.id || `lesson-${index + 1}`,
+  }));
   const course: CourseRecord = {
     id,
     title: raw.title || 'Untitled Course',
@@ -267,9 +272,9 @@ const normalizeCourse = (raw: Partial<CourseRecord>, id: string): CourseRecord =
     duration: raw.duration || 'Self-paced',
     studentsCount: raw.studentsCount || 0,
     featured: raw.featured || false,
-    createdAt: raw.createdAt || new Date().toISOString(),
-    modules,
-    lessons: modules.flatMap((module) => module.lessons || []),
+    createdAt: formatCreatedAt(raw.createdAt),
+    modules: legacyModules,
+    lessons,
   };
   return course;
 };
@@ -316,6 +321,15 @@ export const getMarketplaceCategories = async () => {
 };
 
 export const getCourseById = async (courseId: string) => {
+  try {
+    const snapshot = await getDoc(doc(db, 'courses', courseId));
+    if (snapshot.exists()) {
+      return normalizeCourse(snapshot.data() as Partial<CourseRecord>, snapshot.id);
+    }
+  } catch {
+    // Fall back to merged catalog below.
+  }
+
   const courses = await getMarketplaceCourses();
   return courses.find((course) => course.id === courseId) || null;
 };
@@ -456,8 +470,7 @@ export const getStudentDashboardData = async (userId: string) => {
 };
 
 export const getTrainerDashboardData = async (trainerId: string) => {
-  const courses = await getMarketplaceCourses();
-  const trainerCourses = courses.filter((course) => course.trainerId === trainerId);
+  const trainerCourses = await getTrainerCourses(trainerId);
   const enrollments = getLocalStore<EnrollmentRecord[]>(STORAGE_KEYS.enrollments, []);
 
   const totalLearners = trainerCourses.reduce((sum, course) => (
@@ -480,31 +493,87 @@ export const getTrainerDashboardData = async (trainerId: string) => {
 };
 
 export const createCourse = async (input: CreateCourseInput) => {
-  const created: CourseRecord = normalizeCourse({
-    ...input,
-    createdAt: new Date().toISOString(),
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    throw new LmsServiceError('course/unauthenticated', 'You must be signed in as a trainer to create a course.');
+  }
+
+  const normalizedTitle = input.title.trim();
+  const duplicateSnapshot = await getDocs(
+    query(
+      collection(db, 'courses'),
+      where('trainerId', '==', currentUser.uid),
+      where('title', '==', normalizedTitle),
+    ),
+  );
+
+  if (!duplicateSnapshot.empty) {
+    throw new LmsServiceError('course/duplicate-title', 'Course already exists');
+  }
+
+  const firestorePayload = {
+    title: normalizedTitle,
+    description: input.description.trim(),
+    category: input.category.trim() || 'General',
+    thumbnail: input.thumbnail.trim(),
+    price: input.price,
+    trainerId: currentUser.uid,
+    lessons: input.lessons.map((lesson, index) => ({
+      id: `lesson-${Date.now()}-${index}`,
+      title: lesson.title.trim(),
+      youtubeUrl: lesson.youtubeUrl.trim(),
+      videoUrl: lesson.youtubeUrl.trim(),
+    })),
+    createdAt: serverTimestamp(),
+    level: 'Beginner' as const,
+    trainerName: 'LearnPaddi Trainer',
+    duration: 'Self-paced',
     studentsCount: 0,
     featured: false,
-  }, `course-${Date.now()}`);
+    modules: [],
+  };
+
+  const docRef = await addDoc(collection(db, 'courses'), firestorePayload);
+  const created = normalizeCourse(firestorePayload as unknown as Partial<CourseRecord>, docRef.id);
 
   const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
   setLocalStore(STORAGE_KEYS.courses, [created, ...localCourses]);
-
-  try {
-    await setDoc(doc(db, 'courses', created.id), created, { merge: true });
-  } catch {
-    // Local fallback is already persisted.
-  }
 
   return created;
 };
 
 export const getTrainerCourses = async (trainerId: string) => {
-  const courses = await getMarketplaceCourses();
-  return courses.filter((course) => course.trainerId === trainerId);
+  const ownedCoursesSnapshot = await getDocs(
+    query(collection(db, 'courses'), where('trainerId', '==', trainerId)),
+  );
+
+  const firestoreCourses = ownedCoursesSnapshot.docs.map((courseDoc) =>
+    normalizeCourse(courseDoc.data() as Partial<CourseRecord>, courseDoc.id),
+  );
+  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
+  const filteredLocal = localCourses.filter((course) => course.trainerId === trainerId);
+
+  return sortNewest([...firestoreCourses, ...filteredLocal].filter(
+    (course, index, arr) => arr.findIndex((entry) => entry.id === course.id) === index,
+  ));
 };
 
 export const updateCourse = async (courseId: string, partial: Partial<CourseRecord>) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    throw new LmsServiceError('course/unauthenticated', 'You must be signed in to update this course.');
+  }
+
+  const existingCourseDoc = await getDoc(doc(db, 'courses', courseId));
+  if (!existingCourseDoc.exists()) {
+    throw new Error('Course not found.');
+  }
+
+  const existingCourse = existingCourseDoc.data() as Partial<CourseRecord>;
+  if (existingCourse.trainerId !== currentUser.uid) {
+    throw new LmsServiceError('course/forbidden', 'You can edit only your own courses.');
+  }
+
   const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
   const existing = localCourses.find((course) => course.id === courseId);
   if (existing) {
@@ -515,11 +584,28 @@ export const updateCourse = async (courseId: string, partial: Partial<CourseReco
     ]);
   }
 
-  try {
-    await updateDoc(doc(db, 'courses', courseId), partial);
-  } catch {
-    // Local fallback is already persisted.
+  await updateDoc(doc(db, 'courses', courseId), partial);
+};
+
+export const deleteCourse = async (courseId: string) => {
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    throw new LmsServiceError('course/unauthenticated', 'You must be signed in to delete this course.');
   }
+
+  const existingCourseDoc = await getDoc(doc(db, 'courses', courseId));
+  if (!existingCourseDoc.exists()) {
+    return;
+  }
+
+  const existingCourse = existingCourseDoc.data() as Partial<CourseRecord>;
+  if (existingCourse.trainerId !== currentUser.uid) {
+    throw new LmsServiceError('course/forbidden', 'You can delete only your own courses.');
+  }
+
+  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
+  setLocalStore(STORAGE_KEYS.courses, localCourses.filter((course) => course.id !== courseId));
+  await deleteDoc(doc(db, 'courses', courseId));
 };
 
 export const getCertificateRecords = async (userId: string): Promise<CertificateRecord[]> => {

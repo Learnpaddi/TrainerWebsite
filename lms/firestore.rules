@@ -45,10 +45,11 @@ service cloud.firestore {
     }
 
     match /courses/{courseId} {
-      allow read: if true;
-      allow create: if (isTrainer() && request.resource.data.trainerId == request.auth.uid) || isAdmin();
-      allow update, delete: if (isCourseTrainer(courseId)
-        && request.resource.data.trainerId == resource.data.trainerId) || isAdmin();
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.trainerId == request.auth.uid;
+      allow update, delete: if signedIn()
+        && request.auth.uid == resource.data.trainerId;
     }
 
     match /enrollments/{enrollmentId} {

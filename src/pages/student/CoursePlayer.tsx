@@ -19,6 +19,14 @@ import {
   type ReviewRecord,
 } from '@/services/firebase/lmsService';
 
+function getYouTubeId(url: string) {
+  const regExp = /(?:youtube.com\/watch\?v=|youtu.be\/)([^&]+)/;
+  const match = url.match(regExp);
+  if (match) return match[1];
+  const embedMatch = url.match(/youtube.com\/embed\/([^?&]+)/);
+  return embedMatch ? embedMatch[1] : "";
+}
+
 const StudentCoursePlayerPage = () => {
   const { id = '' } = useParams();
   const { profile } = useRole();
@@ -26,30 +34,53 @@ const StudentCoursePlayerPage = () => {
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
   const [enrollment, setEnrollment] = useState<EnrollmentRecord | null>(null);
   const [activeLesson, setActiveLesson] = useState<LessonRecord | null>(null);
+  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [selectedVideoId, setSelectedVideoId] = useState('');
   const [certificate, setCertificate] = useState<CertificateRecord | null>(null);
   const [reviewInput, setReviewInput] = useState({ rating: 5, comment: '' });
   const [ratingSnapshot, setRatingSnapshot] = useState({ averageRating: 0, reviewsCount: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
       if (!profile) return;
-      const [fetchedCourse, fetchedReviews, studentEnrollments, fetchedRating] = await Promise.all([
-        getCourseById(id),
-        getCourseReviews(id),
-        getStudentEnrollments(profile.id),
-        getRatingSnapshot(id),
-      ]);
+      setLoading(true);
+      setError(null);
+      try {
+        const [fetchedCourse, fetchedReviews, studentEnrollments, fetchedRating] = await Promise.all([
+          getCourseById(id),
+          getCourseReviews(id),
+          getStudentEnrollments(profile.id),
+          getRatingSnapshot(id),
+        ]);
 
-      if (!mounted || !fetchedCourse) return;
-      const existingEnrollment = studentEnrollments.find((item) => item.courseId === id) || null;
+        if (!mounted) return;
+        if (!fetchedCourse) {
+          setError('Course not found.');
+          return;
+        }
 
-      setCourse(fetchedCourse);
-      setReviews(fetchedReviews);
-      setRatingSnapshot(fetchedRating);
-      setEnrollment(existingEnrollment);
-      setActiveLesson(fetchedCourse.lessons[0] || null);
+        const existingEnrollment = studentEnrollments.find((item) => item.courseId === id) || null;
+
+        setCourse(fetchedCourse);
+        setReviews(fetchedReviews);
+        setRatingSnapshot(fetchedRating);
+        setEnrollment(existingEnrollment);
+        setActiveLesson(fetchedCourse.lessons[0] || null);
+        setCurrentLessonIndex(0);
+        const firstLessonUrl = fetchedCourse.lessons[0]?.youtubeUrl || fetchedCourse.lessons[0]?.videoUrl || '';
+        setSelectedVideoId(getYouTubeId(firstLessonUrl));
+      } catch (loadError) {
+        if (!mounted) return;
+        setError(loadError instanceof Error ? loadError.message : 'Unable to load course details.');
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
     };
 
     void load();
@@ -60,8 +91,16 @@ const StudentCoursePlayerPage = () => {
 
   const completedSet = useMemo(() => new Set(enrollment?.completedLessons || []), [enrollment]);
 
-  if (!course || !profile) {
+  if (loading || !profile) {
     return <div className="lms-panel p-8 text-slate-500">Loading course player...</div>;
+  }
+
+  if (error) {
+    return <div className="lms-panel p-8 text-red-600">{error}</div>;
+  }
+
+  if (!course) {
+    return <div className="lms-panel p-8 text-slate-500">Course not available.</div>;
   }
 
   const handleEnroll = async () => {
@@ -112,10 +151,10 @@ const StudentCoursePlayerPage = () => {
           <p className="mt-4 text-base leading-8 text-slate-600">{course.description}</p>
 
           <div className="mt-8 aspect-video overflow-hidden rounded-[1.75rem] bg-slate-950 shadow-2xl">
-            {activeLesson?.videoUrl ? (
+            {selectedVideoId ? (
               <iframe
-                src={activeLesson.videoUrl}
-                title={activeLesson.title}
+                src={`https://www.youtube.com/embed/${selectedVideoId}`}
+                title={activeLesson?.title || 'Course lesson'}
                 className="h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -129,6 +168,7 @@ const StudentCoursePlayerPage = () => {
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Active Lesson</p>
               <h3 className="mt-2 text-2xl font-black text-slate-950">{activeLesson?.title}</h3>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Lesson {currentLessonIndex + 1}</p>
               <p className="mt-2 text-sm text-slate-600">{activeLesson?.summary}</p>
             </div>
             {enrollment ? (
@@ -212,12 +252,18 @@ const StudentCoursePlayerPage = () => {
             {course.lessons.map((lesson) => {
               const completed = completedSet.has(lesson.id);
               const active = activeLesson?.id === lesson.id;
+              const lessonVideoId = getYouTubeId(lesson.youtubeUrl || lesson.videoUrl || '');
+              const lessonIndex = course.lessons.findIndex((entry) => entry.id === lesson.id);
 
               return (
                 <button
                   key={lesson.id}
                   type="button"
-                  onClick={() => setActiveLesson(lesson)}
+                  onClick={() => {
+                    setActiveLesson(lesson);
+                    setCurrentLessonIndex(lessonIndex);
+                    setSelectedVideoId(lessonVideoId);
+                  }}
                   className={`flex w-full items-center gap-4 rounded-[1.25rem] border p-4 text-left transition ${
                     active ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'
                   }`}
@@ -227,7 +273,11 @@ const StudentCoursePlayerPage = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-slate-900">{lesson.title}</p>
-                    <p className="text-sm text-slate-500">{lesson.duration}</p>
+                    <p className="text-sm text-slate-500">
+                      Lesson {lessonIndex + 1}
+                      {lesson.duration ? ` • ${lesson.duration}` : ''}
+                      {active ? ' • Playing' : ''}
+                    </p>
                   </div>
                 </button>
               );

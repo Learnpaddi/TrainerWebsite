@@ -5,9 +5,11 @@ interface StudentLoginProps {
   onBack: () => void;
   onToggleMode: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  errorMessage?: string | null;
+  isSubmitting?: boolean;
 }
 
-const StudentLogin = ({ onBack, onToggleMode, onSubmit }: StudentLoginProps) => (
+const StudentLogin = ({ onBack, onToggleMode, onSubmit, errorMessage, isSubmitting }: StudentLoginProps) => (
   <AuthFormCard
     role="student"
     mode="login"
@@ -17,6 +19,8 @@ const StudentLogin = ({ onBack, onToggleMode, onSubmit }: StudentLoginProps) => 
     onBack={onBack}
     onToggleMode={onToggleMode}
     onSubmit={onSubmit}
+    errorMessage={errorMessage}
+    isSubmitting={isSubmitting}
   >
     <div className="grid gap-5 sm:grid-cols-2">
       <label className="sm:col-span-2">

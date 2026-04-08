@@ -1,10 +1,11 @@
 import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import StarRating from '@/shared/ui/StarRating';
 import { useMarketplace } from '@/hooks/useMarketplace';
 
 const ExplorePage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const { courses, categories, loading } = useMarketplace(search, category);
@@ -25,7 +26,7 @@ const ExplorePage = () => {
               Explore structured video learning, progress-led course paths, verified completion tracking, and trainer-built programs designed like a modern marketplace.
             </p>
           </div>
-          <Link to="/auth" className="primary-cta px-6 py-4 text-base">Choose LMS Role</Link>
+          <Link to="/select-role?mode=login" className="primary-cta px-6 py-4 text-base">Choose LMS Role</Link>
         </div>
 
         <div className="mt-8 grid gap-4 lg:grid-cols-[1.4fr,0.8fr]">
@@ -103,7 +104,13 @@ const ExplorePage = () => {
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Price</p>
                     <p className="text-2xl font-black text-emerald-600">₹{course.price}</p>
                   </div>
-                  <Link to="/auth" className="primary-cta px-5 py-3 text-sm">Enroll & Learn</Link>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/course/${course.id}`)}
+                    className="primary-cta px-5 py-3 text-sm"
+                  >
+                    Enroll Now
+                  </button>
                 </div>
               </article>
             ))}

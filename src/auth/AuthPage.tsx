@@ -1,13 +1,21 @@
 import { BookOpenCheck, GraduationCap, ShieldCheck, Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLogin from '@/auth/components/StudentLogin';
 import StudentSignup from '@/auth/components/StudentSignup';
 import TrainerLogin from '@/auth/components/TrainerLogin';
 import TrainerSignup from '@/auth/components/TrainerSignup';
+import { getAuthErrorMessage, login, logout, register } from '@/services/firebase/authService';
+import { getUserDoc } from '@/services/firebase/userService';
+import { useAuth } from '@/hooks/useAuth';
 
 type AuthMode = 'login' | 'signup';
 type AuthRole = 'student' | 'trainer' | null;
+type AuthFlowPhase = 'creating' | 'signing' | 'loading' | 'opening';
+interface AuthPageProps {
+  fixedRole?: Exclude<AuthRole, null>;
+  fixedMode?: AuthMode;
+}
 
 const roleOptions = [
   {
@@ -28,16 +36,58 @@ const roleOptions = [
   },
 ];
 
-const AuthPage = () => {
+const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialMode: AuthMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
-  const [role, setRole] = useState<AuthRole>(null);
+  const { user, loading: authLoading } = useAuth();
+  const initialMode: AuthMode = fixedMode || (searchParams.get('mode') === 'signup' ? 'signup' : 'login');
+  const [role, setRole] = useState<AuthRole>(fixedRole || null);
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingRedirectRole, setPendingRedirectRole] = useState<Exclude<AuthRole, null> | null>(null);
+  const [authFlow, setAuthFlow] = useState<{ visible: boolean; phase: AuthFlowPhase; role: Exclude<AuthRole, null> }>({
+    visible: false,
+    phase: 'loading',
+    role: 'student',
+  });
 
   useEffect(() => {
+    if (!pendingRedirectRole) {
+      return;
+    }
+
+    if (!authLoading && user?.role === pendingRedirectRole) {
+      navigate(user.role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard', { replace: true });
+      setPendingRedirectRole(null);
+      setAuthFlow((current) => ({ ...current, visible: false }));
+    } else if (authLoading) {
+      setAuthFlow((current) => ({ ...current, visible: true, phase: 'loading' }));
+    }
+  }, [authLoading, navigate, pendingRedirectRole, user?.role]);
+
+  useEffect(() => {
+    if (fixedMode) {
+      setMode(fixedMode);
+      return;
+    }
     setMode(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
-  }, [searchParams]);
+  }, [fixedMode, searchParams]);
+
+  useEffect(() => {
+    if (fixedRole) {
+      setRole(fixedRole);
+    }
+  }, [fixedRole]);
+
+  useEffect(() => {
+    if (!fixedRole || pendingRedirectRole) {
+      return;
+    }
+    if (!authLoading && user?.role) {
+      navigate(user.role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard', { replace: true });
+    }
+  }, [authLoading, fixedRole, navigate, pendingRedirectRole, user?.role]);
 
   const selectionTransform = useMemo(() => {
     if (role === 'student') return '-translate-x-full opacity-0';
@@ -49,24 +99,120 @@ const AuthPage = () => {
   const trainerTransform = role === 'trainer' ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0';
 
   const handleRoleSelect = (nextRole: Exclude<AuthRole, null>) => {
+    setErrorMessage(null);
     setRole(nextRole);
+    navigate(`/${nextRole}/${mode}`);
   };
 
   const handleBack = () => {
+    setErrorMessage(null);
+    setPendingRedirectRole(null);
+    setAuthFlow((current) => ({ ...current, visible: false }));
+    if (fixedRole) {
+      navigate(`/select-role?mode=${mode}`);
+      return;
+    }
     setRole(null);
   };
 
   const handleToggleMode = () => {
-    setMode((current) => (current === 'login' ? 'signup' : 'login'));
+    setErrorMessage(null);
+    const nextMode: AuthMode = mode === 'login' ? 'signup' : 'login';
+    if (fixedRole) {
+      navigate(`/${fixedRole}/${nextMode}`);
+      return;
+    }
+    setMode(nextMode);
   };
 
-  const handleStudentSubmit = () => {
-    navigate('/lms/student');
+  const handleStudentSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '');
+    const name = String(formData.get('name') || '').trim();
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    setAuthFlow({ visible: true, phase: mode === 'signup' ? 'creating' : 'signing', role: 'student' });
+
+    try {
+      if (mode === 'signup') {
+        await register({ email, password, name, role: 'student' });
+        setAuthFlow({ visible: true, phase: 'opening', role: 'student' });
+        setPendingRedirectRole('student');
+        return;
+      }
+
+      const credential = await login(email, password);
+      const userDoc = await getUserDoc(credential.user.uid);
+      if (!userDoc) {
+        await logout();
+        setErrorMessage('User profile not found in Firestore. Please sign up first.');
+        setAuthFlow((current) => ({ ...current, visible: false }));
+        return;
+      }
+
+      setAuthFlow({ visible: true, phase: 'opening', role: userDoc.role });
+      setPendingRedirectRole(userDoc.role);
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error, 'Unable to continue with student authentication.'));
+      setAuthFlow((current) => ({ ...current, visible: false }));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleTrainerSubmit = () => {
-    navigate('/lms/trainer');
+  const handleTrainerSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '');
+    const name = String(formData.get('name') || '').trim();
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    setAuthFlow({ visible: true, phase: mode === 'signup' ? 'creating' : 'signing', role: 'trainer' });
+
+    try {
+      if (mode === 'signup') {
+        await register({ email, password, name, role: 'trainer' });
+        setAuthFlow({ visible: true, phase: 'opening', role: 'trainer' });
+        setPendingRedirectRole('trainer');
+        return;
+      }
+
+      const credential = await login(email, password);
+      const userDoc = await getUserDoc(credential.user.uid);
+      if (!userDoc) {
+        await logout();
+        setErrorMessage('User profile not found in Firestore. Please sign up first.');
+        setAuthFlow((current) => ({ ...current, visible: false }));
+        return;
+      }
+
+      setAuthFlow({ visible: true, phase: 'opening', role: userDoc.role });
+      setPendingRedirectRole(userDoc.role);
+    } catch (error) {
+      setErrorMessage(getAuthErrorMessage(error, 'Unable to continue with trainer authentication.'));
+      setAuthFlow((current) => ({ ...current, visible: false }));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const flowText = (() => {
+    if (authFlow.phase === 'creating') {
+      return authFlow.role === 'trainer' ? 'Creating trainer account...' : 'Creating student account...';
+    }
+    if (authFlow.phase === 'signing') {
+      return authFlow.role === 'trainer' ? 'Signing you in as trainer...' : 'Signing you in as student...';
+    }
+    if (authFlow.phase === 'opening') {
+      return authFlow.role === 'trainer' ? 'Opening trainer workspace...' : 'Opening student workspace...';
+    }
+    return 'Loading your workspace...';
+  })();
 
   return (
     <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(239,246,255,0.92))] shadow-[0_35px_90px_rgba(15,23,42,0.14)]">
@@ -144,9 +290,21 @@ const AuthPage = () => {
           <div className="flex h-full items-center justify-center px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
             <div className="w-full max-w-3xl">
               {mode === 'login' ? (
-                <StudentLogin onBack={handleBack} onToggleMode={handleToggleMode} onSubmit={handleStudentSubmit} />
+                <StudentLogin
+                  onBack={handleBack}
+                  onToggleMode={handleToggleMode}
+                  onSubmit={handleStudentSubmit}
+                  errorMessage={errorMessage}
+                  isSubmitting={isSubmitting}
+                />
               ) : (
-                <StudentSignup onBack={handleBack} onToggleMode={handleToggleMode} onSubmit={handleStudentSubmit} />
+                <StudentSignup
+                  onBack={handleBack}
+                  onToggleMode={handleToggleMode}
+                  onSubmit={handleStudentSubmit}
+                  errorMessage={errorMessage}
+                  isSubmitting={isSubmitting}
+                />
               )}
             </div>
           </div>
@@ -159,14 +317,45 @@ const AuthPage = () => {
           <div className="flex h-full items-center justify-center px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
             <div className="w-full max-w-3xl">
               {mode === 'login' ? (
-                <TrainerLogin onBack={handleBack} onToggleMode={handleToggleMode} onSubmit={handleTrainerSubmit} />
+                <TrainerLogin
+                  onBack={handleBack}
+                  onToggleMode={handleToggleMode}
+                  onSubmit={handleTrainerSubmit}
+                  errorMessage={errorMessage}
+                  isSubmitting={isSubmitting}
+                />
               ) : (
-                <TrainerSignup onBack={handleBack} onToggleMode={handleToggleMode} onSubmit={handleTrainerSubmit} />
+                <TrainerSignup
+                  onBack={handleBack}
+                  onToggleMode={handleToggleMode}
+                  onSubmit={handleTrainerSubmit}
+                  errorMessage={errorMessage}
+                  isSubmitting={isSubmitting}
+                />
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {authFlow.visible ? (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm">
+          <div className="w-[min(92vw,460px)] rounded-3xl border border-white/40 bg-white/95 p-8 shadow-[0_35px_90px_rgba(15,23,42,0.35)]">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+              <span className="absolute h-20 w-20 animate-ping rounded-full bg-cyan-300/50" />
+              <span className="absolute h-16 w-16 animate-pulse rounded-full bg-blue-200/70" />
+              <span className="relative h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500" />
+            </div>
+            <p className="text-center text-lg font-black tracking-tight text-slate-900">{flowText}</p>
+            <p className="mt-2 text-center text-sm text-slate-600">
+              Please wait while we prepare your secure {authFlow.role} session.
+            </p>
+            <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-200">
+              <div className="h-full w-1/2 animate-[pulse_1.1s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 };

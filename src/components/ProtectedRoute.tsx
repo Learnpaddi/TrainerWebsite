@@ -17,15 +17,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+        <div className="rounded-2xl border border-white/70 bg-white/90 px-6 py-5 text-center shadow-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Secure Access</p>
+          <p className="mt-2 text-base font-bold text-slate-900">Opening your workspace...</p>
+        </div>
+      </div>
+    );
   }
 
   if (requireAuth && !user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname, authMessage: roleError }} />;
+    return <Navigate to="/select-role?mode=login" replace state={{ from: location.pathname, authMessage: roleError }} />;
   }
 
   if (roleError) {
-    return <Navigate to="/login" replace state={{ from: location.pathname, authMessage: roleError }} />;
+    return <Navigate to="/select-role?mode=login" replace state={{ from: location.pathname, authMessage: roleError }} />;
   }
 
   if (requireRole === 'trainer' && !isTrainer) {

@@ -19,7 +19,7 @@ const StudentDashboard = () => {
               Browse featured programs, keep an eye on your learning momentum, and jump back into the courses that matter most.
             </p>
           </div>
-          <Link to="/auth" className="primary-cta px-6 py-4 text-base">
+          <Link to="/select-role?mode=login" className="primary-cta px-6 py-4 text-base">
             Switch Role
           </Link>
         </div>

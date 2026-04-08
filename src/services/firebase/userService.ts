@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, type DocumentData } from 'firebase/firestore';
+import { Timestamp, deleteDoc, doc, getDoc, setDoc, updateDoc, type DocumentData } from 'firebase/firestore';
 import { db } from './config';
 import type { User } from 'firebase/auth';
 
@@ -9,9 +9,29 @@ export interface UserDoc extends DocumentData {
   role: 'student' | 'trainer';
   enrolledCourses?: string[];
   certificates?: string[];
-  trainerId?: string;
-  createdAt?: string;
+  trainerId?: string | null;
+  createdAt?: string | Timestamp;
+  updatedAt?: string | Timestamp;
 }
+
+const roleCollectionMap: Record<'student' | 'trainer', 'students' | 'trainers'> = {
+  student: 'students',
+  trainer: 'trainers',
+};
+
+const getRoleCollection = (role: 'student' | 'trainer'): 'students' | 'trainers' => roleCollectionMap[role];
+
+const buildRoleSpecificDoc = (uid: string, data: Partial<UserDoc>) => ({
+  uid,
+  name: data.name || '',
+  email: data.email || '',
+  role: data.role || 'student',
+  enrolledCourses: data.enrolledCourses || [],
+  certificates: data.certificates || [],
+  trainerId: data.trainerId || (data.role === 'trainer' ? uid : null),
+  createdAt: data.createdAt || new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+});
 
 export const getUserDoc = async (uid: string): Promise<UserDoc | null> => {
   const userRef = doc(db, 'users', uid);
@@ -20,22 +40,16 @@ export const getUserDoc = async (uid: string): Promise<UserDoc | null> => {
 };
 
 export const setUserDoc = async (uid: string, data: Partial<UserDoc>): Promise<void> => {
+  const role = data.role || 'student';
+  const payload = buildRoleSpecificDoc(uid, { ...data, role });
+
   await setDoc(
     doc(db, 'users', uid),
-    {
-      uid,
-      name: data.name || '',
-      email: data.email || '',
-      role: data.role || 'student',
-      enrolledCourses: data.enrolledCourses || [],
-      certificates: data.certificates || [],
-      trainerId: data.trainerId || (data.role === 'trainer' ? uid : undefined),
-      createdAt: data.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data,
-    },
+    payload,
     { merge: true },
   );
+
+  await setDoc(doc(db, getRoleCollection(role), uid), payload, { merge: true });
 };
 
 const buildDefaultUserDoc = (user: User): UserDoc => ({
@@ -60,7 +74,21 @@ export const ensureUserDoc = async (user: User): Promise<UserDoc> => {
 };
 
 export const updateUserRole = async (uid: string, role: 'student' | 'trainer'): Promise<void> => {
-  await updateDoc(doc(db, 'users', uid), { role, updatedAt: new Date().toISOString() });
+  const userDoc = await getUserDoc(uid);
+  if (!userDoc) {
+    return;
+  }
+
+  const updatedDoc: Partial<UserDoc> = {
+    ...userDoc,
+    role,
+    trainerId: role === 'trainer' ? uid : null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await setUserDoc(uid, updatedDoc);
+  const staleRole = role === 'trainer' ? 'students' : 'trainers';
+  await deleteDoc(doc(db, staleRole, uid));
 };
 
 export const syncUserRole = async (user: User): Promise<'student' | 'trainer'> => {
@@ -76,17 +104,21 @@ export const getPostLoginPath = async (user: User): Promise<'/dashboard' | '/adm
 export const addUserEnrollment = async (uid: string, courseId: string): Promise<void> => {
   const user = await getUserDoc(uid);
   const enrolledCourses = Array.from(new Set([...(user?.enrolledCourses || []), courseId]));
-  await updateDoc(doc(db, 'users', uid), {
-    enrolledCourses,
-    updatedAt: new Date().toISOString(),
-  });
+  const roleCollection = getRoleCollection(user?.role || 'student');
+  const updatePayload = { enrolledCourses, updatedAt: new Date().toISOString() };
+  await Promise.all([
+    updateDoc(doc(db, 'users', uid), updatePayload),
+    updateDoc(doc(db, roleCollection, uid), updatePayload),
+  ]);
 };
 
 export const addUserCertificate = async (uid: string, courseId: string): Promise<void> => {
   const user = await getUserDoc(uid);
   const certificates = Array.from(new Set([...(user?.certificates || []), courseId]));
-  await updateDoc(doc(db, 'users', uid), {
-    certificates,
-    updatedAt: new Date().toISOString(),
-  });
+  const roleCollection = getRoleCollection(user?.role || 'student');
+  const updatePayload = { certificates, updatedAt: new Date().toISOString() };
+  await Promise.all([
+    updateDoc(doc(db, 'users', uid), updatePayload),
+    updateDoc(doc(db, roleCollection, uid), updatePayload),
+  ]);
 };

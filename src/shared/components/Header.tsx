@@ -66,10 +66,10 @@ const Header = () => {
               </div>
             ) : (
               <div className="hidden md:flex gap-3">
-                <Link to="/auth" className="px-6 py-2 border border-gray-300 rounded-2xl hover:bg-gray-50 font-semibold transition-all">
+                <Link to="/select-role?mode=login" className="px-6 py-2 border border-gray-300 rounded-2xl hover:bg-gray-50 font-semibold transition-all">
                   Login
                 </Link>
-                <Link to="/auth" className="px-6 py-2 bg-primary text-white rounded-2xl font-semibold hover:shadow-lg transition-all">
+                <Link to="/select-role?mode=signup" className="px-6 py-2 bg-primary text-white rounded-2xl font-semibold hover:shadow-lg transition-all">
                   Get Started
                 </Link>
               </div>
@@ -117,10 +117,10 @@ const Header = () => {
                 </button>
               ) : (
                 <>
-                  <Link to="/auth" className="py-3 px-4 text-center border border-gray-300 rounded-2xl hover:bg-gray-50 font-semibold" onClick={() => setMobileOpen(false)}>
+                  <Link to="/select-role?mode=login" className="py-3 px-4 text-center border border-gray-300 rounded-2xl hover:bg-gray-50 font-semibold" onClick={() => setMobileOpen(false)}>
                     Login
                   </Link>
-                  <Link to="/auth" className="py-3 px-4 text-center bg-primary text-white rounded-2xl font-semibold hover:shadow-lg" onClick={() => setMobileOpen(false)}>
+                  <Link to="/select-role?mode=signup" className="py-3 px-4 text-center bg-primary text-white rounded-2xl font-semibold hover:shadow-lg" onClick={() => setMobileOpen(false)}>
                     Get Started
                   </Link>
                 </>

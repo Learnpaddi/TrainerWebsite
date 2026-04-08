@@ -1,2 +1,5 @@
-/lms/*    /lms/index.html   200
-/*        /index.html       200
+/src/*     /lms/index.html    200
+/src       /lms/index.html    200
+/lms/*     /lms/index.html    200
+/lms       /lms/index.html    200
+/*         /index.html        200

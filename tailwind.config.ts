@@ -1,5 +1,3 @@
-import themeObj from './src/shared/styles/theme'
-
 export default {
   content: [
     "./index.html",
@@ -8,29 +6,25 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
-      ...themeObj,
       colors: {
-        ...themeObj.colors,
+        corporate: {
+          primary: '#1E293B',
+          secondary: '#334155',
+          accent: '#2563EB',
+          background: '#F8FAFC',
+          surface: '#FFFFFF',
+          text: '#0F172A',
+          muted: '#64748B',
+          success: '#16A34A',
+          warning: '#F59E0B',
+          error: '#DC2626',
+        },
         primary: '#2563EB',
-        accent: '#06B6D4',
+        accent: '#2563EB',
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-soft': 'pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      },
-      keyframes: {
-        'float': {
-          '0%, 100%': { transform: 'translate3d(0,0,0)' },
-          '50%': { transform: 'translate3d(0,-10px,0)' },
-        },
-        'pulse-soft': {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '.5' },
-        }
-      }
     },
   },
   plugins: [],

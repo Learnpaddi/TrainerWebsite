@@ -9,7 +9,7 @@ import {
   type UserCredential
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
-import { doc, setDoc } from 'firebase/firestore';
+import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from './config';
 import { getUserDoc } from './userService';
 
@@ -21,19 +21,34 @@ export interface RegisterPayload {
   role: 'student' | 'trainer';
 }
 
+const roleCollectionMap: Record<'student' | 'trainer', 'students' | 'trainers'> = {
+  student: 'students',
+  trainer: 'trainers',
+};
+
+const buildRoleDoc = (uid: string, payload: { name: string; email: string; role: 'student' | 'trainer' }) => ({
+  uid,
+  name: payload.name,
+  email: payload.email,
+  role: payload.role,
+  trainerId: payload.role === 'trainer' ? uid : null,
+  enrolledCourses: [],
+  certificates: [],
+  createdAt: Timestamp.now(),
+  updatedAt: Timestamp.now(),
+});
+
+const upsertRoleDoc = async (uid: string, payload: { name: string; email: string; role: 'student' | 'trainer' }) => {
+  const roleCollection = roleCollectionMap[payload.role];
+  await setDoc(doc(db, roleCollection, uid), buildRoleDoc(uid, payload), { merge: true });
+};
+
 export const register = async (payload: RegisterPayload): Promise<User> => {
   const { user } = await createUserWithEmailAndPassword(auth, payload.email, payload.password);
   await updateProfile(user, { displayName: payload.name });
-  await setDoc(doc(db, 'users', user.uid), { 
-    uid: user.uid,
-    name: payload.name, 
-    email: payload.email, 
-    role: payload.role,
-    trainerId: payload.role === 'trainer' ? user.uid : undefined,
-    enrolledCourses: [],
-    certificates: [],
-    createdAt: new Date().toISOString()
-  });
+  const docPayload = buildRoleDoc(user.uid, payload);
+  await setDoc(doc(db, 'users', user.uid), docPayload, { merge: true });
+  await upsertRoleDoc(user.uid, payload);
   return user;
 };
 
@@ -46,19 +61,17 @@ export const googleSignIn = async (): Promise<UserCredential> => {
   const user = result.user;
   const existing = await getUserDoc(user.uid);
   if (!existing) {
+    const payload = {
+      name: user.displayName || 'Learner',
+      email: user.email || '',
+      role: 'student' as const,
+    };
     await setDoc(
       doc(db, 'users', user.uid),
-      {
-        uid: user.uid,
-        name: user.displayName || 'Learner',
-        email: user.email || '',
-        role: 'student',
-        enrolledCourses: [],
-        certificates: [],
-        createdAt: new Date().toISOString(),
-      },
+      buildRoleDoc(user.uid, payload),
       { merge: true },
     );
+    await upsertRoleDoc(user.uid, payload);
   }
   return result;
 };

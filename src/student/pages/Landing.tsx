@@ -43,7 +43,7 @@ const Landing = () => {
       if (!isEnrolled) {
         await enrollInCourse(course.id, course.price || 0);
       }
-      navigate('/lms/student');
+      navigate('/student/dashboard');
     } finally {
       setActionLoading(null);
     }
@@ -73,15 +73,15 @@ const Landing = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
               <Link 
-                to="/auth" 
+                to="/select-role?mode=signup" 
                 className="primary-cta px-10 py-5 text-lg max-w-sm w-full text-center"
               >
-                Start LMS Learning <GraduationCap className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                Sign Up <GraduationCap className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link 
-                to="/lms/student" 
+                to="/select-role?mode=login" 
                 className="secondary-cta px-10 py-5 text-lg max-w-sm w-full text-center dark:bg-gray-800/80 dark:border-gray-600 dark:text-gray-200 dark:hover:border-primary dark:hover:bg-gray-700">
-                Browse Courses <Plus className="w-5 h-5" />
+                Sign In <Plus className="w-5 h-5" />
               </Link>
             </div>
           </div>
@@ -168,10 +168,10 @@ const Landing = () => {
             Click Start LMS Learning and begin your journey with 5K+ students
           </p>
           <Link 
-            to="/auth" 
+            to="/select-role?mode=signup" 
             className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-5 px-10 rounded-3xl text-lg hover:shadow-2xl hover:-translate-y-2 transition-all shadow-xl group"
           >
-            Start LMS Learning Now <GraduationCap className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
+            Sign Up and Start Learning <GraduationCap className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </section>

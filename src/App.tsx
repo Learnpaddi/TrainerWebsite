@@ -1,8 +1,11 @@
-import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import AuthPage from '@/auth/AuthPage';
 import AuthSelect from '@/auth/AuthSelect';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useRole } from '@/hooks/useRole';
+import DashboardLayout from '@/layouts/DashboardLayout';
 import LmsAppShell from '@/layouts/LmsAppShell';
-import Layout from '@/shared/layouts/Layout';
 import MainLayout from '@/shared/layouts/MainLayout';
 
 const Landing = lazy(() => import('@/student/pages/Landing'));
@@ -12,11 +15,115 @@ const StudentCoursePlayerPage = lazy(() => import('@/pages/student/CoursePlayer'
 const TrainerDashboardPage = lazy(() => import('@/pages/trainer/Dashboard'));
 const TrainerCreateCoursePage = lazy(() => import('@/pages/trainer/CreateCourse'));
 const TrainerManageCoursesPage = lazy(() => import('@/pages/trainer/ManageCourses'));
+const CoursesPage = lazy(() => import('@/pages/common/Courses'));
+const AnalyticsPage = lazy(() => import('@/pages/common/Analytics'));
+const MessagesPage = lazy(() => import('@/pages/common/Messages'));
+const SettingsPage = lazy(() => import('@/pages/common/Settings'));
 
 const LoadingScreen = ({ label }: { label: string }) => (
   <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
     <div className="text-xl font-medium text-gray-600">{label}</div>
   </div>
+);
+
+const LegacyStudentCourseRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={id ? `/student/course/${id}` : '/student/dashboard'} replace />;
+};
+
+const LegacyTrainerEditCourseRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={id ? `/trainer/edit-course/${id}` : '/trainer/manage-courses'} replace />;
+};
+
+const DashboardRouteRedirect = () => {
+  const { role, loading } = useRole();
+  if (loading) {
+    return <LoadingScreen label="Loading LearnPaddi LMS..." />;
+  }
+  if (!role) {
+    return <Navigate to="/select-role?mode=login" replace />;
+  }
+  return <Navigate to={role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard'} replace />;
+};
+
+const RoleAwareDashboardShell = ({
+  title,
+  subtitle,
+  actionLabel,
+  actionPath,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  actionLabel: string;
+  actionPath: string;
+  children: ReactNode;
+}) => {
+  const { role } = useRole();
+  const shellRole = role === 'trainer' ? 'trainer' : 'student';
+
+  return (
+    <DashboardLayout
+      role={shellRole}
+      title={title}
+      subtitle={subtitle}
+      actionLabel={actionLabel}
+      actionPath={actionPath}
+    >
+      {children}
+    </DashboardLayout>
+  );
+};
+
+const CoursesRoutePage = () => {
+  const { role } = useRole();
+  return (
+    <RoleAwareDashboardShell
+      title="Courses"
+      subtitle="Browse, manage, and optimize your course catalog with a modern LMS workflow."
+      actionLabel={role === 'trainer' ? 'Add Course' : 'Explore'}
+      actionPath={role === 'trainer' ? '/trainer/add-course' : '/explore'}
+    >
+      <CoursesPage />
+    </RoleAwareDashboardShell>
+  );
+};
+
+const AnalyticsRoutePage = () => {
+  const { role } = useRole();
+  return (
+    <RoleAwareDashboardShell
+      title="Analytics"
+      subtitle="Track performance, engagement, and growth metrics from one analytics layer."
+      actionLabel={role === 'trainer' ? 'Export Report' : 'View Progress'}
+      actionPath="/analytics"
+    >
+      <AnalyticsPage />
+    </RoleAwareDashboardShell>
+  );
+};
+
+const MessagesRoutePage = () => (
+  <RoleAwareDashboardShell
+    title="Messages"
+    subtitle="Centralize learner and trainer communication with a clean inbox experience."
+    actionLabel="New Message"
+    actionPath="/messages"
+  >
+    <MessagesPage />
+  </RoleAwareDashboardShell>
+);
+
+const SettingsRoutePage = () => (
+  <RoleAwareDashboardShell
+    title="Settings"
+    subtitle="Manage account preferences, notifications, and security settings."
+    actionLabel="Save Changes"
+    actionPath="/settings"
+  >
+    <SettingsPage />
+  </RoleAwareDashboardShell>
 );
 
 const App = () => {
@@ -33,11 +140,57 @@ const App = () => {
         />
 
         <Route
-          path="/auth"
+          path="/select-role"
           element={(
-            <Layout>
-              <AuthSelect />
-            </Layout>
+            <MainLayout contentContainer={false}>
+              <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <AuthSelect />
+              </div>
+            </MainLayout>
+          )}
+        />
+
+        <Route
+          path="/student/login"
+          element={(
+            <MainLayout contentContainer={false}>
+              <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <AuthPage fixedRole="student" fixedMode="login" />
+              </div>
+            </MainLayout>
+          )}
+        />
+
+        <Route
+          path="/student/signup"
+          element={(
+            <MainLayout contentContainer={false}>
+              <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <AuthPage fixedRole="student" fixedMode="signup" />
+              </div>
+            </MainLayout>
+          )}
+        />
+
+        <Route
+          path="/trainer/login"
+          element={(
+            <MainLayout contentContainer={false}>
+              <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <AuthPage fixedRole="trainer" fixedMode="login" />
+              </div>
+            </MainLayout>
+          )}
+        />
+
+        <Route
+          path="/trainer/signup"
+          element={(
+            <MainLayout contentContainer={false}>
+              <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <AuthPage fixedRole="trainer" fixedMode="signup" />
+              </div>
+            </MainLayout>
           )}
         />
 
@@ -53,77 +206,147 @@ const App = () => {
         <Route
           path="/student/dashboard"
           element={(
-            <LmsAppShell
-              role="student"
-              title="Student Dashboard"
-              subtitle="Track enrolled programs, continue lessons, unlock certificates, and experience a marketplace-style LMS built for scale."
-            >
-              <StudentDashboardPage />
-            </LmsAppShell>
+            <ProtectedRoute requireRole="student">
+              <DashboardLayout
+                role="student"
+                title="Student Dashboard"
+                subtitle="Track enrolled courses, monitor completion trends, and stay focused on progress."
+                actionLabel="Explore Courses"
+                actionPath="/explore"
+              >
+                <StudentDashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
           )}
         />
 
         <Route
           path="/student/course/:id"
           element={(
-            <LmsAppShell
-              role="student"
-              title="Course Player"
-              subtitle="Video learning, lesson completion, reviews, ratings, and certificate generation all live in one focused learning workspace."
-            >
-              <StudentCoursePlayerPage />
-            </LmsAppShell>
+            <ProtectedRoute requireRole="student">
+              <LmsAppShell
+                role="student"
+                title="Course Player"
+                subtitle="Video learning, lesson completion, reviews, ratings, and certificate generation all live in one focused learning workspace."
+              >
+                <StudentCoursePlayerPage />
+              </LmsAppShell>
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/course/:id"
+          element={(
+            <ProtectedRoute requireRole="student">
+              <LmsAppShell
+                role="student"
+                title="Course View"
+                subtitle="Watch lessons, switch videos, and continue your learning journey."
+              >
+                <StudentCoursePlayerPage />
+              </LmsAppShell>
+            </ProtectedRoute>
           )}
         />
 
         <Route
           path="/trainer/dashboard"
           element={(
-            <LmsAppShell
-              role="trainer"
-              title="Trainer Dashboard"
-              subtitle="Manage your course business like a SaaS operator with catalog oversight, learner analytics, and modular authoring workflows."
-            >
-              <TrainerDashboardPage />
-            </LmsAppShell>
+            <ProtectedRoute requireRole="trainer">
+              <DashboardLayout
+                role="trainer"
+                title="Trainer Dashboard"
+                subtitle="Operate your LMS business with revenue intelligence, learner analytics, and performance insights."
+                actionLabel="Add Course"
+                actionPath="/trainer/add-course"
+              >
+                <TrainerDashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
           )}
         />
 
         <Route
-          path="/trainer/create-course"
+          path="/trainer/add-course"
           element={(
-            <LmsAppShell
-              role="trainer"
-              title="Create Course"
-              subtitle="Build a complete course with lessons, videos, thumbnails, pricing, and structured modules designed for modern video-first learning."
-            >
-              <TrainerCreateCoursePage />
-            </LmsAppShell>
+            <ProtectedRoute requireRole="trainer">
+              <LmsAppShell
+                role="trainer"
+                title="Create Course"
+                subtitle="Build a complete course with lessons, videos, thumbnails, pricing, and structured modules designed for modern video-first learning."
+              >
+                <TrainerCreateCoursePage />
+              </LmsAppShell>
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/trainer/edit-course/:id"
+          element={(
+            <ProtectedRoute requireRole="trainer">
+              <LmsAppShell
+                role="trainer"
+                title="Edit Course"
+                subtitle="Update course details, YouTube lessons, pricing, and content structure."
+              >
+                <TrainerCreateCoursePage />
+              </LmsAppShell>
+            </ProtectedRoute>
           )}
         />
 
         <Route
           path="/trainer/manage-courses"
           element={(
-            <LmsAppShell
-              role="trainer"
-              title="Manage Courses"
-              subtitle="Review enrollments, progress, ratings, and content quality across your full training catalog."
-            >
-              <TrainerManageCoursesPage />
-            </LmsAppShell>
+            <ProtectedRoute requireRole="trainer">
+              <LmsAppShell
+                role="trainer"
+                title="Manage Courses"
+                subtitle="Review enrollments, progress, ratings, and content quality across your full training catalog."
+              >
+                <TrainerManageCoursesPage />
+              </LmsAppShell>
+            </ProtectedRoute>
           )}
         />
 
-        <Route path="/lms" element={<Navigate to="/auth" replace />} />
+        <Route path="/courses" element={<ProtectedRoute><CoursesRoutePage /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><AnalyticsRoutePage /></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><MessagesRoutePage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsRoutePage /></ProtectedRoute>} />
+
+        <Route path="/lms" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/lms/" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/lms/auth" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/lms/login" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/lms/register" element={<Navigate to="/select-role?mode=signup" replace />} />
+        <Route path="/lms/explore" element={<Navigate to="/explore" replace />} />
         <Route path="/lms/student" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/lms/student/dashboard" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/lms/student/course/:id" element={<LegacyStudentCourseRedirect />} />
+        <Route path="/lms/course/:id" element={<LegacyStudentCourseRedirect />} />
         <Route path="/lms/trainer" element={<Navigate to="/trainer/dashboard" replace />} />
-        <Route path="/dashboard" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/lms/trainer/dashboard" element={<Navigate to="/trainer/dashboard" replace />} />
+        <Route path="/trainer/create-course" element={<Navigate to="/trainer/add-course" replace />} />
+        <Route path="/lms/trainer/create-course" element={<Navigate to="/trainer/add-course" replace />} />
+        <Route path="/lms/trainer/edit-course/:id" element={<LegacyTrainerEditCourseRedirect />} />
+        <Route path="/lms/trainer/manage-courses" element={<Navigate to="/trainer/manage-courses" replace />} />
+        <Route path="/lms/profile" element={<Navigate to="/profile" replace />} />
+        <Route path="/src" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/src/*" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/dashboard" element={<DashboardRouteRedirect />} />
         <Route path="/admin" element={<Navigate to="/trainer/dashboard" replace />} />
         <Route path="/admin/*" element={<Navigate to="/trainer/dashboard" replace />} />
-        <Route path="/courses" element={<Navigate to="/explore" replace />} />
-        <Route path="/login" element={<Navigate to="/auth" replace />} />
-        <Route path="/register" element={<Navigate to="/auth" replace />} />
+        <Route path="/profile" element={<Navigate to="/settings" replace />} />
+        <Route path="/lms/courses" element={<Navigate to="/courses" replace />} />
+        <Route path="/lms/analytics" element={<Navigate to="/analytics" replace />} />
+        <Route path="/lms/messages" element={<Navigate to="/messages" replace />} />
+        <Route path="/lms/settings" element={<Navigate to="/settings" replace />} />
+        <Route path="/auth" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/login" element={<Navigate to="/select-role?mode=login" replace />} />
+        <Route path="/register" element={<Navigate to="/select-role?mode=signup" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

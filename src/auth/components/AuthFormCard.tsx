@@ -13,6 +13,8 @@ interface AuthFormCardProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onBack: () => void;
   onToggleMode: () => void;
+  errorMessage?: string | null;
+  isSubmitting?: boolean;
   children?: ReactNode;
 }
 
@@ -46,6 +48,8 @@ const AuthFormCard = ({
   onSubmit,
   onBack,
   onToggleMode,
+  errorMessage,
+  isSubmitting = false,
   children,
 }: AuthFormCardProps) => {
   const config = roleConfig[role];
@@ -78,11 +82,17 @@ const AuthFormCard = ({
 
       <form onSubmit={onSubmit} className="relative space-y-5">
         {children}
+        {errorMessage ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
         <button
           type="submit"
+          disabled={isSubmitting}
           className={`inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r ${config.buttonClass} px-6 py-4 text-base font-semibold text-white shadow-xl transition duration-300 hover:-translate-y-0.5`}
         >
-          {submitLabel}
+          {isSubmitting ? 'Please wait...' : submitLabel}
           <ArrowRight className="h-5 w-5" />
         </button>
       </form>

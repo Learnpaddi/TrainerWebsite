@@ -1,8 +1,7 @@
-import { useAuthState } from 'react-firebase-hooks/auth';
 import { useEffect, useState } from 'react';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/services/firebase/config';
-import { ensureUserDoc, type UserDoc } from '@/services/firebase/userService';
-import type { User as FirebaseUser } from 'firebase/auth';
+import { getUserDoc, type UserDoc } from '@/services/firebase/userService';
 
 export interface AuthUser extends FirebaseUser {
   role?: 'student' | 'trainer';
@@ -10,55 +9,58 @@ export interface AuthUser extends FirebaseUser {
 }
 
 export const useAuth = () => {
-  const [user, loading, error] = useAuthState(auth);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [roleLoading, setRoleLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [roleError, setRoleError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    let active = true;
 
-    if (user) {
-      setRoleLoading(true);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!active) {
+        return;
+      }
+      setLoading(true);
+      setError(null);
       setRoleError(null);
 
-      ensureUserDoc(user)
-        .then((userDoc) => {
-          if (!isMounted) {
-            return;
-          }
+      if (!firebaseUser) {
+        setAuthUser(null);
+        setLoading(false);
+        return;
+      }
 
-          setAuthUser({ ...user, role: userDoc.role, doc: userDoc });
-        })
-        .catch(() => {
-          if (!isMounted) {
-            return;
-          }
-
+      try {
+        const userDoc = await getUserDoc(firebaseUser.uid);
+        if (!userDoc) {
           setAuthUser(null);
-          setRoleError('We signed you in, but could not load your LMS profile. Please sign in again.');
-        })
-        .finally(() => {
-          if (!isMounted) {
-            return;
-          }
+          setRoleError('Account profile was not found. Please complete sign up first.');
+          setLoading(false);
+          return;
+        }
 
-          setRoleLoading(false);
-        });
-    } else {
-      setAuthUser(null);
-      setRoleError(null);
-      setRoleLoading(false);
-    }
+        setAuthUser({ ...firebaseUser, role: userDoc.role, doc: userDoc });
+      } catch (authLoadError) {
+        setAuthUser(null);
+        setRoleError('We signed you in, but could not load your user profile from Firestore.');
+        setError(authLoadError instanceof Error ? authLoadError : new Error('Unable to load auth state.'));
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    });
 
     return () => {
-      isMounted = false;
+      active = false;
+      unsubscribe();
     };
-  }, [user]);
+  }, []);
 
   return { 
     user: authUser, 
-    loading: loading || roleLoading, 
+    loading, 
     error,
     roleError,
     isStudent: authUser?.role === 'student',
