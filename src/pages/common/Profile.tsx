@@ -31,7 +31,7 @@ const ProfilePage = () => {
               <Mail className="h-6 w-6" />
             </div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">Email</p>
-            <p className="mt-2 text-xl font-black text-slate-950">{profile?.email || 'user@learnpaddi.com'}</p>
+            <p className="mt-2 text-xl font-black text-slate-950">{profile?.email || 'contact@learnpaddi.in'}</p>
           </article>
 
           <article className="metric-card p-5">

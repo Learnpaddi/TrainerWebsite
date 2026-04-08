@@ -1,24 +1,20 @@
-import { BookOpenCheck, GraduationCap, ShieldCheck, Sparkles } from 'lucide-react';
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import StudentLogin from '@/auth/components/StudentLogin';
-import StudentSignup from '@/auth/components/StudentSignup';
-import TrainerLogin from '@/auth/components/TrainerLogin';
-import TrainerSignup from '@/auth/components/TrainerSignup';
+import AuthContainer, { type AuthTab } from '@/auth/components/AuthContainer';
+import type { AuthRole, LoginValues } from '@/auth/components/LoginForm';
+import type { SignupValues } from '@/auth/components/SignupForm';
 import { getAuthErrorMessage, login, logout, register } from '@/services/firebase/authService';
 import { getUserDoc } from '@/services/firebase/userService';
 import { useAuth } from '@/hooks/useAuth';
 import { consumePendingCourseIntent } from '@/student/lib/courseIntent';
 
 type AuthMode = 'login' | 'signup';
-type AuthRole = 'student' | 'trainer' | null;
-type AuthFlowPhase = 'creating' | 'signing' | 'loading' | 'opening';
 interface AuthPageProps {
-  fixedRole?: Exclude<AuthRole, null>;
+  fixedRole?: AuthRole;
   fixedMode?: AuthMode;
 }
 
-const getDashboardPath = (role: Exclude<AuthRole, null>) =>
+const getDashboardPath = (role: AuthRole) =>
   role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard';
 
 const normalizeRequestedPath = (fromPath: string | null): string | null => {
@@ -45,7 +41,7 @@ const normalizeRequestedPath = (fromPath: string | null): string | null => {
 };
 
 const resolvePostAuthPath = (
-  role: Exclude<AuthRole, null>,
+  role: AuthRole,
   requestedPath: string | null,
   pendingCourseId: string | null,
 ) => {
@@ -70,357 +66,153 @@ const resolvePostAuthPath = (
   return requestedPath;
 };
 
-const roleOptions = [
-  {
-    role: 'student' as const,
-    title: 'Continue as Student',
-    description: 'Choose the learner flow to access your course library, progress, and certificates.',
-    icon: GraduationCap,
-    accent: 'from-blue-600 via-blue-500 to-cyan-400',
-    ring: 'group-hover:ring-blue-100',
-  },
-  {
-    role: 'trainer' as const,
-    title: 'Continue as Trainer',
-    description: 'Choose the trainer flow to manage content, review insights, and publish new lessons.',
-    icon: ShieldCheck,
-    accent: 'from-emerald-600 via-teal-500 to-cyan-500',
-    ring: 'group-hover:ring-emerald-100',
-  },
-];
+const modeToTab = (mode: AuthMode): AuthTab => (mode === 'signup' ? 'signup' : 'signin');
 
 const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+
   const requestedPath = normalizeRequestedPath(
     searchParams.get('from')
-    || (location.state as { from?: string } | null)?.from
-    || null,
+      || (location.state as { from?: string } | null)?.from
+      || null,
   );
   const fromQuery = requestedPath ? `?from=${encodeURIComponent(requestedPath)}` : '';
-  const initialMode: AuthMode = fixedMode || (searchParams.get('mode') === 'signup' ? 'signup' : 'login');
-  const [role, setRole] = useState<AuthRole>(fixedRole || null);
-  const [mode, setMode] = useState<AuthMode>(initialMode);
+
+  const initialRole: AuthRole = fixedRole || (searchParams.get('role') === 'trainer' ? 'trainer' : 'student');
+  const requestedMode: AuthMode = fixedMode || (searchParams.get('mode') === 'signup' ? 'signup' : 'login');
+  const initialMode: AuthMode = initialRole === 'trainer' && requestedMode === 'signup' ? 'login' : requestedMode;
+
+  const [role, setRole] = useState<AuthRole>(initialRole);
+  const [activeTab, setActiveTab] = useState<AuthTab>(modeToTab(initialMode));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingRedirectRole, setPendingRedirectRole] = useState<Exclude<AuthRole, null> | null>(null);
-  const [authFlow, setAuthFlow] = useState<{ visible: boolean; phase: AuthFlowPhase; role: Exclude<AuthRole, null> }>({
-    visible: false,
-    phase: 'loading',
-    role: 'student',
-  });
+  const [pendingRedirectRole, setPendingRedirectRole] = useState<AuthRole | null>(null);
 
   useEffect(() => {
-    if (!pendingRedirectRole) {
-      return;
-    }
+    setRole(initialRole);
+  }, [initialRole]);
+
+  useEffect(() => {
+    setActiveTab(modeToTab(initialMode));
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (!pendingRedirectRole) return;
 
     if (!authLoading && user?.role === pendingRedirectRole) {
       const pendingCourseId = consumePendingCourseIntent();
       const nextPath = resolvePostAuthPath(user.role, requestedPath, pendingCourseId);
       navigate(nextPath, { replace: true });
       setPendingRedirectRole(null);
-      setAuthFlow((current) => ({ ...current, visible: false }));
-    } else if (authLoading) {
-      setAuthFlow((current) => ({ ...current, visible: true, phase: 'loading' }));
     }
   }, [authLoading, navigate, pendingRedirectRole, requestedPath, user?.role]);
 
-  useEffect(() => {
-    if (fixedMode) {
-      setMode(fixedMode);
-      return;
-    }
-    setMode(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
-  }, [fixedMode, searchParams]);
+  const lockRole = false;
+  const trainerSignupEnabled = false;
 
-  useEffect(() => {
-    if (fixedRole) {
-      setRole(fixedRole);
-    }
-  }, [fixedRole]);
+  const syncRoute = (nextRole: AuthRole, nextTab: AuthTab) => {
+    if (fixedRole && fixedMode) return;
 
-  useEffect(() => {
-    if (!fixedRole || pendingRedirectRole) {
-      return;
-    }
-    if (!authLoading && user?.role) {
-      const pendingCourseId = consumePendingCourseIntent();
-      const nextPath = resolvePostAuthPath(user.role, requestedPath, pendingCourseId);
-      navigate(nextPath, { replace: true });
-    }
-  }, [authLoading, fixedRole, navigate, pendingRedirectRole, requestedPath, user?.role]);
-
-  const selectionTransform = useMemo(() => {
-    if (role === 'student') return '-translate-x-full opacity-0';
-    if (role === 'trainer') return 'translate-x-full opacity-0';
-    return 'translate-x-0 opacity-100';
-  }, [role]);
-
-  const studentTransform = role === 'student' ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0';
-  const trainerTransform = role === 'trainer' ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0';
-
-  const handleRoleSelect = (nextRole: Exclude<AuthRole, null>) => {
-    setErrorMessage(null);
-    setRole(nextRole);
-    navigate(`/${nextRole}/${mode}${fromQuery}`);
+    const normalizedTab = nextRole === 'trainer' ? 'signin' : nextTab;
+    const nextMode: AuthMode = normalizedTab === 'signup' ? 'signup' : 'login';
+    navigate(`/${nextRole}/${nextMode}${fromQuery}`, { replace: true });
   };
 
-  const handleBack = () => {
-    setErrorMessage(null);
-    setPendingRedirectRole(null);
-    setAuthFlow((current) => ({ ...current, visible: false }));
-    if (fixedRole) {
-      const selectPath = `/select-role?mode=${mode}${requestedPath ? `&from=${encodeURIComponent(requestedPath)}` : ''}`;
-      navigate(selectPath);
-      return;
-    }
-    setRole(null);
-  };
-
-  const handleToggleMode = () => {
-    setErrorMessage(null);
-    const nextMode: AuthMode = mode === 'login' ? 'signup' : 'login';
-    if (fixedRole) {
-      navigate(`/${fixedRole}/${nextMode}${fromQuery}`);
-      return;
-    }
-    setMode(nextMode);
-  };
-
-  const handleStudentSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const email = String(formData.get('email') || '').trim();
-    const password = String(formData.get('password') || '');
-    const name = String(formData.get('name') || '').trim();
-
+  const runLogin = async (targetRole: AuthRole, values: LoginValues) => {
     setIsSubmitting(true);
     setErrorMessage(null);
-    setAuthFlow({ visible: true, phase: mode === 'signup' ? 'creating' : 'signing', role: 'student' });
 
     try {
-      if (mode === 'signup') {
-        await register({ email, password, name, role: 'student' });
-        setAuthFlow({ visible: true, phase: 'opening', role: 'student' });
-        setPendingRedirectRole('student');
-        return;
-      }
-
-      const credential = await login(email, password);
+      const credential = await login(values.email, values.password);
       const userDoc = await getUserDoc(credential.user.uid);
+
       if (!userDoc) {
         await logout();
         setErrorMessage('User profile not found in Firestore. Please sign up first.');
-        setAuthFlow((current) => ({ ...current, visible: false }));
         return;
       }
 
-      setAuthFlow({ visible: true, phase: 'opening', role: userDoc.role });
+      if (userDoc.role !== targetRole) {
+        await logout();
+        setErrorMessage(`This account belongs to ${userDoc.role}. Please choose the correct role.`);
+        return;
+      }
+
       setPendingRedirectRole(userDoc.role);
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'Unable to continue with student authentication.'));
-      setAuthFlow((current) => ({ ...current, visible: false }));
+      setErrorMessage(getAuthErrorMessage(error, `Unable to continue with ${targetRole} login.`));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleTrainerSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const email = String(formData.get('email') || '').trim();
-    const password = String(formData.get('password') || '');
-    const name = String(formData.get('name') || '').trim();
+  const runSignup = async (targetRole: AuthRole, values: SignupValues) => {
+    if (targetRole === 'trainer' && !trainerSignupEnabled) {
+      setErrorMessage('Trainer signup is currently disabled. Please use trainer login.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage(null);
-    setAuthFlow({ visible: true, phase: mode === 'signup' ? 'creating' : 'signing', role: 'trainer' });
 
     try {
-      if (mode === 'signup') {
-        await register({ email, password, name, role: 'trainer' });
-        setAuthFlow({ visible: true, phase: 'opening', role: 'trainer' });
-        setPendingRedirectRole('trainer');
-        return;
-      }
+      await register({
+        email: values.email,
+        password: values.password,
+        name: values.name,
+        role: targetRole,
+      });
 
-      const credential = await login(email, password);
-      const userDoc = await getUserDoc(credential.user.uid);
-      if (!userDoc) {
-        await logout();
-        setErrorMessage('User profile not found in Firestore. Please sign up first.');
-        setAuthFlow((current) => ({ ...current, visible: false }));
-        return;
-      }
-
-      setAuthFlow({ visible: true, phase: 'opening', role: userDoc.role });
-      setPendingRedirectRole(userDoc.role);
+      setPendingRedirectRole(targetRole);
     } catch (error) {
-      setErrorMessage(getAuthErrorMessage(error, 'Unable to continue with trainer authentication.'));
-      setAuthFlow((current) => ({ ...current, visible: false }));
+      setErrorMessage(getAuthErrorMessage(error, `Unable to continue with ${targetRole} signup.`));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const flowText = (() => {
-    if (authFlow.phase === 'creating') {
-      return authFlow.role === 'trainer' ? 'Creating trainer account...' : 'Creating student account...';
-    }
-    if (authFlow.phase === 'signing') {
-      return authFlow.role === 'trainer' ? 'Signing you in as trainer...' : 'Signing you in as student...';
-    }
-    if (authFlow.phase === 'opening') {
-      return authFlow.role === 'trainer' ? 'Opening trainer workspace...' : 'Opening student workspace...';
-    }
-    return 'Loading your workspace...';
-  })();
+  const heading = useMemo(
+    () => (role === 'trainer' ? 'Trainer Authentication' : 'Student Authentication'),
+    [role],
+  );
 
   return (
     <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(239,246,255,0.92))] shadow-[0_35px_90px_rgba(15,23,42,0.14)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.14),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.12),transparent_20%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.12),transparent_24%)]" />
 
-      <div className="relative grid min-h-[720px] overflow-hidden lg:min-h-[760px]">
-        <div
-          className={`absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${selectionTransform}`}
-          aria-hidden={role !== null}
-        >
-          <div className="flex h-full items-center justify-center px-6 py-10 sm:px-10 lg:px-14">
-            <div className="w-full max-w-6xl">
-              <div className="mx-auto max-w-3xl text-center">
-                <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white/90 px-5 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary shadow-sm">
-                  <Sparkles className="h-4 w-4" />
-                  LearnPaddi Auth
-                </p>
-                <h1 className="bg-gradient-to-r from-slate-950 via-primary to-accent bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl lg:text-6xl">
-                  Choose your workspace before you continue
-                </h1>
-                <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                  Start with the right role, then slide into the {mode === 'login' ? 'sign in' : 'sign up'} flow without leaving the page.
-                </p>
-              </div>
-
-              <div className="mt-12 grid gap-6 lg:grid-cols-2">
-                {roleOptions.map((option) => {
-                  const Icon = option.icon;
-
-                  return (
-                    <button
-                      key={option.role}
-                      type="button"
-                      onClick={() => handleRoleSelect(option.role)}
-                      className={`group rounded-[2rem] border border-white/80 bg-white/90 p-8 text-left shadow-[0_20px_50px_rgba(15,23,42,0.09)] ring-1 ring-transparent transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_25px_60px_rgba(15,23,42,0.14)] ${option.ring}`}
-                    >
-                      <div className={`mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-r ${option.accent} text-white shadow-lg`}>
-                        <Icon className="h-8 w-8" />
-                      </div>
-                      <h2 className="text-3xl font-black tracking-tight text-slate-900">{option.title}</h2>
-                      <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">{option.description}</p>
-                      <div className="mt-8 inline-flex items-center gap-3 rounded-full bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
-                        {mode === 'login' ? 'Open sign in' : 'Open sign up'}
-                        <BookOpenCheck className="h-4 w-4 text-primary" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  className={`rounded-full px-5 py-3 text-sm font-semibold transition ${mode === 'login' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600 shadow-sm hover:text-slate-900'}`}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('signup')}
-                  className={`rounded-full px-5 py-3 text-sm font-semibold transition ${mode === 'signup' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-600 shadow-sm hover:text-slate-900'}`}
-                >
-                  Sign Up
-                </button>
-              </div>
-            </div>
-          </div>
+      <div className="relative px-4 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+            LearnPaddi LMS
+          </p>
+          <h2 className="mt-4 text-3xl font-black text-slate-900 sm:text-4xl">{heading}</h2>
+          <p className="mt-2 text-sm text-slate-600 sm:text-base">Sign in, sign up, and role switching in one smooth animated auth card.</p>
         </div>
 
-        <div
-          className={`absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${studentTransform}`}
-          aria-hidden={role !== 'student'}
-        >
-          <div className="flex h-full items-center justify-center px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
-            <div className="w-full max-w-3xl">
-              {mode === 'login' ? (
-                <StudentLogin
-                  onBack={handleBack}
-                  onToggleMode={handleToggleMode}
-                  onSubmit={handleStudentSubmit}
-                  errorMessage={errorMessage}
-                  isSubmitting={isSubmitting}
-                />
-              ) : (
-                <StudentSignup
-                  onBack={handleBack}
-                  onToggleMode={handleToggleMode}
-                  onSubmit={handleStudentSubmit}
-                  errorMessage={errorMessage}
-                  isSubmitting={isSubmitting}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={`absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${trainerTransform}`}
-          aria-hidden={role !== 'trainer'}
-        >
-          <div className="flex h-full items-center justify-center px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
-            <div className="w-full max-w-3xl">
-              {mode === 'login' ? (
-                <TrainerLogin
-                  onBack={handleBack}
-                  onToggleMode={handleToggleMode}
-                  onSubmit={handleTrainerSubmit}
-                  errorMessage={errorMessage}
-                  isSubmitting={isSubmitting}
-                />
-              ) : (
-                <TrainerSignup
-                  onBack={handleBack}
-                  onToggleMode={handleToggleMode}
-                  onSubmit={handleTrainerSubmit}
-                  errorMessage={errorMessage}
-                  isSubmitting={isSubmitting}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        <AuthContainer
+          initialRole={role}
+          initialTab={activeTab}
+          lockRole={lockRole}
+          trainerSignupEnabled={trainerSignupEnabled}
+          isSubmitting={isSubmitting}
+          errorMessage={errorMessage}
+          onRoleChange={(nextRole) => {
+            setErrorMessage(null);
+            setRole(nextRole);
+            syncRoute(nextRole, activeTab);
+          }}
+          onTabChange={(nextTab) => {
+            setErrorMessage(null);
+            setActiveTab(nextTab);
+            syncRoute(role, nextTab);
+          }}
+          onSignIn={runLogin}
+          onSignUp={runSignup}
+        />
       </div>
-
-      {authFlow.visible ? (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm">
-          <div className="w-[min(92vw,460px)] rounded-3xl border border-white/40 bg-white/95 p-8 shadow-[0_35px_90px_rgba(15,23,42,0.35)]">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
-              <span className="absolute h-20 w-20 animate-ping rounded-full bg-cyan-300/50" />
-              <span className="absolute h-16 w-16 animate-pulse rounded-full bg-blue-200/70" />
-              <span className="relative h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500" />
-            </div>
-            <p className="text-center text-lg font-black tracking-tight text-slate-900">{flowText}</p>
-            <p className="mt-2 text-center text-sm text-slate-600">
-              Please wait while we prepare your secure {authFlow.role} session.
-            </p>
-            <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full w-1/2 animate-[pulse_1.1s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500" />
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 };

@@ -29,9 +29,10 @@ const Header = ({
     .toUpperCase();
 
   const dashboardPath = role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard';
+  const coursesPath = role === 'trainer' ? '/trainer/manage-courses' : '/explore';
   const navItems = [
     { label: 'Dashboard', to: dashboardPath, icon: LayoutDashboard },
-    { label: 'Courses', to: '/courses', icon: BookOpen },
+    { label: 'Courses', to: coursesPath, icon: BookOpen },
     { label: 'Analytics', to: '/analytics', icon: BarChart3 },
     { label: 'Messages', to: '/messages', icon: MessageSquare },
     { label: 'Settings', to: '/settings', icon: Settings },

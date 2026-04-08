@@ -1,11 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import AuthPage from '@/auth/AuthPage';
-import AuthSelect from '@/auth/AuthSelect';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useRole } from '@/hooks/useRole';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import LmsAppShell from '@/layouts/LmsAppShell';
 import MainLayout from '@/shared/layouts/MainLayout';
 
 const Landing = lazy(() => import('@/student/pages/Landing'));
@@ -144,7 +142,7 @@ const App = () => {
           element={(
             <MainLayout contentContainer={false}>
               <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-                <AuthSelect />
+                <AuthPage />
               </div>
             </MainLayout>
           )}
@@ -185,13 +183,7 @@ const App = () => {
 
         <Route
           path="/trainer/signup"
-          element={(
-            <MainLayout contentContainer={false}>
-              <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-                <AuthPage fixedRole="trainer" fixedMode="signup" />
-              </div>
-            </MainLayout>
-          )}
+          element={<Navigate to="/trainer/login" replace />}
         />
 
         <Route
@@ -224,13 +216,15 @@ const App = () => {
           path="/student/course/:id"
           element={(
             <ProtectedRoute requireRole="student">
-              <LmsAppShell
+              <DashboardLayout
                 role="student"
                 title="Course Player"
                 subtitle="Video learning, lesson completion, reviews, ratings, and certificate generation all live in one focused learning workspace."
+                actionLabel="Explore Courses"
+                actionPath="/explore"
               >
                 <StudentCoursePlayerPage />
-              </LmsAppShell>
+              </DashboardLayout>
             </ProtectedRoute>
           )}
         />
@@ -239,13 +233,15 @@ const App = () => {
           path="/course/:id"
           element={(
             <ProtectedRoute requireRole="student">
-              <LmsAppShell
+              <DashboardLayout
                 role="student"
                 title="Course View"
                 subtitle="Watch lessons, switch videos, and continue your learning journey."
+                actionLabel="Back to Dashboard"
+                actionPath="/student/dashboard"
               >
                 <StudentCoursePlayerPage />
-              </LmsAppShell>
+              </DashboardLayout>
             </ProtectedRoute>
           )}
         />
@@ -271,13 +267,15 @@ const App = () => {
           path="/trainer/add-course"
           element={(
             <ProtectedRoute requireRole="trainer">
-              <LmsAppShell
+              <DashboardLayout
                 role="trainer"
                 title="Create Course"
                 subtitle="Build a complete course with lessons, videos, thumbnails, pricing, and structured modules designed for modern video-first learning."
+                actionLabel="Manage Courses"
+                actionPath="/trainer/manage-courses"
               >
                 <TrainerCreateCoursePage />
-              </LmsAppShell>
+              </DashboardLayout>
             </ProtectedRoute>
           )}
         />
@@ -286,13 +284,15 @@ const App = () => {
           path="/trainer/edit-course/:id"
           element={(
             <ProtectedRoute requireRole="trainer">
-              <LmsAppShell
+              <DashboardLayout
                 role="trainer"
                 title="Edit Course"
                 subtitle="Update course details, YouTube lessons, pricing, and content structure."
+                actionLabel="Manage Courses"
+                actionPath="/trainer/manage-courses"
               >
                 <TrainerCreateCoursePage />
-              </LmsAppShell>
+              </DashboardLayout>
             </ProtectedRoute>
           )}
         />
@@ -301,13 +301,15 @@ const App = () => {
           path="/trainer/manage-courses"
           element={(
             <ProtectedRoute requireRole="trainer">
-              <LmsAppShell
+              <DashboardLayout
                 role="trainer"
                 title="Manage Courses"
                 subtitle="Review enrollments, progress, ratings, and content quality across your full training catalog."
+                actionLabel="Add Course"
+                actionPath="/trainer/add-course"
               >
                 <TrainerManageCoursesPage />
-              </LmsAppShell>
+              </DashboardLayout>
             </ProtectedRoute>
           )}
         />

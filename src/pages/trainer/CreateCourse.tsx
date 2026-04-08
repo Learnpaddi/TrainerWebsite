@@ -197,7 +197,7 @@ const TrainerCreateCoursePage = () => {
         await createCourse(payload);
       }
 
-      setSuccessToast(isEditMode ? 'Course updated successfully' : 'Course created successfully');
+      setSuccessToast(isEditMode ? 'Course updated and republished successfully' : 'Course created successfully');
       setShowBuilderModal(false);
       setTimeout(() => {
         navigate('/trainer/manage-courses');
@@ -232,24 +232,44 @@ const TrainerCreateCoursePage = () => {
   return (
     <div className="space-y-6">
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Trainer Dashboard</p>
-        <h2 className="mt-2 text-5xl font-black tracking-tight text-slate-950">Trainer Dashboard</h2>
-        <p className="mt-3 max-w-3xl text-lg text-slate-600">
-          Operate your LMS business with revenue intelligence, learner analytics, and performance insights.
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Course Studio</p>
+        <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          {isEditMode ? 'Update your course content' : 'Create a new course blueprint'}
+        </h2>
+        <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+          Configure title, pricing, category, thumbnail, and lesson playlist in one focused builder experience.
         </p>
 
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Trainer Intelligence Layer</p>
-          <h3 className="mt-3 text-4xl font-black text-slate-950">Add course details in builder popup</h3>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-            Open the dedicated course builder to configure content, lessons, and publish settings in one place.
-          </p>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Draft Quality</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">{draftQuality}%</p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Ready Lessons</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">{validLessons.length}</p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Mode</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">{isEditMode ? 'Edit' : 'Create'}</p>
+          </article>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => setShowBuilderModal(true)}
-            className="primary-cta mt-6 px-7 py-4 text-base"
+            className="primary-cta px-6 py-3 text-sm"
           >
-            + {isEditMode ? 'Edit Course Details' : 'Add Course Details'}
+            <Plus className="h-4 w-4" />
+            {isEditMode ? 'Open Course Builder' : 'Start Building Course'}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/trainer/manage-courses')}
+            className="secondary-cta px-6 py-3 text-sm"
+          >
+            Back to Manage Courses
           </button>
         </div>
       </section>
@@ -415,7 +435,7 @@ const TrainerCreateCoursePage = () => {
                     )}
 
                     <button type="button" onClick={handleSubmit} className="primary-cta mt-5 w-full px-5 py-3 text-sm">
-                      {isEditMode ? 'Update Course' : 'Publish Course'}
+                      {isEditMode ? 'Republish Course' : 'Publish Course'}
                     </button>
 
                     {submitError ? (

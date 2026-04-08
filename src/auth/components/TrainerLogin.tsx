@@ -18,6 +18,7 @@ const TrainerLogin = ({ onBack, onToggleMode, onSubmit, errorMessage, isSubmitti
     submitLabel="Enter Trainer LMS"
     onBack={onBack}
     onToggleMode={onToggleMode}
+    showToggleMode={false}
     onSubmit={onSubmit}
     errorMessage={errorMessage}
     isSubmitting={isSubmitting}

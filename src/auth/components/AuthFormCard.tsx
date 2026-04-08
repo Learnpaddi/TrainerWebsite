@@ -13,6 +13,7 @@ interface AuthFormCardProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onBack: () => void;
   onToggleMode: () => void;
+  showToggleMode?: boolean;
   errorMessage?: string | null;
   isSubmitting?: boolean;
   children?: ReactNode;
@@ -48,6 +49,7 @@ const AuthFormCard = ({
   onSubmit,
   onBack,
   onToggleMode,
+  showToggleMode = true,
   errorMessage,
   isSubmitting = false,
   children,
@@ -97,13 +99,15 @@ const AuthFormCard = ({
         </button>
       </form>
 
-      <button
-        type="button"
-        onClick={onToggleMode}
-        className={`relative mt-6 text-sm font-semibold transition ${config.toggleAccent}`}
-      >
-        {toggleLabel}
-      </button>
+      {showToggleMode ? (
+        <button
+          type="button"
+          onClick={onToggleMode}
+          className={`relative mt-6 text-sm font-semibold transition ${config.toggleAccent}`}
+        >
+          {toggleLabel}
+        </button>
+      ) : null}
     </div>
   );
 };

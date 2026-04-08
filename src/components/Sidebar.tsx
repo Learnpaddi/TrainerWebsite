@@ -41,7 +41,7 @@ const Sidebar = ({ role, className, onNavigate }: SidebarProps) => {
         }`}>
           <p className="text-xs uppercase tracking-[0.16em] text-white/70">{role} workspace</p>
           <p className="mt-1 text-lg font-bold leading-tight">{profile?.name || 'LearnPaddi User'}</p>
-          <p className="mt-1 text-xs text-white/75">{profile?.email || 'role@learnpaddi.com'}</p>
+          <p className="mt-1 text-xs text-white/75">{profile?.email || 'contact@learnpaddi.in'}</p>
         </div>
       </div>
 
