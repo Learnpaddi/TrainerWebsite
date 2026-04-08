@@ -15,6 +15,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, loading, roleError, isStudent, isTrainer } = useAuth();
   const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
+  const authRedirectPath = `/select-role?mode=login&from=${encodeURIComponent(returnTo)}`;
 
   if (loading) {
     return (
@@ -28,11 +30,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireAuth && !user) {
-    return <Navigate to="/select-role?mode=login" replace state={{ from: location.pathname, authMessage: roleError }} />;
+    return <Navigate to={authRedirectPath} replace state={{ from: returnTo, authMessage: roleError }} />;
   }
 
   if (roleError) {
-    return <Navigate to="/select-role?mode=login" replace state={{ from: location.pathname, authMessage: roleError }} />;
+    return <Navigate to={authRedirectPath} replace state={{ from: returnTo, authMessage: roleError }} />;
   }
 
   if (requireRole === 'trainer' && !isTrainer) {

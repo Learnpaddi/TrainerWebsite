@@ -4,10 +4,13 @@ import { useEnrollments } from '@/hooks/useEnrollments';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Clock3, GraduationCap, Layers3, Loader2, Play, Plus, Sparkles, X } from 'lucide-react';
 import type { Course } from '@/services/firebase/courseService';
+import { useRole } from '@/hooks/useRole';
+import { storePendingCourseIntent } from '@/student/lib/courseIntent';
 
 const Landing = () => {
   const { courses, loading, error } = useCourses();
   const { enrollments, enrollInCourse } = useEnrollments();
+  const { profile } = useRole();
   const navigate = useNavigate();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -36,6 +39,12 @@ const Landing = () => {
   };
 
   const handleStartCourse = async (course: Course) => {
+    if (!profile) {
+      storePendingCourseIntent(course.id);
+      navigate(`/select-role?mode=login&from=${encodeURIComponent(`/course/${course.id}`)}`);
+      return;
+    }
+
     const isEnrolled = enrolledIds.has(course.id);
 
     setActionLoading(course.id);
@@ -43,7 +52,7 @@ const Landing = () => {
       if (!isEnrolled) {
         await enrollInCourse(course.id, course.price || 0);
       }
-      navigate('/student/dashboard');
+      navigate(`/course/${course.id}`);
     } finally {
       setActionLoading(null);
     }

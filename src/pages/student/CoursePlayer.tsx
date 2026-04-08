@@ -46,6 +46,12 @@ const StudentCoursePlayerPage = () => {
     let mounted = true;
 
     const load = async () => {
+      if (!id) {
+        setError('Invalid course route.');
+        setLoading(false);
+        return;
+      }
+
       if (!profile) return;
       setLoading(true);
       setError(null);
@@ -104,8 +110,12 @@ const StudentCoursePlayerPage = () => {
   }
 
   const handleEnroll = async () => {
-    const nextEnrollment = await enrollInCourse(profile.id, course.id);
-    setEnrollment(nextEnrollment);
+    try {
+      const nextEnrollment = await enrollInCourse(profile.id, course.id);
+      setEnrollment(nextEnrollment);
+    } catch (enrollError) {
+      setError(enrollError instanceof Error ? enrollError.message : 'Unable to enroll right now.');
+    }
   };
 
   const handleCompleteLesson = async (lessonId: string) => {

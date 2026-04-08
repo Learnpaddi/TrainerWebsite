@@ -24,10 +24,33 @@ export const useTrainerWorkspace = () => {
     let mounted = true;
 
     const load = async () => {
-      if (!profile) return;
-      const dashboard = await getTrainerDashboardData(profile.id);
-      if (!mounted) return;
-      setState({ loading: false, ...dashboard });
+      if (!profile) {
+        if (mounted) {
+          setState({
+            loading: false,
+            courses: [],
+            totalLearners: 0,
+            totalRevenue: 0,
+            averageCompletion: 0,
+          });
+        }
+        return;
+      }
+
+      try {
+        const dashboard = await getTrainerDashboardData(profile.id);
+        if (!mounted) return;
+        setState({ loading: false, ...dashboard });
+      } catch {
+        if (!mounted) return;
+        setState({
+          loading: false,
+          courses: [],
+          totalLearners: 0,
+          totalRevenue: 0,
+          averageCompletion: 0,
+        });
+      }
     };
 
     void load();

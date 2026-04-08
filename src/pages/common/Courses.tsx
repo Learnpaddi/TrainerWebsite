@@ -5,11 +5,12 @@ import { useRole } from '@/hooks/useRole';
 import { useMarketplace } from '@/hooks/useMarketplace';
 import { useStudentWorkspace } from '@/hooks/useStudentWorkspace';
 import { useTrainerWorkspace } from '@/hooks/useTrainerWorkspace';
+import { storePendingCourseIntent } from '@/student/lib/courseIntent';
 import StatCard from '@/components/StatCard';
 
 const CoursesPage = () => {
   const navigate = useNavigate();
-  const { role } = useRole();
+  const { role, profile } = useRole();
   const isTrainer = role === 'trainer';
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
@@ -21,6 +22,16 @@ const CoursesPage = () => {
     () => trainerData.courses.filter((course) => course.title.toLowerCase().includes(search.toLowerCase())),
     [trainerData.courses, search],
   );
+
+  const handleEnrollNow = (courseId: string) => {
+    if (!isTrainer && !profile) {
+      storePendingCourseIntent(courseId);
+      navigate(`/select-role?mode=login&from=${encodeURIComponent(`/course/${courseId}`)}`);
+      return;
+    }
+
+    navigate(`/course/${courseId}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -100,7 +111,7 @@ const CoursesPage = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate(`/course/${course.id}`)}
+                onClick={() => handleEnrollNow(course.id)}
                 className="primary-cta mt-4 w-full px-4 py-2.5 text-sm"
               >
                 Enroll Now

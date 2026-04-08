@@ -36,18 +36,29 @@ export const useStudentWorkspace = () => {
     let mounted = true;
 
     const load = async () => {
-      if (!profile) return;
-      const [dashboard, certificates] = await Promise.all([
-        getStudentDashboardData(profile.id),
-        getCertificateRecords(profile.id),
-      ]);
+      if (!profile) {
+        if (mounted) {
+          setState({ ...initialState, loading: false });
+        }
+        return;
+      }
 
-      if (!mounted) return;
-      setState({
-        loading: false,
-        ...dashboard,
-        certificates,
-      });
+      try {
+        const [dashboard, certificates] = await Promise.all([
+          getStudentDashboardData(profile.id),
+          getCertificateRecords(profile.id),
+        ]);
+
+        if (!mounted) return;
+        setState({
+          loading: false,
+          ...dashboard,
+          certificates,
+        });
+      } catch {
+        if (!mounted) return;
+        setState({ ...initialState, loading: false });
+      }
     };
 
     void load();

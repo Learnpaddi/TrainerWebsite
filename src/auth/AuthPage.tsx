@@ -1,6 +1,6 @@
 import { BookOpenCheck, GraduationCap, ShieldCheck, Sparkles } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLogin from '@/auth/components/StudentLogin';
 import StudentSignup from '@/auth/components/StudentSignup';
 import TrainerLogin from '@/auth/components/TrainerLogin';
@@ -8,6 +8,7 @@ import TrainerSignup from '@/auth/components/TrainerSignup';
 import { getAuthErrorMessage, login, logout, register } from '@/services/firebase/authService';
 import { getUserDoc } from '@/services/firebase/userService';
 import { useAuth } from '@/hooks/useAuth';
+import { consumePendingCourseIntent } from '@/student/lib/courseIntent';
 
 type AuthMode = 'login' | 'signup';
 type AuthRole = 'student' | 'trainer' | null;
@@ -16,6 +17,58 @@ interface AuthPageProps {
   fixedRole?: Exclude<AuthRole, null>;
   fixedMode?: AuthMode;
 }
+
+const getDashboardPath = (role: Exclude<AuthRole, null>) =>
+  role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard';
+
+const normalizeRequestedPath = (fromPath: string | null): string | null => {
+  if (!fromPath || !fromPath.startsWith('/')) {
+    return null;
+  }
+
+  const blockedPrefixes = [
+    '/select-role',
+    '/student/login',
+    '/student/signup',
+    '/trainer/login',
+    '/trainer/signup',
+    '/auth',
+    '/login',
+    '/register',
+  ];
+
+  if (blockedPrefixes.some((prefix) => fromPath.startsWith(prefix))) {
+    return null;
+  }
+
+  return fromPath;
+};
+
+const resolvePostAuthPath = (
+  role: Exclude<AuthRole, null>,
+  requestedPath: string | null,
+  pendingCourseId: string | null,
+) => {
+  const dashboardPath = getDashboardPath(role);
+
+  if (role === 'student' && pendingCourseId) {
+    return `/course/${pendingCourseId}`;
+  }
+
+  if (!requestedPath) {
+    return dashboardPath;
+  }
+
+  if (role === 'student' && requestedPath.startsWith('/trainer')) {
+    return dashboardPath;
+  }
+
+  if (role === 'trainer' && (requestedPath.startsWith('/student') || requestedPath.startsWith('/course/'))) {
+    return dashboardPath;
+  }
+
+  return requestedPath;
+};
 
 const roleOptions = [
   {
@@ -38,8 +91,15 @@ const roleOptions = [
 
 const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+  const requestedPath = normalizeRequestedPath(
+    searchParams.get('from')
+    || (location.state as { from?: string } | null)?.from
+    || null,
+  );
+  const fromQuery = requestedPath ? `?from=${encodeURIComponent(requestedPath)}` : '';
   const initialMode: AuthMode = fixedMode || (searchParams.get('mode') === 'signup' ? 'signup' : 'login');
   const [role, setRole] = useState<AuthRole>(fixedRole || null);
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -58,13 +118,15 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
     }
 
     if (!authLoading && user?.role === pendingRedirectRole) {
-      navigate(user.role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard', { replace: true });
+      const pendingCourseId = consumePendingCourseIntent();
+      const nextPath = resolvePostAuthPath(user.role, requestedPath, pendingCourseId);
+      navigate(nextPath, { replace: true });
       setPendingRedirectRole(null);
       setAuthFlow((current) => ({ ...current, visible: false }));
     } else if (authLoading) {
       setAuthFlow((current) => ({ ...current, visible: true, phase: 'loading' }));
     }
-  }, [authLoading, navigate, pendingRedirectRole, user?.role]);
+  }, [authLoading, navigate, pendingRedirectRole, requestedPath, user?.role]);
 
   useEffect(() => {
     if (fixedMode) {
@@ -85,9 +147,11 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
       return;
     }
     if (!authLoading && user?.role) {
-      navigate(user.role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard', { replace: true });
+      const pendingCourseId = consumePendingCourseIntent();
+      const nextPath = resolvePostAuthPath(user.role, requestedPath, pendingCourseId);
+      navigate(nextPath, { replace: true });
     }
-  }, [authLoading, fixedRole, navigate, pendingRedirectRole, user?.role]);
+  }, [authLoading, fixedRole, navigate, pendingRedirectRole, requestedPath, user?.role]);
 
   const selectionTransform = useMemo(() => {
     if (role === 'student') return '-translate-x-full opacity-0';
@@ -101,7 +165,7 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
   const handleRoleSelect = (nextRole: Exclude<AuthRole, null>) => {
     setErrorMessage(null);
     setRole(nextRole);
-    navigate(`/${nextRole}/${mode}`);
+    navigate(`/${nextRole}/${mode}${fromQuery}`);
   };
 
   const handleBack = () => {
@@ -109,7 +173,8 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
     setPendingRedirectRole(null);
     setAuthFlow((current) => ({ ...current, visible: false }));
     if (fixedRole) {
-      navigate(`/select-role?mode=${mode}`);
+      const selectPath = `/select-role?mode=${mode}${requestedPath ? `&from=${encodeURIComponent(requestedPath)}` : ''}`;
+      navigate(selectPath);
       return;
     }
     setRole(null);
@@ -119,7 +184,7 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
     setErrorMessage(null);
     const nextMode: AuthMode = mode === 'login' ? 'signup' : 'login';
     if (fixedRole) {
-      navigate(`/${fixedRole}/${nextMode}`);
+      navigate(`/${fixedRole}/${nextMode}${fromQuery}`);
       return;
     }
     setMode(nextMode);

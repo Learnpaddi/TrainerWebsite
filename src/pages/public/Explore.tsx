@@ -3,14 +3,27 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StarRating from '@/shared/ui/StarRating';
 import { useMarketplace } from '@/hooks/useMarketplace';
+import { useRole } from '@/hooks/useRole';
+import { storePendingCourseIntent } from '@/student/lib/courseIntent';
 
 const ExplorePage = () => {
   const navigate = useNavigate();
+  const { profile } = useRole();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const { courses, categories, loading } = useMarketplace(search, category);
 
   const featured = useMemo(() => courses.filter((course) => course.featured).slice(0, 3), [courses]);
+
+  const handleEnrollNow = (courseId: string) => {
+    if (!profile) {
+      storePendingCourseIntent(courseId);
+      navigate(`/select-role?mode=login&from=${encodeURIComponent(`/course/${courseId}`)}`);
+      return;
+    }
+
+    navigate(`/course/${courseId}`);
+  };
 
   return (
     <div className="space-y-10">
@@ -106,7 +119,7 @@ const ExplorePage = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate(`/course/${course.id}`)}
+                    onClick={() => handleEnrollNow(course.id)}
                     className="primary-cta px-5 py-3 text-sm"
                   >
                     Enroll Now

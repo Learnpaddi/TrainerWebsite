@@ -25,10 +25,12 @@ const AuthSelect = () => {
   const [mode, setMode] = useState<'login' | 'signup'>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'login',
   );
+  const from = searchParams.get('from');
   const ctaLabel = useMemo(() => (mode === 'signup' ? 'Continue to Sign Up' : 'Continue to Sign In'), [mode]);
 
   const handleRoleContinue = (role: 'student' | 'trainer') => {
-    navigate(`/${role}/${mode}`);
+    const query = from ? `?from=${encodeURIComponent(from)}` : '';
+    navigate(`/${role}/${mode}${query}`);
   };
 
   return (

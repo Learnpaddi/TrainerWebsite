@@ -10,7 +10,6 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         lms: path.resolve(__dirname, 'lms/index.html'),
-        legacyLmsEntry: path.resolve(__dirname, 'src/LMSindex.html'),
       },
     },
   },
@@ -28,4 +27,3 @@ export default defineConfig({
     historyApiFallback: true
   }
 })
-

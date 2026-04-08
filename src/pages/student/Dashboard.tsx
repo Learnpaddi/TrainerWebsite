@@ -1,10 +1,12 @@
 import { BookCheck, BookOpen, Clock3, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useStudentWorkspace } from '@/hooks/useStudentWorkspace';
 import Chart from '@/components/Chart';
 import ReviewCard from '@/components/ReviewCard';
 import StatCard from '@/components/StatCard';
 
 const StudentDashboardPage = () => {
+  const navigate = useNavigate();
   const { loading, enrolledCourses, averageProgress, completedCourses } = useStudentWorkspace();
   const pendingCourses = Math.max(enrolledCourses.length - completedCourses, 0);
 
@@ -108,6 +110,13 @@ const StudentDashboardPage = () => {
               <div className="mt-3 h-2 rounded-full bg-slate-200">
                 <div className="h-2 rounded-full bg-corporate-accent" style={{ width: `${enrollment.progress}%` }} />
               </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/course/${course.id}`)}
+                className="secondary-cta mt-3 w-full px-3 py-2 text-xs"
+              >
+                Continue Course
+              </button>
             </article>
           ))}
           {enrolledCourses.length === 0 && (

@@ -62,28 +62,46 @@ const TrainerCreateCoursePage = () => {
     let mounted = true;
 
     const loadCourse = async () => {
-      if (!id) return;
-      const course = await getCourseById(id);
-      if (!mounted || !course) return;
+      if (!id) {
+        setLoading(false);
+        return;
+      }
 
-      setForm({
-        title: course.title,
-        description: course.description,
-        price: String(course.price),
-        category: course.category,
-        thumbnail: course.thumbnail,
-      });
+      try {
+        const course = await getCourseById(id);
+        if (!mounted) return;
 
-      setLessons(
-        course.lessons.length > 0
-          ? course.lessons.map((lesson, index) => ({
-              id: lesson.id || `lesson-${Date.now()}-${index}`,
-              title: lesson.title,
-              youtubeUrl: lesson.youtubeUrl || lesson.videoUrl || '',
-            }))
-          : [createEmptyLesson(0)],
-      );
-      setLoading(false);
+        if (!course) {
+          setSubmitError('Course not found.');
+          setLoading(false);
+          return;
+        }
+
+        setForm({
+          title: course.title,
+          description: course.description,
+          price: String(course.price),
+          category: course.category,
+          thumbnail: course.thumbnail,
+        });
+
+        setLessons(
+          course.lessons.length > 0
+            ? course.lessons.map((lesson, index) => ({
+                id: lesson.id || `lesson-${Date.now()}-${index}`,
+                title: lesson.title,
+                youtubeUrl: lesson.youtubeUrl || lesson.videoUrl || '',
+              }))
+            : [createEmptyLesson(0)],
+        );
+      } catch (loadError) {
+        if (!mounted) return;
+        setSubmitError(loadError instanceof Error ? loadError.message : 'Unable to load course details.');
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
     };
 
     void loadCourse();
@@ -182,7 +200,7 @@ const TrainerCreateCoursePage = () => {
       setSuccessToast(isEditMode ? 'Course updated successfully' : 'Course created successfully');
       setShowBuilderModal(false);
       setTimeout(() => {
-        navigate('/trainer/dashboard');
+        navigate('/trainer/manage-courses');
       }, 800);
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'course/duplicate-title') {
@@ -201,7 +219,7 @@ const TrainerCreateCoursePage = () => {
 
   const closeBuilderModal = () => {
     if (isEditMode) {
-      navigate('/trainer/dashboard');
+      navigate('/trainer/manage-courses');
       return;
     }
     setShowBuilderModal(false);
