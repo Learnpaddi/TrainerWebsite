@@ -7,7 +7,6 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import MainLayout from '@/shared/layouts/MainLayout';
 
 const Landing = lazy(() => import('@/student/pages/Landing'));
-const ExplorePage = lazy(() => import('@/pages/public/Explore'));
 const StudentDashboardPage = lazy(() => import('@/pages/student/Dashboard'));
 const StudentCoursePlayerPage = lazy(() => import('@/pages/student/CoursePlayer'));
 const TrainerDashboardPage = lazy(() => import('@/pages/trainer/Dashboard'));
@@ -81,7 +80,7 @@ const CoursesRoutePage = () => {
       title="Courses"
       subtitle="Browse, manage, and optimize your course catalog with a modern LMS workflow."
       actionLabel={role === 'trainer' ? 'Add Course' : 'Explore'}
-      actionPath={role === 'trainer' ? '/trainer/add-course' : '/explore'}
+      actionPath={role === 'trainer' ? '/trainer/add-course' : '/courses'}
     >
       <CoursesPage />
     </RoleAwareDashboardShell>
@@ -187,15 +186,6 @@ const App = () => {
         />
 
         <Route
-          path="/explore"
-          element={(
-            <MainLayout>
-              <ExplorePage />
-            </MainLayout>
-          )}
-        />
-
-        <Route
           path="/student/dashboard"
           element={(
             <ProtectedRoute requireRole="student">
@@ -204,7 +194,7 @@ const App = () => {
                 title="Student Dashboard"
                 subtitle="Track enrolled courses, monitor completion trends, and stay focused on progress."
                 actionLabel="Explore Courses"
-                actionPath="/explore"
+                actionPath="/courses"
               >
                 <StudentDashboardPage />
               </DashboardLayout>
@@ -221,7 +211,7 @@ const App = () => {
                 title="Course Player"
                 subtitle="Video learning, lesson completion, reviews, ratings, and certificate generation all live in one focused learning workspace."
                 actionLabel="Explore Courses"
-                actionPath="/explore"
+                actionPath="/courses"
               >
                 <StudentCoursePlayerPage />
               </DashboardLayout>
@@ -324,7 +314,7 @@ const App = () => {
         <Route path="/lms/auth" element={<Navigate to="/select-role?mode=login" replace />} />
         <Route path="/lms/login" element={<Navigate to="/select-role?mode=login" replace />} />
         <Route path="/lms/register" element={<Navigate to="/select-role?mode=signup" replace />} />
-        <Route path="/lms/explore" element={<Navigate to="/explore" replace />} />
+        <Route path="/lms/explore" element={<Navigate to="/courses" replace />} />
         <Route path="/lms/student" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/lms/student/dashboard" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/lms/student/course/:id" element={<LegacyStudentCourseRedirect />} />

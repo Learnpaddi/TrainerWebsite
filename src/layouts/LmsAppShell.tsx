@@ -28,7 +28,7 @@ interface LmsAppShellProps {
 const navigationMap = {
   student: [
     { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/explore', label: 'Marketplace', icon: Compass },
+    { to: '/courses', label: 'Marketplace', icon: Compass },
   ],
   trainer: [
     { to: '/trainer/dashboard', label: 'Dashboard', icon: LayoutDashboard },

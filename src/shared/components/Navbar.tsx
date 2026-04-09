@@ -33,7 +33,6 @@ const Navbar = () => {
     }
     if (item.key === 'courses') {
       return location.pathname === '/courses'
-        || location.pathname.startsWith('/explore')
         || location.pathname.startsWith('/student/course')
         || location.pathname.startsWith('/trainer/add-course')
         || location.pathname.startsWith('/trainer/manage-courses');

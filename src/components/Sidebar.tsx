@@ -13,7 +13,7 @@ const Sidebar = ({ role, className, onNavigate }: SidebarProps) => {
   const { profile, setRole } = useRole();
 
   const dashboardPath = role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard';
-  const coursesPath = role === 'trainer' ? '/trainer/manage-courses' : '/explore';
+  const coursesPath = role === 'trainer' ? '/trainer/manage-courses' : '/courses';
 
   const navItems = [
     { label: 'Dashboard', to: dashboardPath, icon: LayoutDashboard },
