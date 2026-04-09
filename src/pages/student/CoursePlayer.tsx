@@ -19,12 +19,30 @@ import {
   type ReviewRecord,
 } from '@/services/firebase/lmsService';
 
-function getYouTubeId(url: string) {
-  const regExp = /(?:youtube.com\/watch\?v=|youtu.be\/)([^&]+)/;
-  const match = url.match(regExp);
-  if (match) return match[1];
-  const embedMatch = url.match(/youtube.com\/embed\/([^?&]+)/);
-  return embedMatch ? embedMatch[1] : "";
+function getYouTubeId(url: string): string {
+  if (!url) return '';
+
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return '';
+}
+
+function isValidYouTubeUrl(url: string): boolean {
+  if (!url) return false;
+  const videoId = getYouTubeId(url);
+  return videoId.length === 11; // YouTube video IDs are 11 characters
 }
 
 const StudentCoursePlayerPage = () => {
@@ -41,6 +59,7 @@ const StudentCoursePlayerPage = () => {
   const [ratingSnapshot, setRatingSnapshot] = useState({ averageRating: 0, reviewsCount: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -78,7 +97,10 @@ const StudentCoursePlayerPage = () => {
         setActiveLesson(fetchedCourse.lessons[0] || null);
         setCurrentLessonIndex(0);
         const firstLessonUrl = fetchedCourse.lessons[0]?.youtubeUrl || fetchedCourse.lessons[0]?.videoUrl || '';
-        setSelectedVideoId(getYouTubeId(firstLessonUrl));
+        const firstVideoId = getYouTubeId(firstLessonUrl);
+        const isValidFirstVideo = isValidYouTubeUrl(firstLessonUrl);
+        setSelectedVideoId(isValidFirstVideo ? firstVideoId : '');
+        setVideoLoading(isValidFirstVideo);
       } catch (loadError) {
         if (!mounted) return;
         setError(loadError instanceof Error ? loadError.message : 'Unable to load course details.');
@@ -160,17 +182,46 @@ const StudentCoursePlayerPage = () => {
           <h2 className="text-4xl font-black text-slate-950">{course.title}</h2>
           <p className="mt-4 text-base leading-8 text-slate-600">{course.description}</p>
 
-          <div className="mt-8 aspect-video overflow-hidden rounded-[1.75rem] bg-slate-950 shadow-2xl">
-            {selectedVideoId ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${selectedVideoId}`}
-                title={activeLesson?.title || 'Course lesson'}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+          <div className="mt-8 aspect-video overflow-hidden rounded-[1.75rem] bg-slate-950 shadow-2xl relative">
+            {selectedVideoId && isValidYouTubeUrl(activeLesson?.youtubeUrl || activeLesson?.videoUrl || '') ? (
+              <>
+                {videoLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-950 z-10">
+                    <div className="text-center text-white">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                      <p className="text-sm">Loading video...</p>
+                    </div>
+                  </div>
+                )}
+                <iframe
+                  src={`https://www.youtube.com/embed/${selectedVideoId}?rel=0&modestbranding=1&iv_load_policy=3&fs=1&cc_load_policy=0&disablekb=1&playsinline=1&autoplay=0&mute=0&controls=1&showinfo=0`}
+                  title={activeLesson?.title || 'Course lesson'}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  frameBorder="0"
+                  onLoad={() => setVideoLoading(false)}
+                  onError={(e) => {
+                    console.error('YouTube video failed to load:', e);
+                    setVideoLoading(false);
+                  }}
+                />
+              </>
             ) : (
-              <div className="flex h-full items-center justify-center text-white">No video linked yet.</div>
+              <div className="flex h-full items-center justify-center text-white">
+                <div className="text-center">
+                  <PlayCircle className="mx-auto h-16 w-16 mb-4 opacity-50" />
+                  <p className="text-lg font-semibold">
+                    {selectedVideoId ? 'Video unavailable' : 'No video linked yet'}
+                  </p>
+                  <p className="text-sm opacity-75">
+                    {selectedVideoId
+                      ? 'This video may be private, deleted, or not embeddable. Please contact the instructor.'
+                      : 'Please check back later'
+                    }
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
@@ -262,7 +313,6 @@ const StudentCoursePlayerPage = () => {
             {course.lessons.map((lesson) => {
               const completed = completedSet.has(lesson.id);
               const active = activeLesson?.id === lesson.id;
-              const lessonVideoId = getYouTubeId(lesson.youtubeUrl || lesson.videoUrl || '');
               const lessonIndex = course.lessons.findIndex((entry) => entry.id === lesson.id);
 
               return (
@@ -272,7 +322,11 @@ const StudentCoursePlayerPage = () => {
                   onClick={() => {
                     setActiveLesson(lesson);
                     setCurrentLessonIndex(lessonIndex);
-                    setSelectedVideoId(lessonVideoId);
+                    const lessonUrl = lesson.youtubeUrl || lesson.videoUrl || '';
+                    const videoId = getYouTubeId(lessonUrl);
+                    const isValid = isValidYouTubeUrl(lessonUrl);
+                    setSelectedVideoId(isValid ? videoId : '');
+                    setVideoLoading(isValid);
                   }}
                   className={`flex w-full items-center gap-4 rounded-[1.25rem] border p-4 text-left transition ${
                     active ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'

@@ -24,12 +24,24 @@ const createEmptyLesson = (index: number): LessonDraft => ({
   youtubeUrl: '',
 });
 
-const getYouTubeId = (url: string) => {
-  const regExp = /(?:youtube.com\/watch\?v=|youtu.be\/)([^&]+)/;
-  const match = url.match(regExp);
-  if (match) return match[1];
-  const embedMatch = url.match(/youtube.com\/embed\/([^?&]+)/);
-  return embedMatch ? embedMatch[1] : '';
+const getYouTubeId = (url: string): string => {
+  if (!url) return '';
+
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return '';
 };
 
 const TrainerCreateCoursePage = () => {
@@ -420,11 +432,12 @@ const TrainerCreateCoursePage = () => {
                     {previewVideoId ? (
                       <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200">
                         <iframe
-                          src={`https://www.youtube.com/embed/${previewVideoId}`}
+                          src={`https://www.youtube.com/embed/${previewVideoId}?rel=0&modestbranding=1&iv_load_policy=3&fs=1&cc_load_policy=0&disablekb=1&playsinline=1&autoplay=0&mute=0&controls=1&showinfo=0`}
                           title={previewLesson?.title || 'Lesson preview'}
                           className="h-44 w-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                           allowFullScreen
+                          frameBorder="0"
                         />
                       </div>
                     ) : (
