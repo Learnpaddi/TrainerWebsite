@@ -38,10 +38,10 @@ const TrainerDashboardPage = () => {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Courses" value={courses.length} icon={GraduationCap} tone="blue" hint="Published and active catalog" />
-        <StatCard title="Revenue" value={`₹${totalRevenue}`} icon={Wallet} tone="emerald" hint="Combined course value" />
-        <StatCard title="Active Users" value={totalLearners} icon={Users} tone="amber" hint="Learners currently enrolled" />
-        <StatCard title="Completion Rate" value={`${averageCompletion}%`} icon={ChartLine} tone="violet" hint="Average learner completion" />
+        <StatCard title="Total Courses" value={courses.length} icon={GraduationCap} tone="blue" hint="Published and active catalog" to="/trainer/manage-courses" />
+        <StatCard title="Revenue" value={`₹${totalRevenue}`} icon={Wallet} tone="emerald" hint="Combined course value" to="/analytics" />
+        <StatCard title="Active Users" value={totalLearners} icon={Users} tone="amber" hint="Learners currently enrolled" to="/analytics" />
+        <StatCard title="Completion Rate" value={`${averageCompletion}%`} icon={ChartLine} tone="violet" hint="Average learner completion" to="/analytics" />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.45fr_0.85fr]" id="analytics">

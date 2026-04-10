@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { auth } from './config';
+import type { CourseExam } from './types';
 
 export interface Course {
   id: string;
@@ -24,6 +25,7 @@ export interface Course {
   trainerId: string;
   modules?: CourseModule[];
   createdAt: string;
+  exam?: CourseExam;
 }
 
 export interface CourseLesson {

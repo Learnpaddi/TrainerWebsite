@@ -9,6 +9,9 @@ import MainLayout from '@/shared/layouts/MainLayout';
 const Landing = lazy(() => import('@/student/pages/Landing'));
 const StudentDashboardPage = lazy(() => import('@/pages/student/Dashboard'));
 const StudentCoursePlayerPage = lazy(() => import('@/pages/student/CoursePlayer'));
+const StudentCertificatesPage = lazy(() => import('@/student/pages/Certificates'));
+const ExaminationPortalPage = lazy(() => import('@/pages/student/ExaminationPortal'));
+const CertificateViewPage = lazy(() => import('@/pages/student/CertificateView'));
 const TrainerDashboardPage = lazy(() => import('@/pages/trainer/Dashboard'));
 const TrainerCreateCoursePage = lazy(() => import('@/pages/trainer/CreateCourse'));
 const TrainerManageCoursesPage = lazy(() => import('@/pages/trainer/ManageCourses'));
@@ -26,6 +29,11 @@ const LoadingScreen = ({ label }: { label: string }) => (
 const LegacyStudentCourseRedirect = () => {
   const { id } = useParams();
   return <Navigate to={id ? `/student/course/${id}` : '/student/dashboard'} replace />;
+};
+
+const LegacyStudentCertificateRedirect = () => {
+  const { courseId } = useParams();
+  return <Navigate to={courseId ? `/student/certificates/${courseId}` : '/student/certificates'} replace />;
 };
 
 const LegacyTrainerEditCourseRedirect = () => {
@@ -203,6 +211,57 @@ const App = () => {
         />
 
         <Route
+          path="/student/examinations"
+          element={(
+            <ProtectedRoute requireRole="student">
+              <DashboardLayout
+                role="student"
+                title="Examination Portal"
+                subtitle="Attend final course exams, review results, and unlock certification once you pass."
+                actionLabel="Certificates"
+                actionPath="/student/certificates"
+              >
+                <ExaminationPortalPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/student/certificates"
+          element={(
+            <ProtectedRoute requireRole="student">
+              <DashboardLayout
+                role="student"
+                title="Certificates"
+                subtitle="View and download certifications for the courses you have completed and passed."
+                actionLabel="Examination Portal"
+                actionPath="/student/examinations"
+              >
+                <StudentCertificatesPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/student/certificates/:courseId"
+          element={(
+            <ProtectedRoute requireRole="student">
+              <DashboardLayout
+                role="student"
+                title="Certificate View"
+                subtitle="Review your earned certificate and export it in PDF format."
+                actionLabel="Certificates"
+                actionPath="/student/certificates"
+              >
+                <CertificateViewPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
           path="/student/course/:id"
           element={(
             <ProtectedRoute requireRole="student">
@@ -317,6 +376,9 @@ const App = () => {
         <Route path="/lms/explore" element={<Navigate to="/courses" replace />} />
         <Route path="/lms/student" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/lms/student/dashboard" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/lms/student/examinations" element={<Navigate to="/student/examinations" replace />} />
+        <Route path="/lms/student/certificates" element={<Navigate to="/student/certificates" replace />} />
+        <Route path="/lms/student/certificates/:courseId" element={<LegacyStudentCertificateRedirect />} />
         <Route path="/lms/student/course/:id" element={<LegacyStudentCourseRedirect />} />
         <Route path="/lms/course/:id" element={<LegacyStudentCourseRedirect />} />
         <Route path="/lms/trainer" element={<Navigate to="/trainer/dashboard" replace />} />

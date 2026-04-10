@@ -1,6 +1,6 @@
 import { CheckCircle2, PlayCircle, Star } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useRole } from '@/hooks/useRole';
 import {
   enrollInCourse,
@@ -8,16 +8,14 @@ import {
   getCourseReviews,
   getRatingSnapshot,
   getStudentEnrollments,
-  issueCertificate,
   markLessonCompleted,
-  openCertificatePrintView,
   submitCourseReview,
-  type CertificateRecord,
   type CourseRecord,
   type EnrollmentRecord,
   type LessonRecord,
   type ReviewRecord,
 } from '@/services/firebase/lmsService';
+import { hasCourseExam } from '@/services/firebase/examUtils';
 
 function getYouTubeId(url: string): string {
   if (!url) return '';
@@ -46,6 +44,7 @@ function isValidYouTubeUrl(url: string): boolean {
 }
 
 const StudentCoursePlayerPage = () => {
+  const navigate = useNavigate();
   const { id = '' } = useParams();
   const { profile } = useRole();
   const [course, setCourse] = useState<CourseRecord | null>(null);
@@ -54,7 +53,6 @@ const StudentCoursePlayerPage = () => {
   const [activeLesson, setActiveLesson] = useState<LessonRecord | null>(null);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [selectedVideoId, setSelectedVideoId] = useState('');
-  const [certificate, setCertificate] = useState<CertificateRecord | null>(null);
   const [reviewInput, setReviewInput] = useState({ rating: 5, comment: '' });
   const [ratingSnapshot, setRatingSnapshot] = useState({ averageRating: 0, reviewsCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -144,15 +142,6 @@ const StudentCoursePlayerPage = () => {
     const updated = await markLessonCompleted(profile.id, course.id, lessonId);
     if (!updated) return;
     setEnrollment(updated);
-
-    if (updated.progress === 100) {
-      const issued = await issueCertificate({
-        courseId: course.id,
-        userId: profile.id,
-        userName: profile.name,
-      });
-      setCertificate(issued);
-    }
   };
 
   const handleReview = async () => {
@@ -300,11 +289,27 @@ const StudentCoursePlayerPage = () => {
             <div className="h-3 rounded-full bg-gradient-to-r from-primary to-cyan-400" style={{ width: `${enrollment?.progress || 0}%` }} />
           </div>
           <p className="mt-3 text-sm text-slate-600">{completedSet.size} of {course.lessons.length} lessons completed</p>
-          {certificate && (
-            <button type="button" onClick={() => openCertificatePrintView(certificate, course)} className="secondary-cta mt-5 w-full px-5 py-3 text-sm">
-              Print Certificate
-            </button>
-          )}
+          {(enrollment?.progress || 0) >= 100 ? (
+            hasCourseExam(course) ? (
+              <div className="mt-5 rounded-[1.25rem] border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-semibold text-blue-700">Course learning completed</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  Your final exam is now available in the examination portal. Pass above {course.exam?.passPercentage || 75}% to obtain certification.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/student/examinations')}
+                  className="primary-cta mt-4 w-full px-5 py-3 text-sm"
+                >
+                  Go to Examination Portal
+                </button>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                Course learning is completed. Ask the trainer to add the final exam before certification becomes available.
+              </div>
+            )
+          ) : null}
         </article>
 
         <article className="lms-panel p-6">

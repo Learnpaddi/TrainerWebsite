@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/services/firebase/config';
 import { auth } from '@/services/firebase/config';
+import type { CourseExam } from '@/services/firebase/types';
 
 export type Role = 'student' | 'trainer';
 
@@ -49,6 +50,7 @@ export interface CourseRecord {
   lessons: LessonRecord[];
   modules: CourseModuleRecord[];
   createdAt: string;
+  exam?: CourseExam;
 }
 
 export interface EnrollmentRecord {
@@ -275,6 +277,7 @@ const normalizeCourse = (raw: Partial<CourseRecord>, id: string): CourseRecord =
     createdAt: formatCreatedAt(raw.createdAt),
     modules: legacyModules,
     lessons,
+    exam: raw.exam,
   };
   return course;
 };

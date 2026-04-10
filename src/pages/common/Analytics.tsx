@@ -11,9 +11,9 @@ const AnalyticsPage = () => {
   const student = useStudentWorkspace();
   const trainer = useTrainerWorkspace();
 
-  const studentLine = student.enrolledCourses.map(({ course, enrollment }) => ({
+  const studentLine = student.enrolledCourses.map(({ course, progress }) => ({
     name: course.title.length > 14 ? `${course.title.slice(0, 14)}…` : course.title,
-    value: enrollment.progress,
+    value: progress.percentage || 0,
   }));
 
   const trainerLine = trainer.courses.map((course) => ({
@@ -26,17 +26,17 @@ const AnalyticsPage = () => {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isTrainer ? (
           <>
-            <StatCard title="Revenue Growth" value={`₹${trainer.totalRevenue}`} icon={TrendingUp} tone="emerald" hint="Course earnings trend" />
-            <StatCard title="Learner Volume" value={trainer.totalLearners} icon={Users} tone="blue" hint="Total learners in ecosystem" />
-            <StatCard title="Completion Quality" value={`${trainer.averageCompletion}%`} icon={Sparkles} tone="violet" hint="Average completion signal" />
-            <StatCard title="Course Metrics" value={trainer.courses.length} icon={BarChart3} tone="amber" hint="Tracked courses" />
+            <StatCard title="Revenue Growth" value={`₹${trainer.totalRevenue}`} icon={TrendingUp} tone="emerald" hint="Course earnings trend" to="/trainer/dashboard" />
+            <StatCard title="Learner Volume" value={trainer.totalLearners} icon={Users} tone="blue" hint="Total learners in ecosystem" to="/trainer/manage-courses" />
+            <StatCard title="Completion Quality" value={`${trainer.averageCompletion}%`} icon={Sparkles} tone="violet" hint="Average completion signal" to="/trainer/manage-courses" />
+            <StatCard title="Course Metrics" value={trainer.courses.length} icon={BarChart3} tone="amber" hint="Tracked courses" to="/trainer/manage-courses" />
           </>
         ) : (
           <>
-            <StatCard title="Progress Trend" value={`${student.averageProgress}%`} icon={TrendingUp} tone="blue" hint="Average completion trend" />
-            <StatCard title="Active Learning" value={student.enrolledCourses.length} icon={Users} tone="emerald" hint="Enrolled learning paths" />
-            <StatCard title="Completed Paths" value={student.completedCourses} icon={Sparkles} tone="amber" hint="Courses completed" />
-            <StatCard title="Certificates" value={student.certificates.length} icon={BarChart3} tone="violet" hint="Issued certificates" />
+            <StatCard title="Progress Trend" value={`${student.averageProgress}%`} icon={TrendingUp} tone="blue" hint="Average completion trend" to="/student/dashboard" />
+            <StatCard title="Active Learning" value={student.enrolledCourses.length} icon={Users} tone="emerald" hint="Enrolled learning paths" to="/courses" />
+            <StatCard title="Completed Paths" value={student.completedCourses} icon={Sparkles} tone="amber" hint="Courses completed" to="/student/examinations" />
+            <StatCard title="Certificates" value={student.certificates.length} icon={BarChart3} tone="violet" hint="Issued certificates" to="/student/certificates" />
           </>
         )}
       </section>

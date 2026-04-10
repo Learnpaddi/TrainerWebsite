@@ -1,72 +1,53 @@
-import { useEffect, useState } from 'react';
-import { useRole } from '@/hooks/useRole';
-import {
-  getCertificateRecords,
-  getStudentDashboardData,
-  type CertificateRecord,
-  type CourseRecord,
-  type EnrollmentRecord,
-} from '@/services/firebase/lmsService';
+import { useMemo } from 'react';
+import { useCourses } from '@/hooks/useCourses';
+import { useEnrollments } from '@/hooks/useEnrollments';
+import { canGenerateCertificateForCourse } from '@/services/firebase/examUtils';
+import type { Course } from '@/services/firebase/courseService';
+import type { Enrollment, Progress } from '@/services/firebase/types';
 
 interface StudentWorkspaceState {
   loading: boolean;
-  courses: CourseRecord[];
-  enrollments: EnrollmentRecord[];
-  enrolledCourses: Array<{ course: CourseRecord; enrollment: EnrollmentRecord }>;
+  courses: Course[];
+  enrollments: Enrollment[];
+  enrolledCourses: Array<{ course: Course; enrollment: Enrollment; progress: Progress }>;
   averageProgress: number;
   completedCourses: number;
-  certificates: CertificateRecord[];
+  certificates: Array<{ course: Course; progress: Progress }>;
 }
 
-const initialState: StudentWorkspaceState = {
-  loading: true,
-  courses: [],
-  enrollments: [],
-  enrolledCourses: [],
-  averageProgress: 0,
-  completedCourses: 0,
-  certificates: [],
-};
+export const useStudentWorkspace = (): StudentWorkspaceState => {
+  const { courses, loading: coursesLoading } = useCourses();
+  const { enrollments, progress, enrollLoading } = useEnrollments();
 
-export const useStudentWorkspace = () => {
-  const { profile } = useRole();
-  const [state, setState] = useState<StudentWorkspaceState>(initialState);
+  const enrolledCourses = useMemo(() => enrollments
+    .map((enrollment) => {
+      const course = courses.find((item) => item.id === enrollment.courseId);
+      const courseProgress = progress[enrollment.courseId];
+      if (!course || !courseProgress) return null;
+      return {
+        course,
+        enrollment,
+        progress: courseProgress,
+      };
+    })
+    .filter(Boolean) as Array<{ course: Course; enrollment: Enrollment; progress: Progress }>, [courses, enrollments, progress]);
 
-  useEffect(() => {
-    let mounted = true;
+  const certificates = useMemo(() => enrolledCourses
+    .filter(({ course, progress: courseProgress }) => canGenerateCertificateForCourse(course, courseProgress))
+    .map(({ course, progress: courseProgress }) => ({ course, progress: courseProgress })), [enrolledCourses]);
 
-    const load = async () => {
-      if (!profile) {
-        if (mounted) {
-          setState({ ...initialState, loading: false });
-        }
-        return;
-      }
+  const completedCourses = enrolledCourses.filter(({ progress: courseProgress }) => (courseProgress.percentage || 0) >= 100).length;
+  const averageProgress = enrolledCourses.length
+    ? Math.round(enrolledCourses.reduce((sum, item) => sum + (item.progress.percentage || 0), 0) / enrolledCourses.length)
+    : 0;
 
-      try {
-        const [dashboard, certificates] = await Promise.all([
-          getStudentDashboardData(profile.id),
-          getCertificateRecords(profile.id),
-        ]);
-
-        if (!mounted) return;
-        setState({
-          loading: false,
-          ...dashboard,
-          certificates,
-        });
-      } catch {
-        if (!mounted) return;
-        setState({ ...initialState, loading: false });
-      }
-    };
-
-    void load();
-
-    return () => {
-      mounted = false;
-    };
-  }, [profile]);
-
-  return state;
+  return {
+    loading: coursesLoading || enrollLoading,
+    courses,
+    enrollments,
+    enrolledCourses,
+    averageProgress,
+    completedCourses,
+    certificates,
+  };
 };

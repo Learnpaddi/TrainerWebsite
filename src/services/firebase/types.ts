@@ -1,3 +1,16 @@
+export interface CourseExamQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+}
+
+export interface CourseExam {
+  title?: string;
+  passPercentage: number;
+  questions: CourseExamQuestion[];
+}
+
 export interface Enrollment {
   id: string;
   userId: string;
@@ -22,6 +35,12 @@ export interface Progress {
   percentage: number;
   updatedAt: string;
   certificateUrl?: string;
+  examScore?: number;
+  examPercentage?: number;
+  examPassed?: boolean;
+  examSubmittedAt?: string;
+  examAnswers?: Record<string, string>;
+  certificateIssuedAt?: string;
 }
 
 export interface Review {
@@ -51,4 +70,5 @@ export interface Course {
     }>;
   }>;
   createdAt: string;
+  exam?: CourseExam;
 }

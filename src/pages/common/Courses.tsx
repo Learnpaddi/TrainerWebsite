@@ -38,17 +38,17 @@ const CoursesPage = () => {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isTrainer ? (
           <>
-            <StatCard title="Published Courses" value={trainerData.courses.length} icon={GraduationCap} tone="blue" hint="Live in catalog" />
-            <StatCard title="Total Learners" value={trainerData.totalLearners} icon={BookOpen} tone="emerald" hint="Across all courses" />
-            <StatCard title="Catalog Value" value={`₹${trainerData.totalRevenue}`} icon={Sparkles} tone="amber" hint="Current pricing value" />
-            <StatCard title="Avg Completion" value={`${trainerData.averageCompletion}%`} icon={Sparkles} tone="violet" hint="Learner progress quality" />
+            <StatCard title="Published Courses" value={trainerData.courses.length} icon={GraduationCap} tone="blue" hint="Live in catalog" to="/trainer/manage-courses" />
+            <StatCard title="Total Learners" value={trainerData.totalLearners} icon={BookOpen} tone="emerald" hint="Across all courses" to="/analytics" />
+            <StatCard title="Catalog Value" value={`₹${trainerData.totalRevenue}`} icon={Sparkles} tone="amber" hint="Current pricing value" to="/trainer/manage-courses" />
+            <StatCard title="Avg Completion" value={`${trainerData.averageCompletion}%`} icon={Sparkles} tone="violet" hint="Learner progress quality" to="/analytics" />
           </>
         ) : (
           <>
-            <StatCard title="Enrolled Courses" value={studentData.enrolledCourses.length} icon={BookOpen} tone="blue" hint="Courses in progress" />
-            <StatCard title="Completed" value={studentData.completedCourses} icon={Sparkles} tone="emerald" hint="Tracks completed" />
-            <StatCard title="Certificates" value={studentData.certificates.length} icon={GraduationCap} tone="amber" hint="Issued rewards" />
-            <StatCard title="Average Progress" value={`${studentData.averageProgress}%`} icon={Sparkles} tone="violet" hint="Across enrolled courses" />
+            <StatCard title="Enrolled Courses" value={studentData.enrolledCourses.length} icon={BookOpen} tone="blue" hint="Courses in progress" to="/student/dashboard" />
+            <StatCard title="Completed" value={studentData.completedCourses} icon={Sparkles} tone="emerald" hint="Tracks completed" to="/student/examinations" />
+            <StatCard title="Certificates" value={studentData.certificates.length} icon={GraduationCap} tone="amber" hint="Issued rewards" to="/student/certificates" />
+            <StatCard title="Average Progress" value={`${studentData.averageProgress}%`} icon={Sparkles} tone="violet" hint="Across enrolled courses" to="/analytics" />
           </>
         )}
       </section>
