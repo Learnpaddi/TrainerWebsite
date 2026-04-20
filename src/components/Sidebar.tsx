@@ -10,7 +10,7 @@ interface SidebarProps {
 
 const Sidebar = ({ role, className, onNavigate }: SidebarProps) => {
   const navigate = useNavigate();
-  const { profile, setRole } = useRole();
+  const { profile, logoutCurrentUser } = useRole();
 
   const dashboardPath = role === 'trainer' ? '/trainer/dashboard' : '/student/dashboard';
   const coursesPath = role === 'trainer' ? '/trainer/manage-courses' : '/courses';
@@ -88,8 +88,8 @@ const Sidebar = ({ role, className, onNavigate }: SidebarProps) => {
       <div className="mt-auto border-t border-white/10 p-4">
         <button
           type="button"
-          onClick={() => {
-            setRole(null);
+          onClick={async () => {
+            await logoutCurrentUser();
             onNavigate?.();
             navigate('/select-role?mode=login');
           }}

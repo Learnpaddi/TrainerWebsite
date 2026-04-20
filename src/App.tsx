@@ -6,7 +6,6 @@ import { useRole } from '@/hooks/useRole';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import MainLayout from '@/shared/layouts/MainLayout';
 
-const Landing = lazy(() => import('@/student/pages/Landing'));
 const StudentDashboardPage = lazy(() => import('@/pages/student/Dashboard'));
 const StudentCoursePlayerPage = lazy(() => import('@/pages/student/CoursePlayer'));
 const StudentCertificatesPage = lazy(() => import('@/student/pages/Certificates'));
@@ -19,6 +18,12 @@ const CoursesPage = lazy(() => import('@/pages/common/Courses'));
 const AnalyticsPage = lazy(() => import('@/pages/common/Analytics'));
 const MessagesPage = lazy(() => import('@/pages/common/Messages'));
 const SettingsPage = lazy(() => import('@/pages/common/Settings'));
+const CertificateVerificationPage = lazy(() => import('@/pages/public/CertificateVerification'));
+const LearningAuthPage = lazy(() => import('@/features/learning/pages/LearningAuthPage'));
+const LearningDashboardPage = lazy(() => import('@/features/learning/pages/LearningDashboardPage'));
+const CourseExperiencePage = lazy(() => import('@/features/learning/pages/CourseExperiencePage'));
+const ExamPage = lazy(() => import('@/features/learning/pages/ExamPage'));
+const LearningProtectedRoute = lazy(() => import('@/features/learning/components/LearningProtectedRoute').then((module) => ({ default: module.LearningProtectedRoute })));
 
 const LoadingScreen = ({ label }: { label: string }) => (
   <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
@@ -137,11 +142,7 @@ const App = () => {
       <Routes>
         <Route
           path="/"
-          element={(
-            <MainLayout contentContainer={false}>
-              <Landing />
-            </MainLayout>
-          )}
+          element={<Navigate to="/select-role?mode=login" replace />}
         />
 
         <Route
@@ -191,6 +192,43 @@ const App = () => {
         <Route
           path="/trainer/signup"
           element={<Navigate to="/trainer/login" replace />}
+        />
+
+        <Route
+          path="/verify-certificate"
+          element={<CertificateVerificationPage />}
+        />
+
+        <Route
+          path="/learn/auth"
+          element={<LearningAuthPage />}
+        />
+
+        <Route
+          path="/learn/dashboard"
+          element={(
+            <LearningProtectedRoute>
+              <LearningDashboardPage />
+            </LearningProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/learn/course/:courseId"
+          element={(
+            <LearningProtectedRoute>
+              <CourseExperiencePage />
+            </LearningProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/learn/exam/:courseId"
+          element={(
+            <LearningProtectedRoute>
+              <ExamPage />
+            </LearningProtectedRoute>
+          )}
         />
 
         <Route

@@ -11,7 +11,7 @@ interface NavItem {
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { profile, setRole } = useRole();
+  const { profile, logoutCurrentUser } = useRole();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,8 +42,8 @@ const Navbar = () => {
 
   const toggleMobileMenu = () => setMobileOpen((open) => !open);
 
-  const handleLogout = () => {
-    setRole(null);
+  const handleLogout = async () => {
+    await logoutCurrentUser();
     navigate('/select-role?mode=login');
     setMobileOpen(false);
   };

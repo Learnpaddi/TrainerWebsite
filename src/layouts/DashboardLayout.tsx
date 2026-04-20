@@ -26,10 +26,26 @@ const DashboardLayout = ({
   return (
     <div className="min-h-screen bg-corporate-background">
       <div className="min-w-0">
+        <div className="sticky top-0 z-40 px-3 pt-3 sm:px-5 lg:px-6">
+          <div className="lms-hero-shell rounded-[1.35rem] px-4 py-3 sm:px-5 sm:py-3">
+            <div className="lms-grid-bg absolute inset-0 opacity-30" />
+            <div className="relative flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 inline-flex items-center rounded-full border border-blue-100 bg-white/82 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-blue-700 shadow-sm">
+                  {role === 'trainer' ? 'Trainer command center' : 'Student learning hub'}
+                </div>
+                <h1 className="truncate font-display text-[1.35rem] font-bold leading-none text-corporate-text sm:text-[1.55rem] lg:text-[1.8rem]">
+                  {title}
+                </h1>
+                <p className="mt-1 max-w-3xl text-xs leading-5 text-corporate-muted sm:text-sm">
+                  {subtitle}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
         <Header
           role={role}
-          title={title}
-          subtitle={subtitle}
           actionLabel={actionLabel}
           onAction={() => navigate(actionPath)}
           profileName={profile?.name}

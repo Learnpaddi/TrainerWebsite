@@ -180,16 +180,21 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
   );
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(239,246,255,0.92))] shadow-[0_35px_90px_rgba(15,23,42,0.14)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.12),transparent_24%)]" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-gradient-to-br from-white via-sky-50 to-cyan-50 shadow-[0_35px_90px_rgba(15,23,42,0.14)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(20,184,166,0.16),transparent_24%)]" />
+      <div className="pointer-events-none absolute -left-16 top-12 h-44 w-44 rounded-full bg-blue-300/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-16 right-10 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl" />
 
       <div className="relative px-4 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          <p className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-600 shadow-sm backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" />
             LearnPaddi LMS
           </p>
-          <h2 className="mt-4 text-3xl font-black text-slate-900 sm:text-4xl">{heading}</h2>
-          <p className="mt-2 text-sm text-slate-600 sm:text-base">Sign in, sign up, and role switching in one smooth animated auth card.</p>
+          <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{heading}</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+            A polished LMS entry point with faster role switching, clearer actions, and richer visual feedback.
+          </p>
         </div>
 
         <AuthContainer

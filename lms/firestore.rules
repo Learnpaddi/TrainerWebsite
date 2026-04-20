@@ -25,6 +25,61 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function isStudentWritableEnrollmentCreate() {
+      return request.resource.data.keys().hasOnly([
+        'userId',
+        'courseId',
+        'progress',
+        'completed',
+        'completedAt',
+        'enrolledAt',
+        'updatedAt',
+        'paymentStatus',
+        'status',
+        'completedLessons',
+        'currentLessonId'
+      ])
+      && request.resource.data.userId == request.auth.uid
+      && request.resource.data.courseId is string
+      && !('score' in request.resource.data)
+      && !('passed' in request.resource.data)
+      && !('certificateUrl' in request.resource.data)
+      && !('certificateId' in request.resource.data)
+      && !('examAttempted' in request.resource.data)
+      && (
+        !(request.resource.data.courseId is string) ||
+        (
+          courseDoc(request.resource.data.courseId).data.price > 0
+            ? request.resource.data.paymentStatus == 'pending'
+            : request.resource.data.paymentStatus in ['not_required', null]
+        )
+      );
+    }
+
+    function isStudentWritableEnrollmentUpdate() {
+      return request.resource.data.userId == resource.data.userId
+        && request.resource.data.courseId == resource.data.courseId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'progress',
+          'completed',
+          'completedAt',
+          'updatedAt',
+          'status',
+          'completedLessons',
+          'currentLessonId'
+        ]);
+    }
+
+    function isStudentWritableProgress() {
+      return request.resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'completedLessons',
+          'totalLessons',
+          'percentage',
+          'updatedAt'
+        ]);
+    }
+
     function courseDoc(courseId) {
       return get(/databases/$(database)/documents/courses/$(courseId));
     }
@@ -52,7 +107,26 @@ service cloud.firestore {
         && request.auth.uid == resource.data.trainerId;
     }
 
+    match /exams/{examId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin() || isTrainer();
+    }
+
     match /enrollments/{enrollmentId} {
+      allow read: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isCourseTrainer(resource.data.courseId) ||
+        isAdmin()
+      );
+      allow create: if signedIn() && isStudentWritableEnrollmentCreate();
+      allow update: if signedIn() && (
+        (resource.data.userId == request.auth.uid && isStudentWritableEnrollmentUpdate()) ||
+        isAdmin()
+      );
+      allow delete: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /progress/{progressId} {
       allow read: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         isCourseTrainer(resource.data.courseId) ||
@@ -60,25 +134,13 @@ service cloud.firestore {
       );
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.courseId is string;
+        && !('examScore' in request.resource.data)
+        && !('examPercentage' in request.resource.data)
+        && !('examPassed' in request.resource.data)
+        && !('certificateUrl' in request.resource.data)
+        && !('certificateIssuedAt' in request.resource.data);
       allow update: if signedIn() && (
-        resource.data.userId == request.auth.uid ||
-        isCourseTrainer(resource.data.courseId) ||
-        isAdmin()
-      );
-      allow delete: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
-    // Document id convention: {userId}_{courseId}
-    match /progress/{progressId} {
-      allow read: if signedIn() && (
-        resource.data.userId == request.auth.uid ||
-        isCourseTrainer(resource.data.courseId) ||
-        isAdmin()
-      );
-      allow create, update: if signedIn() && (
-        request.resource.data.userId == request.auth.uid ||
-        isCourseTrainer(request.resource.data.courseId) ||
+        (resource.data.userId == request.auth.uid && isStudentWritableProgress()) ||
         isAdmin()
       );
       allow delete: if isAdmin();
@@ -90,10 +152,7 @@ service cloud.firestore {
         isCourseTrainer(resource.data.courseId) ||
         isAdmin()
       );
-      allow create, update: if signedIn() && (
-        isCourseTrainer(request.resource.data.courseId) ||
-        isAdmin()
-      );
+      allow create, update: if false;
       allow delete: if isAdmin();
     }
 

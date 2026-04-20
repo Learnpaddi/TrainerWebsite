@@ -1,6 +1,7 @@
 export default {
   content: [
     "./index.html",
+    "./lms/index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: 'class',

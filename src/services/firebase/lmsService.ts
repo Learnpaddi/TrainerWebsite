@@ -58,11 +58,13 @@ export interface EnrollmentRecord {
   userId: string;
   courseId: string;
   progress: number;
+  completed: boolean;
   completedLessons: string[];
   currentLessonId?: string;
   completedAt?: string;
   enrolledAt: string;
   status: 'active' | 'completed';
+  updatedAt?: string;
 }
 
 export interface ReviewRecord {
@@ -294,6 +296,43 @@ const sortNewest = <T extends { createdAt?: string; enrolledAt?: string; issuedA
     return right - left;
   });
 
+const normalizeEnrollment = (
+  raw: Partial<EnrollmentRecord>,
+  id: string,
+): EnrollmentRecord => {
+  const progress = Math.max(0, Math.min(Number(raw.progress) || 0, 100));
+  const completed = raw.completed === true || raw.status === 'completed' || progress >= 100;
+
+  return {
+    id,
+    userId: raw.userId || '',
+    courseId: raw.courseId || '',
+    progress,
+    completed,
+    completedLessons: Array.isArray(raw.completedLessons)
+      ? raw.completedLessons.filter((lessonId): lessonId is string => typeof lessonId === 'string')
+      : [],
+    currentLessonId: raw.currentLessonId,
+    completedAt: completed ? raw.completedAt || new Date().toISOString() : undefined,
+    enrolledAt: raw.enrolledAt || new Date().toISOString(),
+    status: completed ? 'completed' : 'active',
+    updatedAt: raw.updatedAt,
+  };
+};
+
+const persistEnrollment = async (enrollment: EnrollmentRecord) => {
+  setLocalStore(STORAGE_KEYS.enrollments, [
+    enrollment,
+    ...getLocalStore<EnrollmentRecord[]>(STORAGE_KEYS.enrollments, []).filter((item) => item.id !== enrollment.id),
+  ]);
+
+  try {
+    await setDoc(doc(db, 'enrollments', enrollment.id), enrollment, { merge: true });
+  } catch {
+    // Local fallback is already persisted.
+  }
+};
+
 export const getMarketplaceCourses = async (filters?: MarketplaceFilters): Promise<CourseRecord[]> => {
   const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
 
@@ -373,7 +412,9 @@ export const getStudentEnrollments = async (userId: string): Promise<EnrollmentR
 
   try {
     const snapshot = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', userId), orderBy('enrolledAt', 'desc')));
-    const firestoreEnrollments = snapshot.docs.map((enrollmentDoc) => ({ id: enrollmentDoc.id, ...(enrollmentDoc.data() as Omit<EnrollmentRecord, 'id'>) }));
+    const firestoreEnrollments = snapshot.docs.map((enrollmentDoc) =>
+      normalizeEnrollment(enrollmentDoc.data() as Partial<EnrollmentRecord>, enrollmentDoc.id),
+    );
     return sortNewest([...localEnrollments, ...firestoreEnrollments].filter(
       (item, index, array) => item.userId === userId && array.findIndex((entry) => entry.id === item.id) === index,
     ));
@@ -392,18 +433,14 @@ export const enrollInCourse = async (userId: string, courseId: string): Promise<
     userId,
     courseId,
     progress: 0,
+    completed: false,
     completedLessons: [],
     enrolledAt: new Date().toISOString(),
     status: 'active',
+    updatedAt: new Date().toISOString(),
   };
 
-  setLocalStore(STORAGE_KEYS.enrollments, [enrollment, ...localEnrollments]);
-
-  try {
-    await setDoc(doc(db, 'enrollments', enrollment.id), enrollment, { merge: true });
-  } catch {
-    // Local fallback is already persisted.
-  }
+  await persistEnrollment(enrollment);
 
   return enrollment;
 };
@@ -419,34 +456,43 @@ export const markLessonCompleted = async (userId: string, courseId: string, less
   const completedLessons = Array.from(new Set([...(current.completedLessons || []), lessonId]));
   const totalLessons = Math.max(course.lessons.length, 1);
   const progress = Math.round((completedLessons.length / totalLessons) * 100);
+  const completed = progress >= 100;
   const updated: EnrollmentRecord = {
     ...current,
     completedLessons,
     currentLessonId: lessonId,
     progress,
-    status: progress === 100 ? 'completed' : 'active',
-    completedAt: progress === 100 ? new Date().toISOString() : current.completedAt,
+    completed,
+    status: completed ? 'completed' : 'active',
+    completedAt: completed ? new Date().toISOString() : current.completedAt,
+    updatedAt: new Date().toISOString(),
   };
 
-  setLocalStore(STORAGE_KEYS.enrollments, [
-    updated,
-    ...localEnrollments.filter((item) => item.id !== updated.id),
-  ]);
+  await persistEnrollment(updated);
 
-  try {
-    await setDoc(doc(db, 'enrollments', updated.id), updated, { merge: true });
-  } catch {
-    // Local fallback is already persisted.
-  }
+  return updated;
+};
 
-  if (updated.progress === 100) {
-    await issueCertificate({
-      userId,
-      courseId,
-      userName: userId === 'demo-student' ? 'Aarav Learner' : 'LearnPaddi Student',
-    });
-  }
+export const markCourseCompleted = async (userId: string, courseId: string): Promise<EnrollmentRecord> => {
+  const localEnrollments = getLocalStore<EnrollmentRecord[]>(STORAGE_KEYS.enrollments, []);
+  const current = localEnrollments.find((enrollment) => enrollment.userId === userId && enrollment.courseId === courseId)
+    || await enrollInCourse(userId, courseId);
 
+  const course = await getCourseById(courseId);
+  const totalLessons = Math.max(course?.lessons.length || current.completedLessons.length || 1, 1);
+  const updated: EnrollmentRecord = {
+    ...current,
+    progress: 100,
+    completed: true,
+    status: 'completed',
+    completedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    completedLessons: current.completedLessons.length >= totalLessons
+      ? current.completedLessons
+      : course?.lessons.map((lesson) => lesson.id) || current.completedLessons,
+  };
+
+  await persistEnrollment(updated);
   return updated;
 };
 

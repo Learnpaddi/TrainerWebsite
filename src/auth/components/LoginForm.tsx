@@ -13,36 +13,26 @@ interface LoginFormProps {
   subtitle: string;
   submitLabel: string;
   accent: 'blue' | 'emerald';
+  inputClassName?: string;
+  submitButtonClassName?: string;
   isSubmitting?: boolean;
   externalError?: string | null;
   onSubmit: (values: LoginValues) => Promise<void> | void;
 }
 
-const accentStyles = {
-  blue: {
-    input: 'focus:border-blue-400 focus:ring-blue-100',
-    button: 'from-blue-600 to-cyan-500 hover:shadow-blue-200/80',
-  },
-  emerald: {
-    input: 'focus:border-emerald-400 focus:ring-emerald-100',
-    button: 'from-emerald-600 to-teal-500 hover:shadow-emerald-200/80',
-  },
-} as const;
-
 const LoginForm = ({
   title,
   subtitle,
   submitLabel,
-  accent,
+  accent: _accent,
+  inputClassName = '',
+  submitButtonClassName = '',
   isSubmitting = false,
   externalError,
   onSubmit,
 }: LoginFormProps) => {
   const [values, setValues] = useState<LoginValues>({ email: '', password: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof LoginValues, string>>>({});
-
-  const styles = accentStyles[accent];
-
   const validate = () => {
     const nextErrors: Partial<Record<keyof LoginValues, string>> = {};
 
@@ -85,7 +75,7 @@ const LoginForm = ({
             type="email"
             value={values.email}
             onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
-            className={`w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:scale-[1.01] focus:ring-4 ${styles.input}`}
+            className={`w-full rounded-2xl border border-slate-200 bg-white/95 py-3.5 pl-10 pr-4 text-sm text-slate-900 shadow-[0_10px_25px_rgba(15,23,42,0.05)] outline-none transition duration-300 placeholder:text-slate-400 hover:border-slate-300 ${inputClassName}`}
             placeholder="you@example.com"
             autoComplete="email"
           />
@@ -101,7 +91,7 @@ const LoginForm = ({
             type="password"
             value={values.password}
             onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
-            className={`w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition duration-200 focus:scale-[1.01] focus:ring-4 ${styles.input}`}
+            className={`w-full rounded-2xl border border-slate-200 bg-white/95 py-3.5 pl-10 pr-4 text-sm text-slate-900 shadow-[0_10px_25px_rgba(15,23,42,0.05)] outline-none transition duration-300 placeholder:text-slate-400 hover:border-slate-300 ${inputClassName}`}
             placeholder="Enter your password"
             autoComplete="current-password"
           />
@@ -115,9 +105,11 @@ const LoginForm = ({
       <button
         type="submit"
         disabled={isSubmitting}
-        className={`w-full rounded-xl bg-gradient-to-r px-4 py-3 text-sm font-bold text-white shadow-lg transition duration-200 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70 ${styles.button}`}
+        className={`group relative inline-flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-sm font-extrabold transition duration-300 disabled:cursor-not-allowed disabled:opacity-70 ${submitButtonClassName}`}
       >
+        <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.32)_50%,transparent_80%)] opacity-0 transition duration-500 group-hover:translate-x-full group-hover:opacity-100" />
         {isSubmitting ? 'Please wait...' : submitLabel}
+        <span className="relative transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
       </button>
     </form>
   );

@@ -36,235 +36,621 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateCertificate = exports.verifyRazorpayPayment = exports.createRazorpayOrder = void 0;
-const functions = __importStar(require("firebase-functions"));
+exports.verifyCertificate = exports.issueCertificateOnPass = exports.submitCourseExamAttempt = exports.startCourseExam = exports.verifyExamPayment = exports.createExamOrder = void 0;
 const admin = __importStar(require("firebase-admin"));
+const functions = __importStar(require("firebase-functions"));
+const node_crypto_1 = __importDefault(require("node:crypto"));
+const nodemailer_1 = __importDefault(require("nodemailer"));
 const razorpay_1 = __importDefault(require("razorpay"));
-const crypto = __importStar(require("crypto"));
 const pdf_lib_1 = require("pdf-lib");
 admin.initializeApp();
 const db = admin.firestore();
-const storage = admin.storage();
-const razorpay = new razorpay_1.default({
-    key_id: functions.config().razorpay.key_id || 'rzp_test_4EXAMPLE_TEST_KEY_ID',
-    key_secret: functions.config().razorpay.key_secret || 'EXAMPLE_SECRET',
-});
-/**
- * Create Razorpay Order
- */
-exports.createRazorpayOrder = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+const bucket = admin.storage().bucket();
+const DEFAULT_WARNING_LIMIT = 3;
+const DEFAULT_PASSING_SCORE = 75;
+const razorpayConfig = functions.config().razorpay || {};
+const smtpConfig = functions.config().smtp || {};
+const razorpay = razorpayConfig.key_id && razorpayConfig.key_secret
+    ? new razorpay_1.default({
+        key_id: razorpayConfig.key_id,
+        key_secret: razorpayConfig.key_secret,
+    })
+    : null;
+function getEnrollmentRef(userId, courseId) {
+    return db.collection('enrollments').doc(`${userId}_${courseId}`);
+}
+function getNowTimestamp() {
+    return admin.firestore.Timestamp.now();
+}
+function toISOString(value) {
+    if (!value) {
+        return new Date().toISOString();
     }
-    const { amount, currency = 'INR', courseId, userId } = data;
-    try {
-        const order = await razorpay.orders.create({
-            amount,
-            currency,
-            receipt: `course_${courseId}_${userId}`,
-        });
-        // Create pending enrollment
-        await db.collection('enrollments').add({
-            userId,
-            courseId,
-            enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
-            status: 'payment_pending',
-            paymentAmount: amount / 100,
-            razorpayOrderId: order.id
-        });
-        return { order, enrollmentCreated: true };
+    if (typeof value === 'string') {
+        return value;
     }
-    catch (error) {
-        console.error('Order creation failed:', error);
-        throw new functions.https.HttpsError('internal', 'Payment setup failed');
+    return value.toDate().toISOString();
+}
+function shuffle(items) {
+    const next = [...items];
+    for (let index = next.length - 1; index > 0; index -= 1) {
+        const targetIndex = Math.floor(Math.random() * (index + 1));
+        [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
     }
-});
-/**
- * Verify Razorpay Payment
- */
-exports.verifyRazorpayPayment = functions.https.onCall(async (data, context) => {
-    const { orderId, paymentId, signature } = data;
-    try {
-        // Verify signature
-        const generated_signature = crypto
-            .createHmac('sha256', functions.config().razorpay.key_secret || '')
-            .update(orderId + '|' + paymentId)
-            .digest('hex');
-        if (generated_signature !== signature) {
-            throw new Error('Invalid signature');
-        }
-        // Fetch payment
-        const payment = await razorpay.payments.fetch(paymentId);
-        if (payment.status !== 'captured') {
-            throw new Error('Payment not captured');
-        }
-        // Update enrollment to paid
-        const enrollmentSnapshot = await db.collection('enrollments')
-            .where('razorpayOrderId', '==', orderId)
-            .limit(1)
-            .get();
-        if (enrollmentSnapshot.empty) {
-            throw new Error('Enrollment not found');
-        }
-        const enrollmentDoc = enrollmentSnapshot.docs[0];
-        await enrollmentDoc.ref.update({
-            status: 'paid',
-            razorpayPaymentId: paymentId,
-            razorpaySignature: signature
-        });
-        return { success: true, payment };
+    return next;
+}
+function buildCertificateId(userId, courseId) {
+    const digest = node_crypto_1.default.createHash('sha256').update(`${userId}:${courseId}`).digest('hex').slice(0, 10).toUpperCase();
+    return `LP-${digest}`;
+}
+function resolveCorrectIndex(rawQuestion, options) {
+    if (typeof rawQuestion.correctAnswerIndex === 'number') {
+        return rawQuestion.correctAnswerIndex;
     }
-    catch (error) {
-        console.error('Payment verification failed:', error);
-        throw new functions.https.HttpsError('internal', 'Payment verification failed');
+    if (typeof rawQuestion.correctAnswer === 'number') {
+        return rawQuestion.correctAnswer;
     }
-});
-/**
- * Generate a completion certificate PDF and upload to Storage.
- * Requires:
- * 1) authenticated user
- * 2) enrollment exists
- * 3) progress >= 100
- */
-exports.generateCertificate = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+    if (typeof rawQuestion.correctAnswer === 'string') {
+        return options.findIndex((option) => option === rawQuestion.correctAnswer);
     }
-    const uid = context.auth.uid;
-    const courseId = (data?.courseId || '').toString();
-    if (!courseId) {
-        throw new functions.https.HttpsError('invalid-argument', 'courseId is required');
+    return -1;
+}
+function normalizeQuestion(rawQuestion, index) {
+    if (!rawQuestion || typeof rawQuestion !== 'object') {
+        return null;
     }
-    try {
-        const [userSnap, courseSnap, progressSnap, enrollmentSnap] = await Promise.all([
-            db.collection('users').doc(uid).get(),
-            db.collection('courses').doc(courseId).get(),
-            db.collection('progress').doc(`${uid}_${courseId}`).get(),
-            db.collection('enrollments').doc(`${uid}_${courseId}`).get(),
-        ]);
-        if (!courseSnap.exists) {
-            throw new functions.https.HttpsError('not-found', 'Course not found');
-        }
-        if (!enrollmentSnap.exists) {
-            throw new functions.https.HttpsError('failed-precondition', 'User is not enrolled in this course');
-        }
-        const progressData = progressSnap.data() || {};
-        const percentage = Number(progressData.percentage || 0);
-        if (percentage < 100) {
-            throw new functions.https.HttpsError('failed-precondition', 'Course must be 100% completed before generating certificate');
-        }
-        const userData = userSnap.data() || {};
-        const courseData = courseSnap.data() || {};
-        const studentName = (userData.name || context.auth.token.email || 'Learner').toString();
-        const courseTitle = (courseData.title || 'Course').toString();
-        const pdfDoc = await pdf_lib_1.PDFDocument.create();
-        const page = pdfDoc.addPage([842, 595]); // A4 landscape
-        const { width, height } = page.getSize();
-        const titleFont = await pdfDoc.embedFont(pdf_lib_1.StandardFonts.HelveticaBold);
-        const bodyFont = await pdfDoc.embedFont(pdf_lib_1.StandardFonts.Helvetica);
-        page.drawRectangle({ x: 0, y: 0, width, height, color: (0, pdf_lib_1.rgb)(0.98, 0.99, 1) });
-        page.drawRectangle({ x: 26, y: 26, width: width - 52, height: height - 52, borderWidth: 2, borderColor: (0, pdf_lib_1.rgb)(0.15, 0.39, 0.92) });
-        page.drawText('CERTIFICATE OF COMPLETION', {
-            x: 190,
-            y: 500,
-            size: 34,
-            font: titleFont,
-            color: (0, pdf_lib_1.rgb)(0.12, 0.2, 0.45),
-        });
-        page.drawText('This is proudly awarded to', {
-            x: 322,
-            y: 430,
-            size: 14,
-            font: bodyFont,
-            color: (0, pdf_lib_1.rgb)(0.24, 0.3, 0.4),
-        });
-        page.drawText(studentName, {
-            x: 140,
-            y: 385,
-            size: 40,
-            font: titleFont,
-            color: (0, pdf_lib_1.rgb)(0.08, 0.14, 0.22),
-        });
-        page.drawText('for successfully completing', {
-            x: 320,
-            y: 338,
-            size: 14,
-            font: bodyFont,
-            color: (0, pdf_lib_1.rgb)(0.24, 0.3, 0.4),
-        });
-        page.drawText(courseTitle, {
-            x: 135,
-            y: 290,
-            size: 30,
-            font: titleFont,
-            color: (0, pdf_lib_1.rgb)(0.02, 0.55, 0.56),
-        });
-        page.drawText(`Issued on ${new Date().toDateString()}`, {
-            x: 330,
-            y: 220,
-            size: 13,
-            font: bodyFont,
-            color: (0, pdf_lib_1.rgb)(0.32, 0.38, 0.46),
-        });
-        page.drawText('LearnPaddi LMS', {
-            x: 340,
-            y: 108,
-            size: 16,
-            font: titleFont,
-            color: (0, pdf_lib_1.rgb)(0.15, 0.39, 0.92),
-        });
-        const pdfBytes = await pdfDoc.save();
-        const storagePath = `certificates/${uid}/${courseId}.pdf`;
-        const bucket = storage.bucket();
-        const file = bucket.file(storagePath);
-        await file.save(Buffer.from(pdfBytes), {
+    const question = rawQuestion;
+    const options = Array.isArray(question.options)
+        ? question.options.filter((option) => typeof option === 'string')
+        : [];
+    const correctIndex = resolveCorrectIndex(question, options);
+    if (options.length < 2 || correctIndex < 0 || correctIndex >= options.length) {
+        return null;
+    }
+    return {
+        id: typeof question.id === 'string' ? question.id : `question-${index + 1}`,
+        prompt: typeof question.prompt === 'string'
+            ? question.prompt
+            : typeof question.question === 'string'
+                ? question.question
+                : `Question ${index + 1}`,
+        options,
+        correctIndex,
+    };
+}
+async function getCourseExam(courseId) {
+    const directExamSnapshot = await db.collection('exams').doc(courseId).get();
+    let examSource = directExamSnapshot;
+    if (!directExamSnapshot.exists) {
+        const lookup = await db.collection('exams').where('courseId', '==', courseId).limit(1).get();
+        examSource = lookup.empty ? null : lookup.docs[0];
+    }
+    if (!examSource?.exists) {
+        throw new functions.https.HttpsError('not-found', 'Exam configuration was not found for this course.');
+    }
+    const examData = examSource.data() || {};
+    const questions = Array.isArray(examData.questions)
+        ? examData.questions
+            .map((question, index) => normalizeQuestion(question, index))
+            .filter((question) => Boolean(question))
+        : [];
+    if (!questions.length) {
+        throw new functions.https.HttpsError('failed-precondition', 'This exam has no valid questions configured.');
+    }
+    return {
+        examId: examSource.id,
+        courseId,
+        duration: typeof examData.duration === 'number' ? examData.duration : 30,
+        passingScore: typeof examData.passingScore === 'number' ? examData.passingScore : DEFAULT_PASSING_SCORE,
+        questions,
+    };
+}
+function buildPublicQuestions(exam, questionOrder) {
+    const questionMap = new Map(exam.questions.map((question) => [question.id, question]));
+    return questionOrder
+        .map((questionId) => questionMap.get(questionId))
+        .filter((question) => Boolean(question))
+        .map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        options: question.options,
+    }));
+}
+function assertSignedIn(context) {
+    if (!context.auth?.uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be signed in to continue.');
+    }
+    return context.auth.uid;
+}
+async function ensureExamAccess(userId, courseId) {
+    const [courseSnapshot, enrollmentSnapshot, exam] = await Promise.all([
+        db.collection('courses').doc(courseId).get(),
+        getEnrollmentRef(userId, courseId).get(),
+        getCourseExam(courseId),
+    ]);
+    if (!courseSnapshot.exists) {
+        throw new functions.https.HttpsError('not-found', 'Course not found.');
+    }
+    if (!enrollmentSnapshot.exists) {
+        throw new functions.https.HttpsError('failed-precondition', 'Enroll in the course first.');
+    }
+    const course = courseSnapshot.data() || {};
+    const enrollment = enrollmentSnapshot.data();
+    if (!enrollment.completed) {
+        throw new functions.https.HttpsError('failed-precondition', 'Complete the course before attempting the exam.');
+    }
+    const coursePrice = typeof course.price === 'number' ? course.price : 0;
+    if (coursePrice > 0 && enrollment.paymentStatus !== 'success') {
+        throw new functions.https.HttpsError('failed-precondition', 'Payment is required before the exam can begin.');
+    }
+    if ((enrollment.examAttempted && !enrollment.adminRetakeAllowed) || enrollment.passed) {
+        throw new functions.https.HttpsError('failed-precondition', 'This exam already has a locked attempt on record.');
+    }
+    return {
+        course,
+        enrollment,
+        enrollmentRef: enrollmentSnapshot.ref,
+        exam,
+    };
+}
+function scoreAttempt(exam, answers) {
+    const correctAnswers = exam.questions.reduce((total, question) => (answers[question.id] === question.correctIndex ? total + 1 : total), 0);
+    const totalQuestions = exam.questions.length;
+    const score = Math.round((correctAnswers / Math.max(totalQuestions, 1)) * 100);
+    const passed = score >= exam.passingScore;
+    return {
+        correctAnswers,
+        totalQuestions,
+        score,
+        passed,
+    };
+}
+async function sendCertificateEmail(input) {
+    if (!smtpConfig.host || !smtpConfig.user || !smtpConfig.pass) {
+        functions.logger.info('Skipping certificate email because SMTP is not configured.');
+        return;
+    }
+    const transporter = nodemailer_1.default.createTransport({
+        host: smtpConfig.host,
+        port: Number(smtpConfig.port || 587),
+        secure: String(smtpConfig.secure || 'false') === 'true',
+        auth: {
+            user: smtpConfig.user,
+            pass: smtpConfig.pass,
+        },
+    });
+    await transporter.sendMail({
+        from: smtpConfig.from || smtpConfig.user,
+        to: input.recipient,
+        subject: 'Your Certificate is Ready 🎉',
+        html: `
+      <p>Hi ${input.userName},</p>
+      <p>Your LearnPaddi certificate for <strong>${input.courseTitle}</strong> is ready.</p>
+      <p><a href="${input.certificateUrl}">Download your certificate</a></p>
+      <p>Certificate ID: <strong>${input.certificateId}</strong></p>
+    `,
+    });
+}
+async function generateCertificateArtifact(input) {
+    const pdf = await pdf_lib_1.PDFDocument.create();
+    const page = pdf.addPage([842, 595]);
+    const pageWidth = page.getWidth();
+    const pageHeight = page.getHeight();
+    const headingFont = await pdf.embedFont(pdf_lib_1.StandardFonts.HelveticaBold);
+    const bodyFont = await pdf.embedFont(pdf_lib_1.StandardFonts.Helvetica);
+    page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: pageHeight, color: (0, pdf_lib_1.rgb)(0.98, 0.99, 1) });
+    page.drawRectangle({
+        x: 28,
+        y: 28,
+        width: pageWidth - 56,
+        height: pageHeight - 56,
+        borderColor: (0, pdf_lib_1.rgb)(0.12, 0.29, 0.7),
+        borderWidth: 2,
+    });
+    page.drawText('LEARNPADDI CERTIFIED', {
+        x: 250,
+        y: 510,
+        size: 16,
+        font: headingFont,
+        color: (0, pdf_lib_1.rgb)(0.12, 0.29, 0.7),
+    });
+    page.drawText('Certificate of Achievement', {
+        x: 180,
+        y: 455,
+        size: 34,
+        font: headingFont,
+        color: (0, pdf_lib_1.rgb)(0.08, 0.14, 0.22),
+    });
+    page.drawText('This certificate is proudly awarded to', {
+        x: 292,
+        y: 410,
+        size: 15,
+        font: bodyFont,
+        color: (0, pdf_lib_1.rgb)(0.28, 0.34, 0.41),
+    });
+    page.drawText(input.userName, {
+        x: 130,
+        y: 360,
+        size: 36,
+        font: headingFont,
+        color: (0, pdf_lib_1.rgb)(0.05, 0.12, 0.2),
+    });
+    page.drawText('for successfully completing and passing the final assessment for', {
+        x: 185,
+        y: 318,
+        size: 15,
+        font: bodyFont,
+        color: (0, pdf_lib_1.rgb)(0.28, 0.34, 0.41),
+    });
+    page.drawText(input.courseTitle, {
+        x: 110,
+        y: 270,
+        size: 28,
+        font: headingFont,
+        color: (0, pdf_lib_1.rgb)(0.01, 0.5, 0.53),
+    });
+    page.drawText(`Score: ${input.score}%`, {
+        x: 96,
+        y: 188,
+        size: 15,
+        font: bodyFont,
+        color: (0, pdf_lib_1.rgb)(0.2, 0.25, 0.32),
+    });
+    page.drawText(`Completion Date: ${input.completionDate}`, {
+        x: 300,
+        y: 188,
+        size: 15,
+        font: bodyFont,
+        color: (0, pdf_lib_1.rgb)(0.2, 0.25, 0.32),
+    });
+    page.drawText(`Certificate ID: ${input.certificateId}`, {
+        x: 96,
+        y: 156,
+        size: 14,
+        font: bodyFont,
+        color: (0, pdf_lib_1.rgb)(0.2, 0.25, 0.32),
+    });
+    page.drawText(`Verify at learnpaddi.in/verify-certificate?code=${input.certificateId}`, {
+        x: 96,
+        y: 128,
+        size: 12,
+        font: bodyFont,
+        color: (0, pdf_lib_1.rgb)(0.25, 0.35, 0.55),
+    });
+    page.drawText('LEARNPADDI VERIFIED', {
+        x: 205,
+        y: 280,
+        size: 44,
+        font: headingFont,
+        color: (0, pdf_lib_1.rgb)(0.92, 0.94, 0.97),
+        rotate: (0, pdf_lib_1.degrees)(26),
+    });
+    page.drawText('LearnPaddi Academic Office', {
+        x: 545,
+        y: 90,
+        size: 14,
+        font: headingFont,
+        color: (0, pdf_lib_1.rgb)(0.12, 0.29, 0.7),
+    });
+    const bytes = await pdf.save();
+    const storagePath = `certificates/${input.userId}/${input.certificateId}.pdf`;
+    const file = bucket.file(storagePath);
+    await file.save(Buffer.from(bytes), {
+        resumable: false,
+        metadata: {
+            contentType: 'application/pdf',
             metadata: {
-                contentType: 'application/pdf',
-                metadata: {
-                    uid,
-                    courseId,
-                    source: 'cloud-function',
-                },
+                certificateId: input.certificateId,
+                userId: input.userId,
+                courseId: input.courseId,
             },
-            resumable: false,
-        });
-        const [signedUrl] = await file.getSignedUrl({
-            action: 'read',
-            expires: '2100-01-01',
-        });
-        const certificateDocId = `${uid}_${courseId}`;
-        await Promise.all([
-            db.collection('certificates').doc(certificateDocId).set({
-                id: certificateDocId,
-                userId: uid,
-                courseId,
-                studentName,
-                courseTitle,
-                certificateUrl: signedUrl,
-                storagePath,
-                issuedAt: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true }),
-            db.collection('progress').doc(`${uid}_${courseId}`).set({
-                certificateUrl: signedUrl,
-                updatedAt: new Date().toISOString(),
-            }, { merge: true }),
-            db.collection('users').doc(uid).set({
-                certificates: admin.firestore.FieldValue.arrayUnion(courseId),
-                updatedAt: new Date().toISOString(),
-            }, { merge: true }),
-        ]);
+        },
+    });
+    const [certificateUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: '2100-01-01',
+    });
+    return {
+        certificateUrl,
+        storagePath,
+    };
+}
+exports.createExamOrder = functions.https.onCall(async (data, context) => {
+    const userId = assertSignedIn(context);
+    const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
+    if (!courseId) {
+        throw new functions.https.HttpsError('invalid-argument', 'courseId is required.');
+    }
+    const [courseSnapshot, enrollmentSnapshot] = await Promise.all([
+        db.collection('courses').doc(courseId).get(),
+        getEnrollmentRef(userId, courseId).get(),
+    ]);
+    if (!courseSnapshot.exists || !enrollmentSnapshot.exists) {
+        throw new functions.https.HttpsError('failed-precondition', 'Course enrollment was not found.');
+    }
+    const course = courseSnapshot.data() || {};
+    const enrollment = enrollmentSnapshot.data();
+    const amount = Math.round((typeof course.price === 'number' ? course.price : 0) * 100);
+    if (!enrollment.completed) {
+        throw new functions.https.HttpsError('failed-precondition', 'Complete the course before paying for the exam.');
+    }
+    if (amount <= 0 || enrollment.paymentStatus === 'success') {
         return {
-            success: true,
-            certificateUrl: signedUrl,
-            storagePath,
+            provider: 'already_paid',
+            order: null,
+            keyId: null,
         };
     }
-    catch (error) {
-        console.error('Certificate generation failed:', error);
-        if (error instanceof functions.https.HttpsError) {
-            throw error;
-        }
-        throw new functions.https.HttpsError('internal', 'Certificate generation failed');
+    if (!razorpay || !razorpayConfig.key_id) {
+        throw new functions.https.HttpsError('failed-precondition', 'Razorpay is not configured for this project.');
     }
+    const order = await razorpay.orders.create({
+        amount,
+        currency: 'INR',
+        receipt: `exam_${courseId}_${userId}`,
+    });
+    await enrollmentSnapshot.ref.set({
+        paymentStatus: 'pending',
+        razorpayOrderId: order.id,
+        updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    return {
+        provider: 'razorpay',
+        order: {
+            id: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            receipt: order.receipt || `exam_${courseId}_${userId}`,
+        },
+        keyId: razorpayConfig.key_id,
+    };
+});
+exports.verifyExamPayment = functions.https.onCall(async (data, context) => {
+    const userId = assertSignedIn(context);
+    const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
+    const orderId = typeof data?.razorpay_order_id === 'string' ? data.razorpay_order_id : '';
+    const paymentId = typeof data?.razorpay_payment_id === 'string' ? data.razorpay_payment_id : '';
+    const signature = typeof data?.razorpay_signature === 'string' ? data.razorpay_signature : '';
+    if (!courseId || !orderId || !paymentId || !signature) {
+        throw new functions.https.HttpsError('invalid-argument', 'Payment verification payload is incomplete.');
+    }
+    const secret = typeof razorpayConfig.key_secret === 'string' ? razorpayConfig.key_secret : '';
+    const expectedSignature = node_crypto_1.default.createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest('hex');
+    if (expectedSignature !== signature) {
+        throw new functions.https.HttpsError('permission-denied', 'Payment signature verification failed.');
+    }
+    await getEnrollmentRef(userId, courseId).set({
+        paymentStatus: 'success',
+        razorpayOrderId: orderId,
+        razorpayPaymentId: paymentId,
+        razorpaySignature: signature,
+        updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    return {
+        paymentStatus: 'success',
+    };
+});
+exports.startCourseExam = functions.https.onCall(async (data, context) => {
+    const userId = assertSignedIn(context);
+    const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
+    if (!courseId) {
+        throw new functions.https.HttpsError('invalid-argument', 'courseId is required.');
+    }
+    const { course, enrollment, enrollmentRef, exam } = await ensureExamAccess(userId, courseId);
+    const existingSession = enrollment.examSession;
+    if (existingSession?.attemptId && !existingSession.submittedAt) {
+        if (existingSession.expiresAt.toMillis() > Date.now()) {
+            return {
+                attemptId: existingSession.attemptId,
+                courseId,
+                courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+                examTitle: `${typeof course.title === 'string' ? course.title : 'Course'} Final Exam`,
+                durationMinutes: exam.duration,
+                passingScore: exam.passingScore,
+                expiresAt: existingSession.expiresAt.toDate().toISOString(),
+                warningLimit: existingSession.warningLimit || DEFAULT_WARNING_LIMIT,
+                questions: buildPublicQuestions(exam, existingSession.questionOrder),
+            };
+        }
+        const expiredAttemptTime = existingSession.expiresAt.toDate().toISOString();
+        await enrollmentRef.set({
+            examAttempted: true,
+            adminRetakeAllowed: false,
+            passed: false,
+            score: 0,
+            examSession: {
+                ...existingSession,
+                submittedAt: getNowTimestamp(),
+            },
+            examResult: {
+                score: 0,
+                passed: false,
+                correctAnswers: 0,
+                totalQuestions: exam.questions.length,
+                attemptedAt: expiredAttemptTime,
+                submissionReason: 'time_limit',
+                autoSubmitted: true,
+                violationCount: 0,
+            },
+            updatedAt: expiredAttemptTime,
+        }, { merge: true });
+        throw new functions.https.HttpsError('deadline-exceeded', 'The previous exam session expired and was recorded as a failed attempt.');
+    }
+    const questionOrder = shuffle(exam.questions.map((question) => question.id));
+    const startedAt = getNowTimestamp();
+    const expiresAt = admin.firestore.Timestamp.fromMillis(startedAt.toMillis() + (exam.duration * 60 * 1000));
+    const attemptId = `attempt_${startedAt.toMillis()}`;
+    await enrollmentRef.set({
+        examSession: {
+            attemptId,
+            startedAt,
+            expiresAt,
+            questionOrder,
+            warningLimit: DEFAULT_WARNING_LIMIT,
+            submittedAt: null,
+        },
+        updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    return {
+        attemptId,
+        courseId,
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+        examTitle: `${typeof course.title === 'string' ? course.title : 'Course'} Final Exam`,
+        durationMinutes: exam.duration,
+        passingScore: exam.passingScore,
+        expiresAt: expiresAt.toDate().toISOString(),
+        warningLimit: DEFAULT_WARNING_LIMIT,
+        questions: buildPublicQuestions(exam, questionOrder),
+    };
+});
+exports.submitCourseExamAttempt = functions.https.onCall(async (data, context) => {
+    const userId = assertSignedIn(context);
+    const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
+    const attemptId = typeof data?.attemptId === 'string' ? data.attemptId : '';
+    const answers = (data?.answers && typeof data.answers === 'object' ? data.answers : {});
+    const violationCount = typeof data?.violationCount === 'number' ? data.violationCount : 0;
+    const submissionReason = typeof data?.submissionReason === 'string' ? data.submissionReason : 'manual';
+    const autoSubmitted = Boolean(data?.autoSubmitted);
+    if (!courseId || !attemptId) {
+        throw new functions.https.HttpsError('invalid-argument', 'courseId and attemptId are required.');
+    }
+    const [courseSnapshot, enrollmentSnapshot, exam] = await Promise.all([
+        db.collection('courses').doc(courseId).get(),
+        getEnrollmentRef(userId, courseId).get(),
+        getCourseExam(courseId),
+    ]);
+    if (!courseSnapshot.exists || !enrollmentSnapshot.exists) {
+        throw new functions.https.HttpsError('failed-precondition', 'Exam enrollment could not be found.');
+    }
+    const course = courseSnapshot.data() || {};
+    const enrollment = enrollmentSnapshot.data();
+    const session = enrollment.examSession;
+    if (!session || session.attemptId !== attemptId) {
+        throw new functions.https.HttpsError('failed-precondition', 'This exam attempt is not active.');
+    }
+    if (session.submittedAt) {
+        throw new functions.https.HttpsError('failed-precondition', 'This exam attempt has already been submitted.');
+    }
+    const result = scoreAttempt(exam, answers);
+    const attemptedAt = new Date().toISOString();
+    const certificateId = result.passed ? buildCertificateId(userId, courseId) : null;
+    await enrollmentSnapshot.ref.set({
+        examAttempted: true,
+        adminRetakeAllowed: false,
+        score: result.score,
+        passed: result.passed,
+        certificateId,
+        examSession: {
+            ...session,
+            submittedAt: getNowTimestamp(),
+        },
+        examResult: {
+            score: result.score,
+            passed: result.passed,
+            correctAnswers: result.correctAnswers,
+            totalQuestions: result.totalQuestions,
+            attemptedAt,
+            violationCount,
+            submissionReason,
+            autoSubmitted,
+        },
+        updatedAt: attemptedAt,
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+    }, { merge: true });
+    return {
+        score: result.score,
+        passed: result.passed,
+        correctAnswers: result.correctAnswers,
+        totalQuestions: result.totalQuestions,
+        attemptedAt,
+        autoSubmitted,
+        certificateId,
+        certificateUrl: typeof enrollment.certificateUrl === 'string' ? enrollment.certificateUrl : null,
+    };
+});
+exports.issueCertificateOnPass = functions.firestore
+    .document('enrollments/{enrollmentId}')
+    .onWrite(async (change) => {
+    const before = change.before.exists ? change.before.data() : null;
+    const after = change.after.exists ? change.after.data() : null;
+    if (!after?.passed || after.certificateUrl) {
+        return;
+    }
+    if (before?.passed === true && before.certificateUrl) {
+        return;
+    }
+    const userId = after.userId;
+    const courseId = after.courseId;
+    if (!userId || !courseId) {
+        return;
+    }
+    const [userSnapshot, courseSnapshot] = await Promise.all([
+        db.collection('users').doc(userId).get(),
+        db.collection('courses').doc(courseId).get(),
+    ]);
+    const user = userSnapshot.data() || {};
+    const course = courseSnapshot.data() || {};
+    const certificateId = after.certificateId || buildCertificateId(userId, courseId);
+    const completionDate = toISOString(after.examResult?.attemptedAt);
+    const artifact = await generateCertificateArtifact({
+        certificateId,
+        userId,
+        userName: typeof user.name === 'string' ? user.name : 'LearnPaddi Learner',
+        courseId,
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+        score: typeof after.score === 'number' ? after.score : 0,
+        completionDate,
+    });
+    const certificateRecord = {
+        certificateId,
+        userId,
+        courseId,
+        userName: typeof user.name === 'string' ? user.name : 'LearnPaddi Learner',
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+        score: typeof after.score === 'number' ? after.score : 0,
+        completionDate,
+        certificateUrl: artifact.certificateUrl,
+        storagePath: artifact.storagePath,
+        verificationUrl: `https://learnpaddi.in/verify-certificate?code=${certificateId}`,
+        issuedAt: new Date().toISOString(),
+    };
+    await Promise.all([
+        change.after.ref.set({
+            certificateId,
+            certificateUrl: artifact.certificateUrl,
+            certificateIssuedAt: new Date().toISOString(),
+        }, { merge: true }),
+        db.collection('certificates').doc(certificateId).set(certificateRecord, { merge: true }),
+        db.collection('users').doc(userId).set({
+            certificates: admin.firestore.FieldValue.arrayUnion(certificateId),
+            updatedAt: new Date().toISOString(),
+        }, { merge: true }),
+    ]);
+    if (typeof user.email === 'string' && user.email) {
+        await sendCertificateEmail({
+            recipient: user.email,
+            userName: certificateRecord.userName,
+            courseTitle: certificateRecord.courseTitle,
+            certificateUrl: artifact.certificateUrl,
+            certificateId,
+        });
+    }
+});
+exports.verifyCertificate = functions.https.onCall(async (data) => {
+    const certificateId = typeof data?.certificateId === 'string' ? data.certificateId.trim().toUpperCase() : '';
+    if (!certificateId) {
+        throw new functions.https.HttpsError('invalid-argument', 'certificateId is required.');
+    }
+    const snapshot = await db.collection('certificates').doc(certificateId).get();
+    if (!snapshot.exists) {
+        return { certificate: null };
+    }
+    return {
+        certificate: {
+            id: snapshot.id,
+            valid: true,
+            ...snapshot.data(),
+        },
+    };
 });
 //# sourceMappingURL=index.js.map

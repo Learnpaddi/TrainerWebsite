@@ -40,7 +40,7 @@ const navigationMap = {
 const LmsAppShell = ({ role, title, subtitle, children }: LmsAppShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, setRole } = useRole();
+  const { profile, logoutCurrentUser } = useRole();
   const navigation = navigationMap[role];
   const roleLabel = role === 'student' ? 'Student Workspace' : 'Trainer Workspace';
   const initials = (profile?.name || (role === 'student' ? 'Student User' : 'Trainer User'))
@@ -87,8 +87,8 @@ const LmsAppShell = ({ role, title, subtitle, children }: LmsAppShellProps) => {
             })}
             <button
               type="button"
-              onClick={() => {
-                setRole(null);
+              onClick={async () => {
+                await logoutCurrentUser();
                 navigate('/select-role?mode=login');
               }}
               className="inline-flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200/80 hover:text-slate-900 sm:text-[1.12rem]"
@@ -174,8 +174,8 @@ const LmsAppShell = ({ role, title, subtitle, children }: LmsAppShellProps) => {
 
             <button
               type="button"
-              onClick={() => {
-                setRole(null);
+              onClick={async () => {
+                await logoutCurrentUser();
                 navigate('/select-role?mode=login');
               }}
               className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"

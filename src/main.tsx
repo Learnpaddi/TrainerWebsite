@@ -4,13 +4,16 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import { RoleProvider } from '@/context/RoleContext';
+import { LearningAuthProvider } from '@/features/learning/context/LearningAuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RoleProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </RoleProvider>
+    <LearningAuthProvider>
+      <RoleProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </RoleProvider>
+    </LearningAuthProvider>
   </React.StrictMode>,
 )

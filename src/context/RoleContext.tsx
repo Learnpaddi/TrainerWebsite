@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { logout } from '@/services/firebase/authService';
+import { clearPendingCourseIntent } from '@/student/lib/courseIntent';
 
 export type AppRole = 'student' | 'trainer' | null;
 
@@ -14,6 +15,7 @@ export interface DemoProfile {
 interface RoleContextValue {
   role: AppRole;
   setRole: (role: AppRole) => void;
+  logoutCurrentUser: () => Promise<void>;
   profile: DemoProfile | null;
   loading: boolean;
 }
@@ -37,16 +39,24 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
+  const logoutCurrentUser = useCallback(async () => {
+    clearPendingCourseIntent();
+    await logout();
+  }, []);
+
+  const setRole = useCallback((nextRole: AppRole) => {
+    if (nextRole === null) {
+      void logoutCurrentUser();
+    }
+  }, [logoutCurrentUser]);
+
   const value = useMemo<RoleContextValue>(() => ({
     role,
-    setRole: (nextRole: AppRole) => {
-      if (nextRole === null) {
-        void logout();
-      }
-    },
+    setRole,
+    logoutCurrentUser,
     profile,
     loading,
-  }), [loading, profile, role]);
+  }), [loading, logoutCurrentUser, profile, role, setRole]);
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
 };
