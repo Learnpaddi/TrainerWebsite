@@ -571,8 +571,18 @@ export const verifyExamPayment = functions.https.onCall(async (data, context) =>
   };
 });
 
-function setCorsHeaders(res: functions.Response) {
-  res.set('Access-Control-Allow-Origin', '*');
+const allowedStartExamOrigins = [
+  'https://learnpaddi.in',
+  'https://learnpaddi.netlify.app',
+];
+
+function setCorsHeaders(req: functions.https.Request, res: functions.Response) {
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+  if (allowedStartExamOrigins.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+  }
+
+  res.set('Vary', 'Origin');
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
@@ -601,7 +611,7 @@ function toHttpStatus(error: unknown) {
 void [DEFAULT_WARNING_LIMIT];
 
 export const startCourseExam = functions.https.onRequest(async (req, res) => {
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
 
   functions.logger.info('startCourseExam request received', {
     method: req.method,
@@ -678,7 +688,7 @@ export const startCourseExam = functions.https.onRequest(async (req, res) => {
     });
   } catch (error) {
     functions.logger.error('startCourseExam error:', error);
-    setCorsHeaders(res);
+    setCorsHeaders(req, res);
     res.status(toHttpStatus(error)).json({
       error: error instanceof functions.https.HttpsError ? error.message : 'Internal Server Error',
     });
