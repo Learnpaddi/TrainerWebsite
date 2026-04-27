@@ -6,7 +6,9 @@ import { useSecureExamSession } from '@/features/exam/useSecureExamSession';
 import { loadRazorpayScript } from '@/features/learning/lib/loadRazorpay';
 import {
   createExamOrder,
+  loadStoredActiveExamAttempt,
   startCourseExam,
+  storeActiveExamAttempt,
   submitCourseExamAttempt,
   subscribeToExamDashboard,
   verifyExamPayment,
@@ -18,6 +20,7 @@ import {
 const ExaminationPortal = () => {
   const { user } = useAuth();
   const examContainerRef = useRef<HTMLDivElement | null>(null);
+  const restoredSessionRef = useRef(false);
   const [items, setItems] = useState<ExamDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeAttempt, setActiveAttempt] = useState<ActiveExamAttempt | null>(null);
@@ -35,8 +38,18 @@ const ExaminationPortal = () => {
     if (!user) {
       setItems([]);
       setLoading(false);
+      restoredSessionRef.current = false;
       return;
     }
+
+    restoredSessionRef.current = false;
+    const restored = loadStoredActiveExamAttempt(user.uid);
+    if (restored) {
+      setActiveAttempt(restored.attempt);
+      setAnswers(restored.answers);
+      setViolations(restored.violations);
+    }
+    restoredSessionRef.current = true;
 
     const unsubscribe = subscribeToExamDashboard(
       user.uid,
@@ -52,6 +65,21 @@ const ExaminationPortal = () => {
 
     return unsubscribe;
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    if (!restoredSessionRef.current) {
+      return;
+    }
+
+    storeActiveExamAttempt(
+      user.uid,
+      activeAttempt ? { attempt: activeAttempt, answers, violations } : null,
+    );
+  }, [activeAttempt, answers, user, violations]);
 
   useEffect(() => {
     if (!activeAttempt) {
@@ -256,6 +284,21 @@ const ExaminationPortal = () => {
               </a>
             ) : null}
           </div>
+          {lastResult.answerReview?.length ? (
+            <div className="mt-5 grid gap-3">
+              {lastResult.answerReview.map((item, index) => (
+                <article key={item.questionId} className="rounded-2xl border border-white/70 bg-white/70 p-4 text-sm">
+                  <p className="font-bold text-slate-900">{index + 1}. {item.prompt}</p>
+                  <p className={`mt-2 font-semibold ${item.isCorrect ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    Your answer: {item.selectedAnswer || 'Not answered'}
+                  </p>
+                  {!item.isCorrect ? (
+                    <p className="mt-1 text-slate-700">Correct answer: {item.correctAnswer}</p>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 

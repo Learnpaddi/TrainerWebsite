@@ -8,6 +8,7 @@ export interface CourseExamQuestion {
 export interface CourseExam {
   title?: string;
   passPercentage: number;
+  duration?: number;
   questions: CourseExamQuestion[];
 }
 

@@ -31,6 +31,7 @@ type EnrollmentRecord = {
   progress?: number;
   completed?: boolean;
   paymentStatus?: 'pending' | 'success' | 'not_required';
+  status?: string;
   examAttempted?: boolean;
   adminRetakeAllowed?: boolean;
   passed?: boolean;
@@ -148,6 +149,31 @@ function normalizeQuestion(rawQuestion: unknown, index: number): ExamQuestionRec
 }
 
 async function getCourseExam(courseId: string): Promise<ExamDocumentRecord> {
+  const courseSnapshot = await db.collection('courses').doc(courseId).get();
+  const embeddedExam = courseSnapshot.exists ? courseSnapshot.data()?.exam : null;
+  if (embeddedExam && typeof embeddedExam === 'object') {
+    const embeddedExamData = embeddedExam as Record<string, unknown>;
+    const embeddedQuestions = Array.isArray(embeddedExamData.questions)
+      ? embeddedExamData.questions
+          .map((question, index) => normalizeQuestion(question, index))
+          .filter((question): question is ExamQuestionRecord => Boolean(question))
+      : [];
+
+    if (embeddedQuestions.length) {
+      return {
+        examId: courseId,
+        courseId,
+        duration: typeof embeddedExamData.duration === 'number' ? embeddedExamData.duration : 30,
+        passingScore: typeof embeddedExamData.passingScore === 'number'
+          ? embeddedExamData.passingScore
+          : typeof embeddedExamData.passPercentage === 'number'
+            ? embeddedExamData.passPercentage
+            : DEFAULT_PASSING_SCORE,
+        questions: embeddedQuestions,
+      };
+    }
+  }
+
   const directExamSnapshot = await db.collection('exams').doc(courseId).get();
   let examSource: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData> | null = directExamSnapshot;
 
@@ -235,7 +261,10 @@ async function ensureExamAccess(userId: string, courseId: string) {
   const course = courseSnapshot.data() || {};
   const enrollment = enrollmentSnapshot.data() as EnrollmentRecord;
 
-  if (!enrollment.completed) {
+  const completed = enrollment.completed === true
+    || enrollment.progress === 100
+    || enrollment.status === 'completed';
+  if (!completed) {
     throw new functions.https.HttpsError('failed-precondition', 'Complete the course before attempting the exam.');
   }
 
@@ -468,7 +497,10 @@ export const createExamOrder = functions.https.onCall(async (data, context) => {
   const enrollment = enrollmentSnapshot.data() as EnrollmentRecord;
   const amount = Math.round((typeof course.price === 'number' ? course.price : 0) * 100);
 
-  if (!enrollment.completed) {
+  const completed = enrollment.completed === true
+    || enrollment.progress === 100
+    || enrollment.status === 'completed';
+  if (!completed) {
     throw new functions.https.HttpsError('failed-precondition', 'Complete the course before paying for the exam.');
   }
 
@@ -545,7 +577,28 @@ function setCorsHeaders(res: functions.Response) {
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-void [DEFAULT_WARNING_LIMIT, shuffle, buildPublicQuestions, getUserIdFromRequest, ensureExamAccess];
+function toHttpStatus(error: unknown) {
+  if (!(error instanceof functions.https.HttpsError)) {
+    return 500;
+  }
+
+  switch (error.code) {
+    case 'invalid-argument':
+      return 400;
+    case 'unauthenticated':
+      return 401;
+    case 'permission-denied':
+      return 403;
+    case 'not-found':
+      return 404;
+    case 'failed-precondition':
+      return 412;
+    default:
+      return 500;
+  }
+}
+
+void [DEFAULT_WARNING_LIMIT];
 
 export const startCourseExam = functions.https.onRequest(async (req, res) => {
   setCorsHeaders(res);
@@ -571,23 +624,64 @@ export const startCourseExam = functions.https.onRequest(async (req, res) => {
       return;
     }
 
+    const userId = await getUserIdFromRequest(req);
     const body = req.body || {};
     const courseId = typeof body.courseId === 'string' ? body.courseId : '';
-    const userId = typeof body.userId === 'string' ? body.userId : '';
 
-    if (!courseId || !userId) {
-      res.status(400).json({ error: 'Missing required fields' });
+    if (!courseId) {
+      res.status(400).json({ error: 'courseId is required.' });
       return;
     }
 
+    const { course, enrollment, enrollmentRef, exam } = await ensureExamAccess(userId, courseId);
+    const now = getNowTimestamp();
+    const activeSession = enrollment.examSession;
+    const activeExpiresAt = activeSession?.expiresAt;
+    const canResume = activeSession
+      && !activeSession.submittedAt
+      && activeExpiresAt
+      && activeExpiresAt.toMillis() > now.toMillis();
+
+    const questionOrder = canResume
+      ? activeSession.questionOrder.filter((questionId) => exam.questions.some((question) => question.id === questionId))
+      : shuffle(exam.questions).map((question) => question.id);
+    const attemptId = canResume ? activeSession.attemptId : `attempt_${Date.now()}_${crypto.randomUUID()}`;
+    const expiresAt = canResume
+      ? activeSession.expiresAt
+      : admin.firestore.Timestamp.fromMillis(now.toMillis() + exam.duration * 60 * 1000);
+    const warningLimit = canResume ? activeSession.warningLimit : DEFAULT_WARNING_LIMIT;
+
+    if (!canResume) {
+      await enrollmentRef.set({
+        examSession: {
+          attemptId,
+          startedAt: now,
+          expiresAt,
+          questionOrder,
+          warningLimit,
+          submittedAt: null,
+        },
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    }
+
     res.status(200).json({
-      success: true,
-      message: 'Exam started successfully',
+      attemptId,
+      courseId,
+      courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+      examTitle: typeof course.title === 'string' ? `${course.title} Final Exam` : 'Final Exam',
+      durationMinutes: exam.duration,
+      passingScore: exam.passingScore,
+      expiresAt: expiresAt.toDate().toISOString(),
+      warningLimit,
+      questions: buildPublicQuestions(exam, questionOrder),
     });
   } catch (error) {
-    functions.logger.error('FUNCTION ERROR:', error);
+    functions.logger.error('startCourseExam error:', error);
     setCorsHeaders(res);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(toHttpStatus(error)).json({
+      error: error instanceof functions.https.HttpsError ? error.message : 'Internal Server Error',
+    });
   }
 });
 
@@ -626,9 +720,39 @@ export const submitCourseExamAttempt = functions.https.onCall(async (data, conte
     throw new functions.https.HttpsError('failed-precondition', 'This exam attempt has already been submitted.');
   }
 
-  const result = scoreAttempt(exam, answers);
+  if (session.expiresAt.toMillis() < Date.now() && submissionReason !== 'time_limit') {
+    throw new functions.https.HttpsError('deadline-exceeded', 'This exam attempt has expired.');
+  }
+
+  const sessionQuestionMap = new Map(exam.questions.map((question) => [question.id, question]));
+  const attemptQuestions = session.questionOrder
+    .map((questionId) => sessionQuestionMap.get(questionId))
+    .filter((question): question is ExamQuestionRecord => Boolean(question));
+  const attemptExam = {
+    ...exam,
+    questions: attemptQuestions.length ? attemptQuestions : exam.questions,
+  };
+  const sanitizedAnswers = Object.fromEntries(
+    Object.entries(answers).filter(([questionId, answer]) => (
+      typeof answer === 'number'
+      && Number.isInteger(answer)
+      && attemptExam.questions.some((question) => question.id === questionId && answer >= 0 && answer < question.options.length)
+    )),
+  );
+
+  const result = scoreAttempt(attemptExam, sanitizedAnswers);
   const attemptedAt = new Date().toISOString();
   const certificateId = result.passed ? buildCertificateId(userId, courseId) : null;
+  const answerReview = attemptExam.questions.map((question) => {
+    const selectedIndex = sanitizedAnswers[question.id];
+    return {
+      questionId: question.id,
+      prompt: question.prompt,
+      selectedAnswer: typeof selectedIndex === 'number' ? question.options[selectedIndex] || null : null,
+      correctAnswer: question.options[question.correctIndex],
+      isCorrect: selectedIndex === question.correctIndex,
+    };
+  });
 
   await enrollmentSnapshot.ref.set({
     examAttempted: true,
@@ -649,9 +773,26 @@ export const submitCourseExamAttempt = functions.https.onCall(async (data, conte
       violationCount,
       submissionReason,
       autoSubmitted,
+      answers: sanitizedAnswers,
+      answerReview,
     },
     updatedAt: attemptedAt,
     courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+  }, { merge: true });
+
+  await db.collection('examAttempts').doc(attemptId).set({
+    attemptId,
+    userId,
+    courseId,
+    score: result.score,
+    passed: result.passed,
+    correctAnswers: result.correctAnswers,
+    totalQuestions: result.totalQuestions,
+    answers: sanitizedAnswers,
+    violationCount,
+    submissionReason,
+    autoSubmitted,
+    submittedAt: attemptedAt,
   }, { merge: true });
 
   return {
@@ -663,6 +804,7 @@ export const submitCourseExamAttempt = functions.https.onCall(async (data, conte
     autoSubmitted,
     certificateId,
     certificateUrl: typeof enrollment.certificateUrl === 'string' ? enrollment.certificateUrl : null,
+    answerReview,
   };
 });
 
