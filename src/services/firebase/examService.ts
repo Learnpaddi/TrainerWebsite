@@ -363,15 +363,13 @@ export async function startCourseExam(courseId: string): Promise<ActiveExamAttem
     throw new Error('You must be signed in to start an exam.');
   }
 
-  const token = await user.getIdToken();
   const functionsBaseUrl = `https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net`;
   const response = await fetch(`${functionsBaseUrl}/startCourseExam`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ courseId }),
+    body: JSON.stringify({ courseId, userId: user.uid }),
   });
 
   if (!response.ok) {
