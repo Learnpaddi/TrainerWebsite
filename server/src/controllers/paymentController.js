@@ -1,6 +1,4 @@
-import mongoose from 'mongoose';
-import { Course } from '../models/Course.js';
-import { Enrollment } from '../models/Enrollment.js';
+import { db } from '../config/firebase.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { createGatewayOrder, verifyGatewayPayment } from '../utils/payment.js';
@@ -8,28 +6,31 @@ import { createGatewayOrder, verifyGatewayPayment } from '../utils/payment.js';
 export const createOrder = asyncHandler(async (req, res) => {
   const { courseId } = req.body;
 
-  if (!mongoose.Types.ObjectId.isValid(courseId)) {
+  if (!courseId || typeof courseId !== 'string') {
     throw new ApiError(400, 'A valid courseId is required.');
   }
 
-  const [course, enrollment] = await Promise.all([
-    Course.findById(courseId),
-    Enrollment.findOne({ userId: req.user._id, courseId }),
+  const [courseDoc, enrollmentDoc] = await Promise.all([
+    db.collection('courses').doc(courseId).get(),
+    db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).get(),
   ]);
 
-  if (!course) {
+  if (!courseDoc.exists) {
     throw new ApiError(404, 'Course not found.');
   }
 
-  if (!enrollment) {
+  if (!enrollmentDoc.exists) {
     throw new ApiError(404, 'Enroll in the course before creating a payment order.');
   }
 
-  if (course.price === 0) {
+  const courseData = courseDoc.data();
+  const enrollmentData = enrollmentDoc.data();
+
+  if (courseData.price === 0) {
     throw new ApiError(400, 'This is a free course and does not require payment.');
   }
 
-  if (enrollment.paymentStatus === 'success') {
+  if (enrollmentData.paymentStatus === 'success') {
     return res.json({
       success: true,
       provider: 'paid',
@@ -39,17 +40,19 @@ export const createOrder = asyncHandler(async (req, res) => {
   }
 
   const order = await createGatewayOrder({
-    amount: course.price * 100,
-    receipt: `course_${course._id}_user_${req.user._id}`,
+    amount: courseData.price * 100,
+    receipt: `course_${courseId}_user_${req.user.uid}`,
     notes: {
-      courseId: course._id.toString(),
-      userId: req.user._id.toString(),
+      courseId,
+      userId: req.user.uid,
     },
   });
 
-  enrollment.paymentOrderId = order.id;
-  enrollment.paymentStatus = 'pending';
-  await enrollment.save();
+  await db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).update({
+    paymentOrderId: order.id,
+    paymentStatus: 'pending',
+    updatedAt: new Date().toISOString(),
+  });
 
   res.status(201).json({
     success: true,
@@ -68,40 +71,50 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     mockSuccess = true,
   } = req.body;
 
-  if (!mongoose.Types.ObjectId.isValid(courseId)) {
+  if (!courseId || typeof courseId !== 'string') {
     throw new ApiError(400, 'A valid courseId is required.');
   }
 
-  const [course, enrollment] = await Promise.all([
-    Course.findById(courseId),
-    Enrollment.findOne({ userId: req.user._id, courseId }),
+  const [courseDoc, enrollmentDoc] = await Promise.all([
+    db.collection('courses').doc(courseId).get(),
+    db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).get(),
   ]);
 
-  if (!course || !enrollment) {
+  if (!courseDoc.exists || !enrollmentDoc.exists) {
     throw new ApiError(404, 'Course enrollment was not found.');
   }
 
-  if (course.price === 0) {
-    enrollment.paymentStatus = 'not_required';
-    await enrollment.save();
+  const courseData = courseDoc.data();
+  const enrollmentData = enrollmentDoc.data();
+  const enrollmentRef = db.collection('enrollments').doc(`${req.user.uid}_${courseId}`);
+
+  if (courseData.price === 0) {
+    await enrollmentRef.update({
+      paymentStatus: 'not_required',
+      updatedAt: new Date().toISOString(),
+    });
     return res.json({
       success: true,
-      paymentStatus: enrollment.paymentStatus,
+      paymentStatus: 'not_required',
     });
   }
 
   const paymentIsValid = mockSuccess && verifyGatewayPayment({
-    orderId: orderId || enrollment.paymentOrderId,
+    orderId: orderId || enrollmentData.paymentOrderId,
     paymentId: paymentId || `mock_payment_${Date.now()}`,
     signature: signature || 'mock_signature',
   });
 
-  enrollment.paymentStatus = paymentIsValid ? 'success' : 'failed';
-  enrollment.paymentId = paymentId || `mock_payment_${Date.now()}`;
-  enrollment.paymentOrderId = orderId || enrollment.paymentOrderId;
-  enrollment.paymentSignature = signature || 'mock_signature';
-  enrollment.amountPaid = paymentIsValid ? course.price : 0;
-  await enrollment.save();
+  const updatePayload = {
+    paymentStatus: paymentIsValid ? 'success' : 'failed',
+    paymentId: paymentId || `mock_payment_${Date.now()}`,
+    paymentOrderId: orderId || enrollmentData.paymentOrderId,
+    paymentSignature: signature || 'mock_signature',
+    amountPaid: paymentIsValid ? courseData.price : 0,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await enrollmentRef.update(updatePayload);
 
   if (!paymentIsValid) {
     throw new ApiError(400, 'Payment verification failed.');
@@ -109,6 +122,7 @@ export const verifyPayment = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    paymentStatus: enrollment.paymentStatus,
+    paymentStatus: 'success',
   });
 });
+

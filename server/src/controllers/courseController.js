@@ -1,100 +1,108 @@
-import mongoose from 'mongoose';
-import { Course } from '../models/Course.js';
-import { Enrollment } from '../models/Enrollment.js';
+import { db } from '../config/firebase.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { canAccessExam } from '../services/enrollmentAccess.js';
 
-function serializeCourse(course) {
+function serializeCourse(courseDoc) {
+  const data = courseDoc.data ? courseDoc.data() : courseDoc;
+  const id = courseDoc.id || data.id;
   return {
-    id: course._id,
-    title: course.title,
-    description: course.description,
-    price: course.price,
-    examAvailable: course.examAvailable,
-    lessons: course.lessons,
-    exam: course.exam
+    id,
+    title: data.title,
+    description: data.description,
+    price: data.price,
+    examAvailable: data.examAvailable,
+    lessons: data.lessons || [],
+    exam: data.exam
       ? {
-          title: course.exam.title,
-          timeLimitMinutes: course.exam.timeLimitMinutes,
-          passingScore: course.exam.passingScore,
-          questionCount: course.exam.questions.length,
+          title: data.exam.title,
+          timeLimitMinutes: data.exam.timeLimitMinutes,
+          passingScore: data.exam.passingScore,
+          questionCount: (data.exam.questions || []).length,
         }
       : null,
   };
 }
 
-function serializeEnrollment(enrollment) {
-  if (!enrollment) return null;
+function serializeEnrollment(enrollmentDoc) {
+  if (!enrollmentDoc) return null;
+  const data = enrollmentDoc.data ? enrollmentDoc.data() : enrollmentDoc;
+  const id = enrollmentDoc.id || data.id;
   return {
-    id: enrollment._id,
-    progress: enrollment.progress,
-    completed: enrollment.completed,
-    paymentStatus: enrollment.paymentStatus,
-    amountPaid: enrollment.amountPaid,
-    enrolledAt: enrollment.enrolledAt,
-    completedAt: enrollment.completedAt,
-    examResult: enrollment.examResult,
+    id,
+    progress: data.progress ?? 0,
+    completed: data.completed ?? false,
+    paymentStatus: data.paymentStatus || 'not_required',
+    amountPaid: data.amountPaid ?? 0,
+    enrolledAt: data.enrolledAt || data.createdAt || new Date().toISOString(),
+    completedAt: data.completedAt || null,
+    examResult: data.examResult || null,
   };
 }
 
 export const listCourses = asyncHandler(async (_req, res) => {
-  const courses = await Course.find().sort({ createdAt: -1 });
+  const snapshot = await db.collection('courses').orderBy('createdAt', 'desc').get();
+  const courses = snapshot.docs.map(serializeCourse);
+
   res.json({
     success: true,
-    courses: courses.map(serializeCourse),
+    courses,
   });
 });
 
 export const getCourseById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new ApiError(400, 'Invalid course id.');
-  }
-
-  const course = await Course.findById(id);
-  if (!course) {
+  const courseDoc = await db.collection('courses').doc(id).get();
+  if (!courseDoc.exists) {
     throw new ApiError(404, 'Course not found.');
   }
 
-  const enrollment = req.user
-    ? await Enrollment.findOne({
-        userId: req.user._id,
-        courseId: course._id,
-      })
-    : null;
+  const course = serializeCourse(courseDoc);
+
+  let enrollment = null;
+  if (req.user) {
+    const enrollmentId = `${req.user.uid}_${id}`;
+    const enrollmentDoc = await db.collection('enrollments').doc(enrollmentId).get();
+    if (enrollmentDoc.exists) {
+      enrollment = serializeEnrollment(enrollmentDoc);
+    }
+  }
 
   const access = canAccessExam(course, enrollment);
 
   res.json({
     success: true,
-    course: serializeCourse(course),
-    enrollment: serializeEnrollment(enrollment),
+    course,
+    enrollment,
     examAccess: access,
   });
 });
 
 export const listMyEnrollments = asyncHandler(async (req, res) => {
-  const enrollments = await Enrollment.find({ userId: req.user._id })
-    .populate('courseId')
-    .sort({ createdAt: -1 });
+  const snapshot = await db
+    .collection('enrollments')
+    .where('userId', '==', req.user.uid)
+    .orderBy('createdAt', 'desc')
+    .get();
 
-  const data = enrollments.map((enrollment) => ({
-    id: enrollment._id,
-    progress: enrollment.progress,
-    completed: enrollment.completed,
-    paymentStatus: enrollment.paymentStatus,
-    amountPaid: enrollment.amountPaid,
-    enrolledAt: enrollment.enrolledAt,
-    completedAt: enrollment.completedAt,
-    examResult: enrollment.examResult,
-    course: serializeCourse(enrollment.courseId),
-    examAccess: canAccessExam(enrollment.courseId, enrollment),
-  }));
+  const enrollments = [];
+  for (const enrollmentDoc of snapshot.docs) {
+    const enrollmentData = enrollmentDoc.data();
+    const courseDoc = await db.collection('courses').doc(enrollmentData.courseId).get();
+    const course = courseDoc.exists ? serializeCourse(courseDoc) : null;
+
+    const enrollment = serializeEnrollment(enrollmentDoc);
+    enrollments.push({
+      ...enrollment,
+      course,
+      examAccess: canAccessExam(course, enrollment),
+    });
+  }
 
   res.json({
     success: true,
-    enrollments: data,
+    enrollments,
   });
 });
+

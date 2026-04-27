@@ -1,15 +1,23 @@
 import app from './app.js';
-import { connectDatabase } from './config/db.js';
+import { db } from './config/firebase.js';
 import { env } from './config/env.js';
-import { Course } from './models/Course.js';
 import { demoCourses } from './utils/seedCourses.js';
 
 async function bootstrap() {
-  await connectDatabase();
+  const coursesSnapshot = await db.collection('courses').limit(1).get();
 
-  const coursesCount = await Course.countDocuments();
-  if (coursesCount === 0) {
-    await Course.insertMany(demoCourses);
+  if (coursesSnapshot.empty) {
+    const batch = db.batch();
+    for (const course of demoCourses) {
+      const ref = db.collection('courses').doc();
+      batch.set(ref, {
+        ...course,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    await batch.commit();
+    console.log(`Seeded ${demoCourses.length} course(s) into Firestore.`);
   }
 
   app.listen(env.port, () => {
@@ -21,3 +29,4 @@ bootstrap().catch((error) => {
   console.error('Server startup failed:', error);
   process.exit(1);
 });
+

@@ -1,6 +1,4 @@
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
-import { User } from '../models/User.js';
+import { admin, db } from '../config/firebase.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export async function requireAuth(req, _res, next) {
@@ -12,16 +10,24 @@ export async function requireAuth(req, _res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, env.jwtSecret);
-    const user = await User.findById(payload.sub).select('-passwordHash');
+    const payload = await admin.auth().verifyIdToken(token);
+    const userDoc = await db.collection('users').doc(payload.uid).get();
 
-    if (!user) {
+    if (!userDoc.exists) {
       return next(new ApiError(401, 'Authenticated user was not found.'));
     }
 
-    req.user = user;
+    const userData = userDoc.data();
+    req.user = {
+      uid: payload.uid,
+      id: payload.uid,
+      name: userData.name || '',
+      email: userData.email || '',
+      role: userData.role || 'student',
+    };
     next();
   } catch {
     next(new ApiError(401, 'Invalid or expired authentication token.'));
   }
 }
+

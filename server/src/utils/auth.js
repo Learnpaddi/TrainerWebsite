@@ -1,14 +1,6 @@
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
+import { auth } from '../config/firebase.js';
 
-export const signToken = (user) =>
-  jwt.sign(
-    {
-      sub: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      name: user.name,
-    },
-    env.jwtSecret,
-    { expiresIn: env.jwtExpiresIn },
-  );
+export const signToken = async (user) => {
+  return auth.createCustomToken(user.uid || user.id);
+};
+
