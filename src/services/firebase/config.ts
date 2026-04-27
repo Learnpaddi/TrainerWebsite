@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
@@ -15,6 +15,16 @@ export const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Ensure auth state persists across reloads using localStorage
+export const authReady = setPersistence(auth, browserLocalPersistence)
+  .then(() => auth)
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('Firebase auth persistence failed:', err);
+    return auth;
+  });
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);

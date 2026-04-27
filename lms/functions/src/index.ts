@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 import Razorpay from 'razorpay';
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
+import cors from 'cors';
 
 admin.initializeApp();
 
@@ -199,6 +200,22 @@ function assertSignedIn(context: functions.https.CallableContext) {
   }
 
   return context.auth.uid;
+}
+
+async function getUserIdFromRequest(req: functions.https.Request): Promise<string> {
+  const authorization = req.headers.authorization || '';
+  const [, token] = authorization.split(' ');
+
+  if (!token) {
+    throw new functions.https.HttpsError('unauthenticated', 'You must be signed in to continue.');
+  }
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    return decoded.uid;
+  } catch {
+    throw new functions.https.HttpsError('unauthenticated', 'Invalid authentication token.');
+  }
 }
 
 async function ensureExamAccess(userId: string, courseId: string) {
@@ -523,88 +540,132 @@ export const verifyExamPayment = functions.https.onCall(async (data, context) =>
   };
 });
 
-export const startCourseExam = functions.https.onCall(async (data, context) => {
-  const userId = assertSignedIn(context);
-  const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
-  if (!courseId) {
-    throw new functions.https.HttpsError('invalid-argument', 'courseId is required.');
-  }
+export const startCourseExam = functions.https.onRequest((req, res) => {
+  const corsHandler = cors({ origin: true });
 
-  const { course, enrollment, enrollmentRef, exam } = await ensureExamAccess(userId, courseId);
-  const existingSession = enrollment.examSession;
+  corsHandler(req, res, async () => {
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.status(204).send('');
+      return;
+    }
 
-  if (existingSession?.attemptId && !existingSession.submittedAt) {
-    if (existingSession.expiresAt.toMillis() > Date.now()) {
-      return {
-        attemptId: existingSession.attemptId,
+    try {
+      functions.logger.info('startCourseExam request', {
+        method: req.method,
+        origin: req.headers.origin,
+        userAgent: req.headers['user-agent'],
+      });
+
+      const userId = await getUserIdFromRequest(req);
+      const courseId = typeof req.body?.courseId === 'string' ? req.body.courseId : '';
+
+      if (!courseId) {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.status(400).json({ error: 'courseId is required.' });
+        return;
+      }
+
+      const { course, enrollment, enrollmentRef, exam } = await ensureExamAccess(userId, courseId);
+      const existingSession = enrollment.examSession;
+
+      if (existingSession?.attemptId && !existingSession.submittedAt) {
+        if (existingSession.expiresAt.toMillis() > Date.now()) {
+          res.set('Access-Control-Allow-Origin', '*');
+          res.status(200).json({
+            attemptId: existingSession.attemptId,
+            courseId,
+            courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+            examTitle: `${typeof course.title === 'string' ? course.title : 'Course'} Final Exam`,
+            durationMinutes: exam.duration,
+            passingScore: exam.passingScore,
+            expiresAt: existingSession.expiresAt.toDate().toISOString(),
+            warningLimit: existingSession.warningLimit || DEFAULT_WARNING_LIMIT,
+            questions: buildPublicQuestions(exam, existingSession.questionOrder),
+          });
+          return;
+        }
+
+        const expiredAttemptTime = existingSession.expiresAt.toDate().toISOString();
+        await enrollmentRef.set({
+          examAttempted: true,
+          adminRetakeAllowed: false,
+          passed: false,
+          score: 0,
+          examSession: {
+            ...existingSession,
+            submittedAt: getNowTimestamp(),
+          },
+          examResult: {
+            score: 0,
+            passed: false,
+            correctAnswers: 0,
+            totalQuestions: exam.questions.length,
+            attemptedAt: expiredAttemptTime,
+            submissionReason: 'time_limit',
+            autoSubmitted: true,
+            violationCount: 0,
+          },
+          updatedAt: expiredAttemptTime,
+        }, { merge: true });
+
+        res.set('Access-Control-Allow-Origin', '*');
+        res.status(410).json({ error: 'The previous exam session expired and was recorded as a failed attempt.' });
+        return;
+      }
+
+      const questionOrder = shuffle(exam.questions.map((question) => question.id));
+      const startedAt = getNowTimestamp();
+      const expiresAt = admin.firestore.Timestamp.fromMillis(startedAt.toMillis() + (exam.duration * 60 * 1000));
+      const attemptId = `attempt_${startedAt.toMillis()}`;
+
+      await enrollmentRef.set({
+        examSession: {
+          attemptId,
+          startedAt,
+          expiresAt,
+          questionOrder,
+          warningLimit: DEFAULT_WARNING_LIMIT,
+          submittedAt: null,
+        },
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(200).json({
+        attemptId,
         courseId,
         courseTitle: typeof course.title === 'string' ? course.title : 'Course',
         examTitle: `${typeof course.title === 'string' ? course.title : 'Course'} Final Exam`,
         durationMinutes: exam.duration,
         passingScore: exam.passingScore,
-        expiresAt: existingSession.expiresAt.toDate().toISOString(),
-        warningLimit: existingSession.warningLimit || DEFAULT_WARNING_LIMIT,
-        questions: buildPublicQuestions(exam, existingSession.questionOrder),
-      };
+        expiresAt: expiresAt.toDate().toISOString(),
+        warningLimit: DEFAULT_WARNING_LIMIT,
+        questions: buildPublicQuestions(exam, questionOrder),
+      });
+    } catch (error) {
+      functions.logger.error('startCourseExam error', error);
+
+      res.set('Access-Control-Allow-Origin', '*');
+
+      if (error instanceof functions.https.HttpsError) {
+        const statusMap: Record<string, number> = {
+          'invalid-argument': 400,
+          'failed-precondition': 400,
+          'not-found': 404,
+          'unauthenticated': 401,
+          'permission-denied': 403,
+          'deadline-exceeded': 410,
+        };
+        const status = statusMap[error.code] || 500;
+        res.status(status).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error.' });
+      }
     }
-
-    const expiredAttemptTime = existingSession.expiresAt.toDate().toISOString();
-    await enrollmentRef.set({
-      examAttempted: true,
-      adminRetakeAllowed: false,
-      passed: false,
-      score: 0,
-      examSession: {
-        ...existingSession,
-        submittedAt: getNowTimestamp(),
-      },
-      examResult: {
-        score: 0,
-        passed: false,
-        correctAnswers: 0,
-        totalQuestions: exam.questions.length,
-        attemptedAt: expiredAttemptTime,
-        submissionReason: 'time_limit',
-        autoSubmitted: true,
-        violationCount: 0,
-      },
-      updatedAt: expiredAttemptTime,
-    }, { merge: true });
-
-    throw new functions.https.HttpsError(
-      'deadline-exceeded',
-      'The previous exam session expired and was recorded as a failed attempt.',
-    );
-  }
-
-  const questionOrder = shuffle(exam.questions.map((question) => question.id));
-  const startedAt = getNowTimestamp();
-  const expiresAt = admin.firestore.Timestamp.fromMillis(startedAt.toMillis() + (exam.duration * 60 * 1000));
-  const attemptId = `attempt_${startedAt.toMillis()}`;
-
-  await enrollmentRef.set({
-    examSession: {
-      attemptId,
-      startedAt,
-      expiresAt,
-      questionOrder,
-      warningLimit: DEFAULT_WARNING_LIMIT,
-      submittedAt: null,
-    },
-    updatedAt: new Date().toISOString(),
-  }, { merge: true });
-
-  return {
-    attemptId,
-    courseId,
-    courseTitle: typeof course.title === 'string' ? course.title : 'Course',
-    examTitle: `${typeof course.title === 'string' ? course.title : 'Course'} Final Exam`,
-    durationMinutes: exam.duration,
-    passingScore: exam.passingScore,
-    expiresAt: expiresAt.toDate().toISOString(),
-    warningLimit: DEFAULT_WARNING_LIMIT,
-    questions: buildPublicQuestions(exam, questionOrder),
-  };
+  });
 });
 
 export const submitCourseExamAttempt = functions.https.onCall(async (data, context) => {

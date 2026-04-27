@@ -11,6 +11,7 @@ export interface AuthUser extends FirebaseUser {
 export const useAuth = () => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authResolved, setAuthResolved] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [roleError, setRoleError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export const useAuth = () => {
 
       if (!firebaseUser) {
         setAuthUser(null);
+        setAuthResolved(true);
         setLoading(false);
         return;
       }
@@ -34,19 +36,23 @@ export const useAuth = () => {
       try {
         const userDoc = await getUserDoc(firebaseUser.uid);
         if (!userDoc) {
-          setAuthUser(null);
+          // Keep Firebase user in state so UI can decide how to handle missing profile
+          setAuthUser({ ...firebaseUser, role: undefined, doc: null });
           setRoleError('Account profile was not found. Please complete sign up first.');
+          setAuthResolved(true);
           setLoading(false);
           return;
         }
 
         setAuthUser({ ...firebaseUser, role: userDoc.role, doc: userDoc });
       } catch (authLoadError) {
-        setAuthUser(null);
+        // On Firestore error, keep Firebase user so refresh doesn't force logout
+        setAuthUser({ ...firebaseUser, role: undefined, doc: null });
         setRoleError('We signed you in, but could not load your user profile from Firestore.');
         setError(authLoadError instanceof Error ? authLoadError : new Error('Unable to load auth state.'));
       } finally {
         if (active) {
+          setAuthResolved(true);
           setLoading(false);
         }
       }
@@ -61,6 +67,7 @@ export const useAuth = () => {
   return { 
     user: authUser, 
     loading, 
+    authResolved,
     error,
     roleError,
     isStudent: authUser?.role === 'student',

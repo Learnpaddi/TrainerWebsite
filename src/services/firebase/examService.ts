@@ -10,7 +10,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '@/services/firebase/config';
+import { auth, db, functions, firebaseConfig } from '@/services/firebase/config';
 
 export interface ExamCatalogItem {
   id: string;
@@ -135,7 +135,6 @@ interface VerifyCertificateResponse {
   certificate: VerifiedCertificateRecord | null;
 }
 
-const startCourseExamCallable = httpsCallable<{ courseId: string }, StartCourseExamResponse>(functions, 'startCourseExam');
 const submitCourseExamCallable = httpsCallable<{
   courseId: string;
   attemptId: string;
@@ -371,8 +370,28 @@ export async function markEnrollmentCompleted(userId: string, courseId: string, 
 }
 
 export async function startCourseExam(courseId: string): Promise<ActiveExamAttempt> {
-  const response = await startCourseExamCallable({ courseId });
-  return response.data;
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to start an exam.');
+  }
+
+  const token = await user.getIdToken();
+  const functionsBaseUrl = `https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net`;
+  const response = await fetch(`${functionsBaseUrl}/startCourseExam`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ courseId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
+    throw new Error(errorData.error || 'Unable to start exam. Please try again.');
+  }
+
+  return response.json();
 }
 
 export async function submitCourseExamAttempt(payload: {

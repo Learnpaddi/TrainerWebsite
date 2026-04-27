@@ -142,7 +142,7 @@ const App = () => {
       <Routes>
         <Route
           path="/"
-          element={<Navigate to="/select-role?mode=login" replace />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
         <Route
