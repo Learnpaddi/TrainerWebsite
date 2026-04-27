@@ -97,18 +97,6 @@ export interface VerifiedCertificateRecord extends CertificateRecord {
   valid: boolean;
 }
 
-interface StartCourseExamResponse {
-  attemptId: string;
-  courseId: string;
-  courseTitle: string;
-  examTitle: string;
-  durationMinutes: number;
-  passingScore: number;
-  expiresAt: string;
-  warningLimit: number;
-  questions: ExamQuestionView[];
-}
-
 interface SubmitCourseExamResponse {
   score: number;
   passed: boolean;
@@ -391,7 +379,8 @@ export async function startCourseExam(courseId: string): Promise<ActiveExamAttem
     throw new Error(errorData.error || 'Unable to start exam. Please try again.');
   }
 
-  return response.json();
+  const data: ActiveExamAttempt = await response.json();
+  return data;
 }
 
 export async function submitCourseExamAttempt(payload: {
