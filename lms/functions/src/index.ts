@@ -63,6 +63,7 @@ const DEFAULT_PASSING_SCORE = 75;
 
 const razorpayConfig = functions.config().razorpay || {};
 const smtpConfig = functions.config().smtp || {};
+const corsHandler = cors({ origin: true });
 
 const razorpay = razorpayConfig.key_id && razorpayConfig.key_secret
   ? new Razorpay({
@@ -540,19 +541,45 @@ export const verifyExamPayment = functions.https.onCall(async (data, context) =>
   };
 });
 
+function setCorsHeaders(res: functions.Response) {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+function redactHeaders(headers: functions.https.Request['headers']) {
+  return {
+    ...headers,
+    authorization: headers.authorization ? '[redacted]' : undefined,
+  };
+}
+
 export const startCourseExam = functions.https.onRequest((req, res) => {
-  const corsHandler = cors({ origin: true });
+  setCorsHeaders(res);
+
+  functions.logger.info('startCourseExam request received', {
+    method: req.method,
+    headers: redactHeaders(req.headers),
+  });
+
+  if (req.method === 'OPTIONS') {
+    functions.logger.info('startCourseExam preflight handled', {
+      method: req.method,
+      status: 204,
+    });
+    res.status(204).send('');
+    return;
+  }
 
   corsHandler(req, res, async () => {
-    if (req.method === 'OPTIONS') {
-      res.set('Access-Control-Allow-Origin', '*');
-      res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      res.status(204).send('');
-      return;
-    }
-
     try {
+      setCorsHeaders(res);
+
+      if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method Not Allowed' });
+        return;
+      }
+
       functions.logger.info('startCourseExam request', {
         method: req.method,
         origin: req.headers.origin,
@@ -563,7 +590,7 @@ export const startCourseExam = functions.https.onRequest((req, res) => {
       const courseId = typeof req.body?.courseId === 'string' ? req.body.courseId : '';
 
       if (!courseId) {
-        res.set('Access-Control-Allow-Origin', '*');
+        setCorsHeaders(res);
         res.status(400).json({ error: 'courseId is required.' });
         return;
       }
@@ -573,7 +600,7 @@ export const startCourseExam = functions.https.onRequest((req, res) => {
 
       if (existingSession?.attemptId && !existingSession.submittedAt) {
         if (existingSession.expiresAt.toMillis() > Date.now()) {
-          res.set('Access-Control-Allow-Origin', '*');
+          setCorsHeaders(res);
           res.status(200).json({
             attemptId: existingSession.attemptId,
             courseId,
@@ -611,7 +638,7 @@ export const startCourseExam = functions.https.onRequest((req, res) => {
           updatedAt: expiredAttemptTime,
         }, { merge: true });
 
-        res.set('Access-Control-Allow-Origin', '*');
+        setCorsHeaders(res);
         res.status(410).json({ error: 'The previous exam session expired and was recorded as a failed attempt.' });
         return;
       }
@@ -633,7 +660,7 @@ export const startCourseExam = functions.https.onRequest((req, res) => {
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
-      res.set('Access-Control-Allow-Origin', '*');
+      setCorsHeaders(res);
       res.status(200).json({
         attemptId,
         courseId,
@@ -648,7 +675,7 @@ export const startCourseExam = functions.https.onRequest((req, res) => {
     } catch (error) {
       functions.logger.error('startCourseExam error', error);
 
-      res.set('Access-Control-Allow-Origin', '*');
+      setCorsHeaders(res);
 
       if (error instanceof functions.https.HttpsError) {
         const statusMap: Record<string, number> = {
