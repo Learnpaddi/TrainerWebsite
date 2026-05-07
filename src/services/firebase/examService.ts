@@ -144,7 +144,7 @@ const submitCourseExamCallable = httpsCallable<{
   attemptId: string;
   answers: Record<string, number>;
   violationCount: number;
-  submissionReason: 'manual' | 'time_limit' | 'violation_limit';
+  submissionReason: 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
   autoSubmitted: boolean;
 }, SubmitCourseExamResponse>(functions, 'submitCourseExamAttempt');
 const createExamOrderCallable = httpsCallable<{ courseId: string }, CreateExamOrderResponse>(functions, 'createExamOrder');
@@ -459,7 +459,7 @@ export async function submitCourseExamAttempt(payload: {
   attemptId: string;
   answers: Record<string, number>;
   violationCount: number;
-  submissionReason: 'manual' | 'time_limit' | 'violation_limit';
+  submissionReason: 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
   autoSubmitted: boolean;
 }): Promise<SubmittedExamResult> {
   const response = await submitCourseExamCallable(payload);

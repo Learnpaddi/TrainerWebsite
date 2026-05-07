@@ -574,6 +574,7 @@ export const verifyExamPayment = functions.https.onCall(async (data, context) =>
 const allowedStartExamOrigins = [
   'https://learnpaddi.in',
   'https://learnpaddi.netlify.app',
+  'https://vigilant-giggle-4q9rjjw99j25q7g-3000.app.github.dev',
 ];
 
 function setCorsHeaders(req: functions.https.Request, res: functions.Response) {

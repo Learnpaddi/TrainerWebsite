@@ -17,10 +17,15 @@ import {
   type SubmittedExamResult,
 } from '@/services/firebase/examService';
 
+type ExamSubmissionReason = 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
+
 const ExaminationPortal = () => {
   const { user } = useAuth();
   const examContainerRef = useRef<HTMLDivElement | null>(null);
   const restoredSessionRef = useRef(false);
+  const ignoreSecurityEventsRef = useRef(false);
+  const submittingRef = useRef(false);
+  const violationCountRef = useRef(0);
   const [items, setItems] = useState<ExamDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeAttempt, setActiveAttempt] = useState<ActiveExamAttempt | null>(null);
@@ -33,6 +38,8 @@ const ExaminationPortal = () => {
   const [fullscreenWarning, setFullscreenWarning] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
   const [workingCourseId, setWorkingCourseId] = useState<string | null>(null);
+  const [pendingStartItem, setPendingStartItem] = useState<ExamDashboardItem | null>(null);
+  const [examExitMessage, setExamExitMessage] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -104,6 +111,10 @@ const ExaminationPortal = () => {
     return () => window.clearInterval(intervalId);
   }, [activeAttempt, submitting]);
 
+  useEffect(() => {
+    violationCountRef.current = violations;
+  }, [violations]);
+
   const eligibleItems = useMemo(() => items.filter((item) => item.completed), [items]);
 
   const requestExamFullscreen = async () => {
@@ -120,6 +131,7 @@ const ExaminationPortal = () => {
   };
 
   const closeActiveAttempt = async () => {
+    ignoreSecurityEventsRef.current = true;
     setActiveAttempt(null);
     setAnswers({});
     setActiveQuestionIndex(0);
@@ -127,9 +139,16 @@ const ExaminationPortal = () => {
     if (document.fullscreenElement) {
       await document.exitFullscreen().catch(() => undefined);
     }
+    window.setTimeout(() => {
+      ignoreSecurityEventsRef.current = false;
+    }, 250);
   };
 
   const handleViolation = (reason: string) => {
+    if (ignoreSecurityEventsRef.current || submittingRef.current) {
+      return;
+    }
+
     setFullscreenWarning(reason);
     setViolations((current) => {
       const nextValue = current + 1;
@@ -145,10 +164,65 @@ const ExaminationPortal = () => {
     onViolation: handleViolation,
   });
 
+  useEffect(() => {
+    if (!activeAttempt) {
+      return undefined;
+    }
+
+    const forceRewrite = (message: string) => {
+      if (ignoreSecurityEventsRef.current || submittingRef.current) {
+        return;
+      }
+
+      setFullscreenWarning(message);
+      setExamExitMessage('Rewrite the exam.');
+      void handleSubmit('exam_portal_exit', true, violationCountRef.current + 1);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        forceRewrite('Exam portal exited. Rewrite the exam.');
+      }
+    };
+
+    const handlePageHide = () => {
+      forceRewrite('Exam portal exited. Rewrite the exam.');
+    };
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        forceRewrite('Fullscreen was exited. Rewrite the exam.');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      if (!ignoreSecurityEventsRef.current && !submittingRef.current) {
+        setExamExitMessage('Rewrite the exam.');
+        void handleSubmit('exam_portal_exit', true, violationCountRef.current + 1);
+      }
+    };
+  }, [activeAttempt?.attemptId]);
+
+  const handleOpenStartTerms = (item: ExamDashboardItem) => {
+    setPendingStartItem(item);
+    setPageError(null);
+    setLastResult(null);
+    setExamExitMessage('');
+  };
+
   const handleStartExam = async (item: ExamDashboardItem) => {
     setWorkingCourseId(item.courseId);
     setPageError(null);
     setLastResult(null);
+    setExamExitMessage('');
+    setPendingStartItem(null);
 
     try {
       const exam = await startCourseExam(item.courseId);
@@ -167,11 +241,15 @@ const ExaminationPortal = () => {
   };
 
   const handleSubmit = async (
-    submissionReason: 'manual' | 'time_limit' | 'violation_limit' = 'manual',
+    submissionReason: ExamSubmissionReason = 'manual',
     autoSubmitted = false,
     forcedViolationCount?: number,
   ) => {
     if (!activeAttempt) {
+      return;
+    }
+
+    if (submittingRef.current) {
       return;
     }
 
@@ -184,6 +262,7 @@ const ExaminationPortal = () => {
       }
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const result = await submitCourseExamAttempt({
@@ -195,10 +274,14 @@ const ExaminationPortal = () => {
         autoSubmitted,
       });
       setLastResult(result);
+      if (submissionReason === 'exam_portal_exit') {
+        setExamExitMessage('Rewrite the exam.');
+      }
       await closeActiveAttempt();
     } catch (error) {
       setPageError(error instanceof Error ? error.message : 'Unable to submit the exam.');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -264,13 +347,54 @@ const ExaminationPortal = () => {
         </div>
       ) : null}
 
+      {examExitMessage ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+          <AlertTriangle className="h-5 w-5" />
+          {examExitMessage}
+        </div>
+      ) : null}
+
+      {pendingStartItem ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6">
+          <section className="w-full max-w-2xl rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Before You Start</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">{pendingStartItem.courseTitle} Final Exam</h2>
+            <div className="mt-5 space-y-4 text-sm leading-7 text-slate-600">
+              <p>Read the privacy and exam terms carefully before you write the exam. All the best.</p>
+              <p>This is an MCQ examination. Choose one answer for every question and submit before the timer ends.</p>
+              <p>Stay inside the exam popup and keep fullscreen active. Changing tab, leaving the page, closing the portal, or exiting fullscreen will end the attempt and you must rewrite the exam after admin approval.</p>
+              <p>Certificates are generated only after a verified passing score is recorded by the secure backend.</p>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => void handleStartExam(pendingStartItem)}
+                disabled={workingCourseId === pendingStartItem.courseId}
+                className="primary-cta px-5 py-3 text-sm disabled:opacity-70"
+              >
+                <ClipboardList className="h-4 w-4" />
+                {workingCourseId === pendingStartItem.courseId ? 'Starting...' : 'I Agree, Start Exam'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingStartItem(null)}
+                disabled={workingCourseId === pendingStartItem.courseId}
+                className="secondary-cta px-5 py-3 text-sm disabled:opacity-70"
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {lastResult ? (
         <section className={`rounded-[1.75rem] border p-6 shadow-sm lg:p-8 ${lastResult.passed ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Latest Result</p>
               <h2 className="mt-2 text-2xl font-black text-slate-950">
-                {lastResult.passed ? 'Exam passed successfully' : 'Exam submitted'}
+                {examExitMessage || (lastResult.passed ? 'Exam passed successfully' : 'Exam submitted')}
               </h2>
               <p className="mt-2 text-sm text-slate-700">
                 Score {lastResult.score}% • {lastResult.correctAnswers}/{lastResult.totalQuestions} correct
@@ -422,8 +546,13 @@ const ExaminationPortal = () => {
                   <ClipboardList className="h-4 w-4" />
                   {submitting ? 'Submitting...' : 'Submit Exam'}
                 </button>
-                <button type="button" onClick={() => void closeActiveAttempt()} className="secondary-cta px-5 py-3 text-sm">
-                  Close Session
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit('exam_portal_exit', true, violations + 1)}
+                  disabled={submitting}
+                  className="secondary-cta px-5 py-3 text-sm disabled:opacity-70"
+                >
+                  Exit Exam
                 </button>
               </div>
             </aside>
@@ -486,7 +615,7 @@ const ExaminationPortal = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => void handleStartExam(item)}
+                        onClick={() => handleOpenStartTerms(item)}
                         disabled={workingCourseId === item.courseId || item.examAttempted && !item.adminRetakeAllowed}
                         className="primary-cta px-4 py-3 text-sm disabled:opacity-70"
                       >
