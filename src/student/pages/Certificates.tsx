@@ -11,8 +11,6 @@ const Certificates = () => {
 
   useEffect(() => {
     if (!user) {
-      setCertificates([]);
-      setLoading(false);
       return;
     }
 
@@ -32,11 +30,11 @@ const Certificates = () => {
         <p className="text-muted">Certificates appear here automatically when the backend validates a passing score and finishes PDF generation.</p>
       </section>
 
-      {loading ? (
+      {Boolean(user) && loading ? (
         <section className="metric-card p-12 text-center text-gray-600">
           Loading certificates...
         </section>
-      ) : certificates.length === 0 ? (
+      ) : (user ? certificates : []).length === 0 ? (
         <section className="metric-card p-12 text-center">
           <Award className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No certificates yet</h2>
@@ -44,7 +42,7 @@ const Certificates = () => {
         </section>
       ) : (
         <section className="grid md:grid-cols-2 gap-6">
-          {certificates.map((certificate) => (
+          {(user ? certificates : []).map((certificate) => (
             <article key={certificate.id} className="metric-card p-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
                 <ShieldCheck className="w-4 h-4" />

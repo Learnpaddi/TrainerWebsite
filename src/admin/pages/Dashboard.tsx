@@ -5,11 +5,13 @@ import { useTrainerEnrollments } from '@/hooks/useTrainerEnrollments';
 import { createCourse, updateCourse, deleteCourse, type Course } from '@/services/firebase/courseService';
 import { Loader2, Plus, Edit3, Trash2, Users, DollarSign, GraduationCap } from 'lucide-react';
 
+type NewCourse = Pick<Course, 'title' | 'description' | 'price' | 'duration'>;
+
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const { courses, loading: coursesLoading, refetch } = useTrainerCourses();
   const { enrollments } = useTrainerEnrollments();
-  const [newCourse, setNewCourse] = useState({
+  const [newCourse, setNewCourse] = useState<NewCourse>({
     title: '',
     description: '',
     price: 0,
@@ -26,7 +28,7 @@ const Dashboard = () => {
         ...newCourse,
         trainerId: user.doc?.trainerId || user.uid,
         thumbnail: ''
-      } as any);
+      });
       refetch();
       setNewCourse({ title: '', description: '', price: 0, duration: '4 weeks' });
     } catch (error) {

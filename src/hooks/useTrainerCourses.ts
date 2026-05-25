@@ -10,7 +10,6 @@ export const useTrainerCourses = () => {
 
   useEffect(() => {
     if (!user?.uid) {
-      setLoading(false);
       return;
     }
 
@@ -31,5 +30,5 @@ export const useTrainerCourses = () => {
     }
   };
 
-  return { courses, loading: authLoading || loading, error, refetch };
+  return { courses: user?.uid ? courses : [], loading: authLoading || (Boolean(user?.uid) && loading), error, refetch };
 };

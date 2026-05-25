@@ -8,6 +8,20 @@ import { loadRazorpay, RAZORPAY_CONFIG } from '@/services/razorpay/client';
 import { Loader2, Play, GraduationCap, Users, DollarSign, Clock, Star, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 
+type RazorpayOrderResponse = {
+  order: {
+    amount: number;
+    currency: string;
+    id: string;
+  };
+};
+
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
@@ -30,17 +44,21 @@ const CourseDetail = () => {
         courseId: course.id,
         userId: user.uid
       });
+      const orderData = orderResponse.data as RazorpayOrderResponse;
       
-      await loadRazorpay();
+      const razorpayLoaded = await loadRazorpay();
+      if (!razorpayLoaded || !window.Razorpay) {
+        throw new Error('Razorpay checkout is unavailable.');
+      }
       
       const options = {
         key: RAZORPAY_CONFIG.key_id,
-        amount: (orderResponse.data as any).order.amount,
-        currency: (orderResponse.data as any).order.currency,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
         name: RAZORPAY_CONFIG.name,
         description: course.title,
-        order_id: (orderResponse.data as any).order.id,
-        handler: async (response: any) => {
+        order_id: orderData.order.id,
+        handler: async (response: RazorpayPaymentResponse) => {
           // Verify payment
           const verifyPayment = httpsCallable(functions, 'verifyRazorpayPayment');
           await verifyPayment({
@@ -53,7 +71,7 @@ const CourseDetail = () => {
         theme: { color: RAZORPAY_CONFIG.theme.color }
       };
       
-      const rzp = new (window as any).Razorpay(options);
+      const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
       console.error('Payment failed:', error);
@@ -116,7 +134,7 @@ const CourseDetail = () => {
             <div className="lms-panel p-8 sticky top-24">
               <div className="flex items-center gap-3 mb-6">
                 <DollarSign className="w-6 h-6 text-emerald-500" />
-                <span className="text-3xl font-bold text-emerald-600">₹{course.price || 0}</span>
+                <span className="text-3xl font-bold text-emerald-600">Rs. {course.price || 0}</span>
               </div>
 
               {isEnrolled ? (
@@ -182,7 +200,7 @@ const CourseDetail = () => {
                 <div className="p-4 border-l-4 border-indigo-500 bg-indigo-50 rounded-r-2xl pl-6">
                   <div className="flex items-center gap-3 mb-1">
                     <div className="w-2 h-8 bg-indigo-500 rounded-full" />
-                    <span className="font-semibold text-indigo-800">8 Modules • 32 Lessons</span>
+                    <span className="font-semibold text-indigo-800">8 Modules - 32 Lessons</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Clock className="w-4 h-4" />

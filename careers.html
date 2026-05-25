@@ -184,7 +184,7 @@
                         <li class="flex items-start"><i class="fas fa-check text-orange-500 mt-1 mr-3 flex-shrink-0"></i>Customer engagement</li>
                         <li class="flex items-start"><i class="fas fa-check text-orange-500 mt-1 mr-3 flex-shrink-0"></i>Zoho/Salesforce skills</li>
                     </ul>
-                    <button class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-orange-500/25">
+                    <button type="button" data-job-title="Sales Management Trainee" class="apply-now-btn w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-orange-500/25">
                         Apply Now <i class="fas fa-arrow-right ml-3"></i>
                     </button>
                 </div>
@@ -201,7 +201,7 @@
                         <li class="flex items-start"><i class="fas fa-check text-emerald-500 mt-1 mr-3 flex-shrink-0"></i>Social media & SEO</li>
                         <li class="flex items-start"><i class="fas fa-check text-emerald-500 mt-1 mr-3 flex-shrink-0"></i>Canva & Analytics</li>
                     </ul>
-                    <button class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-emerald-500/25">
+                    <button type="button" data-job-title="Marketing Trainee" class="apply-now-btn w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-emerald-500/25">
                         Apply Now <i class="fas fa-arrow-right ml-3"></i>
                     </button>
                 </div>
@@ -218,7 +218,7 @@
                         <li class="flex items-start"><i class="fas fa-check text-blue-500 mt-1 mr-3 flex-shrink-0"></i>Trello/Jira tools</li>
                         <li class="flex items-start"><i class="fas fa-check text-blue-500 mt-1 mr-3 flex-shrink-0"></i>Agile methodology</li>
                     </ul>
-                    <button class="w-full bg-gradient-to-r from-blue-500 to-primary text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-blue-500/25">
+                    <button type="button" data-job-title="Project Management Intern" class="apply-now-btn w-full bg-gradient-to-r from-blue-500 to-primary text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-blue-500/25">
                         Apply Now <i class="fas fa-arrow-right ml-3"></i>
                     </button>
                 </div>
@@ -235,7 +235,7 @@
                         <li class="flex items-start"><i class="fas fa-check text-purple-500 mt-1 mr-3 flex-shrink-0"></i>Excel advanced</li>
                         <li class="flex items-start"><i class="fas fa-check text-purple-500 mt-1 mr-3 flex-shrink-0"></i>Process mapping</li>
                     </ul>
-                    <button class="w-full bg-gradient-to-r from-purple-500 to-violet-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-purple-500/25">
+                    <button type="button" data-job-title="Operations Trainee" class="apply-now-btn w-full bg-gradient-to-r from-purple-500 to-violet-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-purple-500/25">
                         Apply Now <i class="fas fa-arrow-right ml-3"></i>
                     </button>
                 </div>
@@ -252,13 +252,60 @@
                         <li class="flex items-start"><i class="fas fa-check text-pink-500 mt-1 mr-3 flex-shrink-0"></i>Employee engagement</li>
                         <li class="flex items-start"><i class="fas fa-check text-pink-500 mt-1 mr-3 flex-shrink-0"></i>HR operations</li>
                     </ul>
-                    <button class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-pink-500/25">
+                    <button type="button" data-job-title="HR Trainee" class="apply-now-btn w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-6 px-8 rounded-2xl font-bold text-xl hover:shadow-xl hover:-translate-y-2 transition-all group-hover:shadow-pink-500/25">
                         Apply Now <i class="fas fa-arrow-right ml-3"></i>
                     </button>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Application Modal -->
+    <div id="application-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-950/70 px-4 py-8 backdrop-blur-sm" aria-hidden="true">
+        <div class="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
+            <div class="flex items-start justify-between gap-4 border-b border-gray-100 p-6">
+                <div>
+                    <p class="text-sm font-bold uppercase tracking-[0.18em] text-orange-500">Career Application</p>
+                    <h2 id="application-modal-title" class="mt-2 text-3xl font-black text-gray-900">Apply Now</h2>
+                </div>
+                <button type="button" id="application-modal-close" class="h-11 w-11 rounded-2xl bg-gray-100 text-gray-600 transition hover:bg-gray-200" aria-label="Close application form">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="application-form" class="space-y-5 p-6">
+                <input type="hidden" id="application-role" name="role">
+                <div class="grid gap-5 md:grid-cols-2">
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-gray-700">Full Name</span>
+                        <input name="name" type="text" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
+                    </label>
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-gray-700">Email</span>
+                        <input name="email" type="email" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
+                    </label>
+                </div>
+                <div class="grid gap-5 md:grid-cols-2">
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-gray-700">Phone</span>
+                        <input name="phone" type="tel" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
+                    </label>
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-gray-700">Resume Link</span>
+                        <input name="resume" type="url" placeholder="Google Drive / LinkedIn / Portfolio" class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
+                    </label>
+                </div>
+                <label class="block">
+                    <span class="mb-2 block text-sm font-bold text-gray-700">Why are you a good fit?</span>
+                    <textarea name="message" rows="4" required class="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"></textarea>
+                </label>
+                <div id="application-status" class="hidden rounded-2xl border px-4 py-3 text-sm font-semibold"></div>
+                <button type="submit" class="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4 text-lg font-black text-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
+                    Submit Application <i class="fas fa-paper-plane ml-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
 
     <!-- FAQ -->
     <section class="py-24 bg-gradient-to-b from-gray-50 to-white">
@@ -383,6 +430,88 @@
         // FAQ toggle
         document.querySelectorAll('.faq-item').forEach(item => {
             item.addEventListener('click', () => item.classList.toggle('open'));
+        });
+
+        // Application modal
+        const applicationModal = document.getElementById('application-modal');
+        const applicationTitle = document.getElementById('application-modal-title');
+        const applicationRole = document.getElementById('application-role');
+        const applicationForm = document.getElementById('application-form');
+        const applicationStatus = document.getElementById('application-status');
+        const hiringEmail = 'learnpadditamil@gmail.com';
+        const emailJsConfig = {
+            publicKey: 'YOUR_EMAILJS_PUBLIC_KEY',
+            serviceId: 'YOUR_EMAILJS_SERVICE_ID',
+            templateId: 'YOUR_EMAILJS_TEMPLATE_ID'
+        };
+
+        const showApplicationStatus = (message, type = 'info') => {
+            applicationStatus.textContent = message;
+            applicationStatus.className = `rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                type === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : type === 'error'
+                        ? 'border-red-200 bg-red-50 text-red-700'
+                        : 'border-orange-200 bg-orange-50 text-orange-700'
+            }`;
+            applicationStatus.classList.remove('hidden');
+        };
+
+        const openApplicationModal = (jobTitle) => {
+            applicationTitle.textContent = `Apply for ${jobTitle}`;
+            applicationRole.value = jobTitle;
+            applicationStatus.classList.add('hidden');
+            applicationModal.classList.remove('hidden');
+            applicationModal.classList.add('flex');
+            applicationModal.setAttribute('aria-hidden', 'false');
+            applicationForm.querySelector('input[name="name"]').focus();
+        };
+
+        const closeApplicationModal = () => {
+            applicationModal.classList.add('hidden');
+            applicationModal.classList.remove('flex');
+            applicationModal.setAttribute('aria-hidden', 'true');
+        };
+
+        document.querySelectorAll('.apply-now-btn').forEach(button => {
+            button.addEventListener('click', () => openApplicationModal(button.dataset.jobTitle));
+        });
+
+        document.getElementById('application-modal-close').addEventListener('click', closeApplicationModal);
+        applicationModal.addEventListener('click', event => {
+            if (event.target === applicationModal) closeApplicationModal();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !applicationModal.classList.contains('hidden')) closeApplicationModal();
+        });
+
+        applicationForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const formData = new FormData(applicationForm);
+            const payload = Object.fromEntries(formData.entries());
+            const hasEmailJsConfig = !Object.values(emailJsConfig).some(value => value.startsWith('YOUR_EMAILJS_'));
+
+            showApplicationStatus('Preparing your application...', 'info');
+
+            if (window.emailjs && hasEmailJsConfig) {
+                try {
+                    emailjs.init({ publicKey: emailJsConfig.publicKey });
+                    await emailjs.send(emailJsConfig.serviceId, emailJsConfig.templateId, payload);
+                    applicationForm.reset();
+                    showApplicationStatus('Application submitted successfully. We will contact you soon.', 'success');
+                    return;
+                } catch (error) {
+                    console.error('EmailJS application error:', error);
+                    showApplicationStatus('Email service is unavailable. Opening your email app instead.', 'error');
+                }
+            }
+
+            const subject = encodeURIComponent(`Career Application - ${payload.role}`);
+            const body = encodeURIComponent(
+                `Role: ${payload.role}\nName: ${payload.name}\nEmail: ${payload.email}\nPhone: ${payload.phone}\nResume: ${payload.resume || 'Not provided'}\n\nMessage:\n${payload.message}`
+            );
+            window.location.href = `mailto:${hiringEmail}?subject=${subject}&body=${body}`;
+            showApplicationStatus('Your email app has been opened with the application details.', 'success');
         });
 
         // CTA button scroll

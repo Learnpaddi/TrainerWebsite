@@ -14,6 +14,15 @@ import {
 // Re-export core Firebase instances for admin
 export { auth, db, storage, functions };
 
+type AdminCourseInput = {
+  title: string;
+  description: string;
+  price: number;
+  duration?: string;
+  thumbnail?: string;
+  trainerId?: string;
+};
+
 // Admin-specific queries
 export const getUsers = async () => {
   const q = query(collection(db, 'users'));
@@ -42,7 +51,7 @@ export const getCourses = async () => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-export const createCourse = async (courseData: any) => {
+export const createCourse = async (courseData: AdminCourseInput) => {
   return await addDoc(collection(db, 'courses'), courseData);
 };
 

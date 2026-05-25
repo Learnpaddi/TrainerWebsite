@@ -24,7 +24,6 @@ const SignupForm = ({
   title,
   subtitle,
   submitLabel,
-  accent: _accent,
   inputClassName = '',
   submitButtonClassName = '',
   isSubmitting = false,

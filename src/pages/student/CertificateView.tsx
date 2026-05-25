@@ -23,8 +23,6 @@ const CertificateViewPage = () => {
 
   useEffect(() => {
     if (!user) {
-      setCertificates([]);
-      setLoading(false);
       return;
     }
 
@@ -36,6 +34,8 @@ const CertificateViewPage = () => {
     return unsubscribe;
   }, [user]);
 
+  const isLoading = Boolean(user) && loading;
+
   const certificateData = useMemo(() => {
     if (!courseId || !user) {
       return null;
@@ -44,7 +44,7 @@ const CertificateViewPage = () => {
     return certificates.find((certificate) => certificate.courseId === courseId) || null;
   }, [certificates, courseId, user]);
 
-  if (loading) {
+  if (isLoading) {
     return <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading certificate...</div>;
   }
 

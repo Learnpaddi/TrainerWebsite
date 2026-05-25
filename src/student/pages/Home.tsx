@@ -14,6 +14,11 @@ import {
   LayoutDashboard 
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import type { Progress } from '@/services/firebase/types';
+
+type EnrollmentProgress = Progress & {
+  completedLessons?: number;
+};
 
 const LMSDashboard = () => {
   const { user } = useAuth();
@@ -180,7 +185,7 @@ const LMSDashboard = () => {
                     <span>Total Lessons Completed:</span>
                     <span className="font-bold text-gray-900">
                       {enrolledCourses.reduce(
-                        (sum, currentCourse) => sum + (((currentCourse.progress as any)?.completedLessons) || 0),
+                        (sum, currentCourse) => sum + ((currentCourse.progress as EnrollmentProgress).completedLessons || 0),
                         0,
                       )}
                     </span>

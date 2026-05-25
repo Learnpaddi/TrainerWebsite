@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react'
+import React, { type ElementType, type ReactNode } from 'react'
 
 interface ContainerProps {
   children: ReactNode
@@ -11,7 +11,7 @@ const Container: React.FC<ContainerProps> = ({
   className = '',
   as = 'div',
 }) => {
-  const Element = as as any
+  const Element: ElementType = as
   return (
     <Element className={`max-w-7xl mx-auto px-6 py-12 ${className}`}>
       {children}

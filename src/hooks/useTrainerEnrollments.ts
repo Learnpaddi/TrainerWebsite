@@ -19,7 +19,6 @@ export const useTrainerEnrollments = () => {
 
   useEffect(() => {
     if (!user?.uid || !user.doc?.trainerId) {
-      setLoading(false);
       return;
     }
 
@@ -50,5 +49,11 @@ export const useTrainerEnrollments = () => {
     });
   }, [user]);
 
-  return { enrollments, loading: authLoading || loading, error };
+  const hasTrainerWorkspace = Boolean(user?.uid && user.doc?.trainerId);
+
+  return {
+    enrollments: hasTrainerWorkspace ? enrollments : [],
+    loading: authLoading || (hasTrainerWorkspace && loading),
+    error,
+  };
 };
