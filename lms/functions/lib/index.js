@@ -36,16 +36,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyCertificate = exports.issueCertificateOnPass = exports.submitCourseExamAttempt = exports.startCourseExam = exports.verifyExamPayment = exports.createExamOrder = void 0;
+exports.verifyCertificate = exports.issueCertificateOnPass = exports.submitCourseExamAttempt = exports.startCourseExam = exports.verifyExamPayment = exports.createExamOrder = exports.completeCourseForExam = exports.checkPrismaDatabase = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const node_crypto_1 = __importDefault(require("node:crypto"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const razorpay_1 = __importDefault(require("razorpay"));
 const pdf_lib_1 = require("pdf-lib");
+const prisma_1 = require("./lib/prisma");
 admin.initializeApp();
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
+function isRecord(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
 const DEFAULT_WARNING_LIMIT = 3;
 const DEFAULT_PASSING_SCORE = 75;
 const razorpayConfig = functions.config().razorpay || {};
@@ -118,7 +122,52 @@ function normalizeQuestion(rawQuestion, index) {
         correctIndex,
     };
 }
+function normalizePrismaQuestions(rawQuestions, courseId) {
+    if (!Array.isArray(rawQuestions)) {
+        return null;
+    }
+    const questions = rawQuestions
+        .map((question, index) => normalizeQuestion(question, index))
+        .filter((question) => Boolean(question));
+    if (!questions.length) {
+        return null;
+    }
+    return {
+        examId: courseId,
+        courseId,
+        duration: 30,
+        passingScore: DEFAULT_PASSING_SCORE,
+        questions,
+    };
+}
+async function getPrismaCourseExam(courseId) {
+    const exam = await prisma_1.prisma.exam.findFirst({
+        where: {
+            OR: [
+                { courseId },
+                { id: courseId },
+            ],
+        },
+    });
+    if (!exam) {
+        return null;
+    }
+    const normalized = normalizePrismaQuestions(exam.questions, exam.courseId);
+    if (!normalized) {
+        return null;
+    }
+    return {
+        ...normalized,
+        examId: exam.id,
+        duration: exam.duration,
+        passingScore: exam.passingScore,
+    };
+}
 async function getCourseExam(courseId) {
+    const prismaExam = await getPrismaCourseExam(courseId);
+    if (prismaExam) {
+        return prismaExam;
+    }
     const courseSnapshot = await db.collection('courses').doc(courseId).get();
     const embeddedExam = courseSnapshot.exists ? courseSnapshot.data()?.exam : null;
     if (embeddedExam && typeof embeddedExam === 'object') {
@@ -185,6 +234,71 @@ function assertSignedIn(context) {
     }
     return context.auth.uid;
 }
+exports.checkPrismaDatabase = functions.https.onCall(async (_data, context) => {
+    assertSignedIn(context);
+    await prisma_1.prisma.$queryRaw `SELECT 1`;
+    return {
+        ok: true,
+        checkedAt: new Date().toISOString(),
+    };
+});
+exports.completeCourseForExam = functions.https.onCall(async (data, context) => {
+    const userId = assertSignedIn(context);
+    const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
+    const progress = typeof data?.progress === 'number' ? Math.max(0, Math.min(100, Math.round(data.progress))) : 100;
+    if (!courseId) {
+        throw new functions.https.HttpsError('invalid-argument', 'courseId is required.');
+    }
+    const [courseSnapshot, prismaCourse] = await Promise.all([
+        db.collection('courses').doc(courseId).get(),
+        prisma_1.prisma.course.findUnique({ where: { id: courseId } }),
+    ]);
+    if (!courseSnapshot.exists && !prismaCourse) {
+        throw new functions.https.HttpsError('not-found', 'Course not found.');
+    }
+    const course = courseSnapshot.exists
+        ? courseSnapshot.data() || {}
+        : {
+            title: prismaCourse?.title,
+            price: prismaCourse?.price,
+            description: prismaCourse?.description,
+            examAvailable: prismaCourse?.examAvailable,
+            lessons: prismaCourse?.lessons,
+        };
+    const paymentStatus = typeof course.price === 'number' && course.price > 0 ? 'pending' : 'not_required';
+    const completed = progress >= 100;
+    const updatedAt = new Date().toISOString();
+    await Promise.all([
+        getEnrollmentRef(userId, courseId).set({
+            userId,
+            courseId,
+            progress,
+            completed,
+            status: completed ? 'completed' : 'in_progress',
+            paymentStatus,
+            courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+            updatedAt,
+            completedAt: completed ? updatedAt : null,
+        }, { merge: true }),
+        upsertPrismaEnrollment(userId, courseId, course, {
+            progress,
+            completed,
+            status: completed ? 'completed' : 'in_progress',
+            paymentStatus,
+            courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+        }),
+    ]);
+    return {
+        enrollment: {
+            userId,
+            courseId,
+            progress,
+            completed,
+            paymentStatus,
+            updatedAt,
+        },
+    };
+});
 async function getUserIdFromRequest(req) {
     const authorization = req.headers.authorization || '';
     const [, token] = authorization.split(' ');
@@ -199,20 +313,154 @@ async function getUserIdFromRequest(req) {
         throw new functions.https.HttpsError('unauthenticated', 'Invalid authentication token.');
     }
 }
+function toFirestoreTimestamp(value) {
+    if (!value) {
+        return undefined;
+    }
+    if (value instanceof admin.firestore.Timestamp) {
+        return value;
+    }
+    if (value instanceof Date) {
+        return admin.firestore.Timestamp.fromDate(value);
+    }
+    if (typeof value === 'string') {
+        const millis = Date.parse(value);
+        return Number.isNaN(millis) ? undefined : admin.firestore.Timestamp.fromMillis(millis);
+    }
+    if (isRecord(value) && typeof value.seconds === 'number') {
+        return new admin.firestore.Timestamp(value.seconds, typeof value.nanoseconds === 'number' ? value.nanoseconds : 0);
+    }
+    return undefined;
+}
+function normalizePrismaExamSession(value) {
+    if (!isRecord(value)) {
+        return undefined;
+    }
+    const startedAt = toFirestoreTimestamp(value.startedAt);
+    const expiresAt = toFirestoreTimestamp(value.expiresAt);
+    const questionOrder = Array.isArray(value.questionOrder)
+        ? value.questionOrder.filter((questionId) => typeof questionId === 'string')
+        : [];
+    if (typeof value.attemptId !== 'string'
+        || !startedAt
+        || !expiresAt
+        || !questionOrder.length) {
+        return undefined;
+    }
+    return {
+        attemptId: value.attemptId,
+        startedAt,
+        expiresAt,
+        questionOrder,
+        warningLimit: typeof value.warningLimit === 'number' ? value.warningLimit : DEFAULT_WARNING_LIMIT,
+        submittedAt: toFirestoreTimestamp(value.submittedAt) || null,
+    };
+}
+function normalizePrismaEnrollment(enrollment) {
+    if (!enrollment) {
+        return null;
+    }
+    return {
+        userId: enrollment.userId,
+        courseId: enrollment.courseId,
+        progress: enrollment.progress,
+        completed: enrollment.completed,
+        paymentStatus: enrollment.paymentStatus,
+        status: enrollment.status || undefined,
+        examAttempted: enrollment.examAttempted,
+        adminRetakeAllowed: enrollment.adminRetakeAllowed,
+        passed: enrollment.passed,
+        score: enrollment.score ?? undefined,
+        certificateId: enrollment.certificateId ?? undefined,
+        certificateUrl: enrollment.certificateUrl ?? undefined,
+        examSession: normalizePrismaExamSession(enrollment.examSession),
+        examResult: isRecord(enrollment.examResult) ? enrollment.examResult : undefined,
+    };
+}
+async function ensurePrismaUser(userId) {
+    const authUser = await admin.auth().getUser(userId).catch(() => null);
+    await prisma_1.prisma.user.upsert({
+        where: { id: userId },
+        create: {
+            id: userId,
+            email: authUser?.email || `${userId}@firebase.local`,
+            name: authUser?.displayName || null,
+        },
+        update: {
+            email: authUser?.email || undefined,
+            name: authUser?.displayName || undefined,
+        },
+    });
+}
+async function ensurePrismaCourse(courseId, course) {
+    await prisma_1.prisma.course.upsert({
+        where: { id: courseId },
+        create: {
+            id: courseId,
+            title: typeof course.title === 'string' ? course.title : 'Course',
+            description: typeof course.description === 'string' ? course.description : null,
+            price: typeof course.price === 'number' ? course.price : 0,
+            examAvailable: typeof course.examAvailable === 'boolean' ? course.examAvailable : true,
+            lessons: Array.isArray(course.lessons) ? course.lessons : undefined,
+        },
+        update: {
+            title: typeof course.title === 'string' ? course.title : undefined,
+            description: typeof course.description === 'string' ? course.description : undefined,
+            price: typeof course.price === 'number' ? course.price : undefined,
+            examAvailable: typeof course.examAvailable === 'boolean' ? course.examAvailable : undefined,
+            lessons: Array.isArray(course.lessons) ? course.lessons : undefined,
+        },
+    });
+}
+function serializeExamSession(session) {
+    return {
+        attemptId: session.attemptId,
+        startedAt: session.startedAt.toDate().toISOString(),
+        expiresAt: session.expiresAt.toDate().toISOString(),
+        questionOrder: session.questionOrder,
+        warningLimit: session.warningLimit,
+        submittedAt: session.submittedAt ? session.submittedAt.toDate().toISOString() : null,
+    };
+}
+async function upsertPrismaEnrollment(userId, courseId, course, data) {
+    await ensurePrismaUser(userId);
+    await ensurePrismaCourse(courseId, course);
+    await prisma_1.prisma.enrollment.upsert({
+        where: { userId_courseId: { userId, courseId } },
+        create: {
+            userId,
+            courseId,
+            progress: typeof data.progress === 'number' ? data.progress : 0,
+            completed: typeof data.completed === 'boolean' ? data.completed : false,
+            paymentStatus: typeof data.paymentStatus === 'string' ? data.paymentStatus : 'not_required',
+            ...data,
+        },
+        update: data,
+    });
+}
 async function ensureExamAccess(userId, courseId) {
-    const [courseSnapshot, enrollmentSnapshot, exam] = await Promise.all([
+    const [courseSnapshot, enrollmentSnapshot, prismaCourse, prismaEnrollment, exam] = await Promise.all([
         db.collection('courses').doc(courseId).get(),
         getEnrollmentRef(userId, courseId).get(),
+        prisma_1.prisma.course.findUnique({ where: { id: courseId } }),
+        prisma_1.prisma.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } }),
         getCourseExam(courseId),
     ]);
-    if (!courseSnapshot.exists) {
+    if (!courseSnapshot.exists && !prismaCourse) {
         throw new functions.https.HttpsError('not-found', 'Course not found.');
     }
-    if (!enrollmentSnapshot.exists) {
+    if (!enrollmentSnapshot.exists && !prismaEnrollment) {
         throw new functions.https.HttpsError('failed-precondition', 'Enroll in the course first.');
     }
-    const course = courseSnapshot.data() || {};
-    const enrollment = enrollmentSnapshot.data();
+    const course = courseSnapshot.exists
+        ? courseSnapshot.data() || {}
+        : {
+            title: prismaCourse?.title,
+            price: prismaCourse?.price,
+        };
+    const enrollment = enrollmentSnapshot.exists
+        ? enrollmentSnapshot.data()
+        : normalizePrismaEnrollment(prismaEnrollment);
     const completed = enrollment.completed === true
         || enrollment.progress === 100
         || enrollment.status === 'completed';
@@ -229,7 +477,7 @@ async function ensureExamAccess(userId, courseId) {
     return {
         course,
         enrollment,
-        enrollmentRef: enrollmentSnapshot.ref,
+        enrollmentRef: getEnrollmentRef(userId, courseId),
         exam,
     };
 }
@@ -437,6 +685,13 @@ exports.createExamOrder = functions.https.onCall(async (data, context) => {
         razorpayOrderId: order.id,
         updatedAt: new Date().toISOString(),
     }, { merge: true });
+    await upsertPrismaEnrollment(userId, courseId, course, {
+        progress: enrollment.progress ?? 0,
+        completed: enrollment.completed ?? false,
+        paymentStatus: 'pending',
+        razorpayOrderId: order.id,
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+    });
     return {
         provider: 'razorpay',
         order: {
@@ -469,6 +724,13 @@ exports.verifyExamPayment = functions.https.onCall(async (data, context) => {
         razorpaySignature: signature,
         updatedAt: new Date().toISOString(),
     }, { merge: true });
+    const courseSnapshot = await db.collection('courses').doc(courseId).get();
+    await upsertPrismaEnrollment(userId, courseId, courseSnapshot.data() || {}, {
+        paymentStatus: 'success',
+        razorpayOrderId: orderId,
+        razorpayPaymentId: paymentId,
+        razorpaySignature: signature,
+    });
     return {
         paymentStatus: 'success',
     };
@@ -551,17 +813,26 @@ exports.startCourseExam = functions.https.onRequest(async (req, res) => {
             : admin.firestore.Timestamp.fromMillis(now.toMillis() + exam.duration * 60 * 1000);
         const warningLimit = canResume ? activeSession.warningLimit : DEFAULT_WARNING_LIMIT;
         if (!canResume) {
+            const examSession = {
+                attemptId,
+                startedAt: now,
+                expiresAt,
+                questionOrder,
+                warningLimit,
+                submittedAt: null,
+            };
             await enrollmentRef.set({
-                examSession: {
-                    attemptId,
-                    startedAt: now,
-                    expiresAt,
-                    questionOrder,
-                    warningLimit,
-                    submittedAt: null,
-                },
+                examSession,
                 updatedAt: new Date().toISOString(),
             }, { merge: true });
+            await upsertPrismaEnrollment(userId, courseId, course, {
+                progress: enrollment.progress ?? 0,
+                completed: enrollment.completed ?? false,
+                paymentStatus: enrollment.paymentStatus || 'not_required',
+                status: enrollment.status,
+                examSession: serializeExamSession(examSession),
+                courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+            });
         }
         res.status(200).json({
             attemptId,
@@ -591,19 +862,41 @@ exports.submitCourseExamAttempt = functions.https.onCall(async (data, context) =
     const violationCount = typeof data?.violationCount === 'number' ? data.violationCount : 0;
     const submissionReason = typeof data?.submissionReason === 'string' ? data.submissionReason : 'manual';
     const autoSubmitted = Boolean(data?.autoSubmitted);
+    const proctoringEvents = Array.isArray(data?.proctoringEvents)
+        ? data.proctoringEvents
+            .filter((event) => isRecord(event))
+            .map((event) => ({
+            type: typeof event.type === 'string' ? event.type : 'unknown',
+            message: typeof event.message === 'string' ? event.message : '',
+            at: typeof event.at === 'string' ? event.at : new Date().toISOString(),
+            faceCount: typeof event.faceCount === 'number' ? event.faceCount : null,
+        }))
+        : [];
     if (!courseId || !attemptId) {
         throw new functions.https.HttpsError('invalid-argument', 'courseId and attemptId are required.');
     }
-    const [courseSnapshot, enrollmentSnapshot, exam] = await Promise.all([
+    const [courseSnapshot, enrollmentSnapshot, prismaCourse, prismaEnrollment, exam] = await Promise.all([
         db.collection('courses').doc(courseId).get(),
         getEnrollmentRef(userId, courseId).get(),
+        prisma_1.prisma.course.findUnique({ where: { id: courseId } }),
+        prisma_1.prisma.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } }),
         getCourseExam(courseId),
     ]);
-    if (!courseSnapshot.exists || !enrollmentSnapshot.exists) {
+    if ((!courseSnapshot.exists && !prismaCourse) || (!enrollmentSnapshot.exists && !prismaEnrollment)) {
         throw new functions.https.HttpsError('failed-precondition', 'Exam enrollment could not be found.');
     }
-    const course = courseSnapshot.data() || {};
-    const enrollment = enrollmentSnapshot.data();
+    const course = courseSnapshot.exists
+        ? courseSnapshot.data() || {}
+        : {
+            title: prismaCourse?.title,
+            price: prismaCourse?.price,
+            description: prismaCourse?.description,
+            examAvailable: prismaCourse?.examAvailable,
+            lessons: prismaCourse?.lessons,
+        };
+    const enrollment = enrollmentSnapshot.exists
+        ? enrollmentSnapshot.data()
+        : normalizePrismaEnrollment(prismaEnrollment);
     const session = enrollment.examSession;
     if (!session || session.attemptId !== attemptId) {
         throw new functions.https.HttpsError('failed-precondition', 'This exam attempt is not active.');
@@ -627,6 +920,7 @@ exports.submitCourseExamAttempt = functions.https.onCall(async (data, context) =
         && attemptExam.questions.some((question) => question.id === questionId && answer >= 0 && answer < question.options.length))));
     const result = scoreAttempt(attemptExam, sanitizedAnswers);
     const attemptedAt = new Date().toISOString();
+    const submittedAt = getNowTimestamp();
     const certificateId = result.passed ? buildCertificateId(userId, courseId) : null;
     const answerReview = attemptExam.questions.map((question) => {
         const selectedIndex = sanitizedAnswers[question.id];
@@ -646,7 +940,7 @@ exports.submitCourseExamAttempt = functions.https.onCall(async (data, context) =
         certificateId,
         examSession: {
             ...session,
-            submittedAt: getNowTimestamp(),
+            submittedAt,
         },
         examResult: {
             score: result.score,
@@ -659,10 +953,75 @@ exports.submitCourseExamAttempt = functions.https.onCall(async (data, context) =
             autoSubmitted,
             answers: sanitizedAnswers,
             answerReview,
+            proctoringEvents,
         },
         updatedAt: attemptedAt,
         courseTitle: typeof course.title === 'string' ? course.title : 'Course',
     }, { merge: true });
+    const completedSession = {
+        ...session,
+        submittedAt,
+    };
+    const examResult = {
+        score: result.score,
+        passed: result.passed,
+        correctAnswers: result.correctAnswers,
+        totalQuestions: result.totalQuestions,
+        attemptedAt,
+        violationCount,
+        submissionReason,
+        autoSubmitted,
+        answers: sanitizedAnswers,
+        answerReview,
+        proctoringEvents,
+    };
+    await upsertPrismaEnrollment(userId, courseId, course, {
+        progress: enrollment.progress ?? 0,
+        completed: enrollment.completed ?? false,
+        paymentStatus: enrollment.paymentStatus || 'not_required',
+        status: enrollment.status,
+        examAttempted: true,
+        adminRetakeAllowed: false,
+        score: result.score,
+        passed: result.passed,
+        certificateId,
+        certificateUrl: typeof enrollment.certificateUrl === 'string' ? enrollment.certificateUrl : undefined,
+        examSession: serializeExamSession(completedSession),
+        examResult,
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+    });
+    await prisma_1.prisma.examAttempt.upsert({
+        where: { id: attemptId },
+        create: {
+            id: attemptId,
+            userId,
+            courseId,
+            score: result.score,
+            passed: result.passed,
+            correctAnswers: result.correctAnswers,
+            totalQuestions: result.totalQuestions,
+            answers: sanitizedAnswers,
+            answerReview,
+            proctoringEvents,
+            violationCount,
+            submissionReason,
+            autoSubmitted,
+            submittedAt: new Date(attemptedAt),
+        },
+        update: {
+            score: result.score,
+            passed: result.passed,
+            correctAnswers: result.correctAnswers,
+            totalQuestions: result.totalQuestions,
+            answers: sanitizedAnswers,
+            answerReview,
+            proctoringEvents,
+            violationCount,
+            submissionReason,
+            autoSubmitted,
+            submittedAt: new Date(attemptedAt),
+        },
+    });
     await db.collection('examAttempts').doc(attemptId).set({
         attemptId,
         userId,
@@ -672,6 +1031,7 @@ exports.submitCourseExamAttempt = functions.https.onCall(async (data, context) =
         correctAnswers: result.correctAnswers,
         totalQuestions: result.totalQuestions,
         answers: sanitizedAnswers,
+        proctoringEvents,
         violationCount,
         submissionReason,
         autoSubmitted,
@@ -735,6 +1095,39 @@ exports.issueCertificateOnPass = functions.firestore
         verificationUrl: `https://learnpaddi.in/verify-certificate?code=${certificateId}`,
         issuedAt: new Date().toISOString(),
     };
+    await upsertPrismaEnrollment(userId, courseId, course, {
+        certificateId,
+        certificateUrl: artifact.certificateUrl,
+        passed: true,
+        score: typeof after.score === 'number' ? after.score : 0,
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+    });
+    await prisma_1.prisma.certificate.upsert({
+        where: { certificateId },
+        create: {
+            certificateId,
+            userId,
+            courseId,
+            userName: certificateRecord.userName,
+            courseTitle: certificateRecord.courseTitle,
+            score: certificateRecord.score,
+            completionDate: new Date(completionDate),
+            certificateUrl: artifact.certificateUrl,
+            storagePath: artifact.storagePath,
+            verificationUrl: certificateRecord.verificationUrl,
+            issuedAt: new Date(certificateRecord.issuedAt),
+        },
+        update: {
+            userName: certificateRecord.userName,
+            courseTitle: certificateRecord.courseTitle,
+            score: certificateRecord.score,
+            completionDate: new Date(completionDate),
+            certificateUrl: artifact.certificateUrl,
+            storagePath: artifact.storagePath,
+            verificationUrl: certificateRecord.verificationUrl,
+            issuedAt: new Date(certificateRecord.issuedAt),
+        },
+    });
     await Promise.all([
         change.after.ref.set({
             certificateId,
@@ -761,6 +1154,25 @@ exports.verifyCertificate = functions.https.onCall(async (data) => {
     const certificateId = typeof data?.certificateId === 'string' ? data.certificateId.trim().toUpperCase() : '';
     if (!certificateId) {
         throw new functions.https.HttpsError('invalid-argument', 'certificateId is required.');
+    }
+    const prismaCertificate = await prisma_1.prisma.certificate.findUnique({ where: { certificateId } });
+    if (prismaCertificate) {
+        return {
+            certificate: {
+                id: prismaCertificate.id,
+                valid: true,
+                certificateId: prismaCertificate.certificateId,
+                userId: prismaCertificate.userId,
+                courseId: prismaCertificate.courseId,
+                userName: prismaCertificate.userName,
+                courseTitle: prismaCertificate.courseTitle,
+                score: prismaCertificate.score,
+                completionDate: prismaCertificate.completionDate.toISOString(),
+                certificateUrl: prismaCertificate.certificateUrl,
+                verificationUrl: prismaCertificate.verificationUrl,
+                issuedAt: prismaCertificate.issuedAt.toISOString(),
+            },
+        };
     }
     const snapshot = await db.collection('certificates').doc(certificateId).get();
     if (!snapshot.exists) {

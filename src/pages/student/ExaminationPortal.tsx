@@ -1,7 +1,13 @@
-import { AlertTriangle, CheckCircle2, ClipboardList, Expand, Eye, ShieldAlert, TimerReset, XCircle } from 'lucide-react';
+import { AlertTriangle, Camera, CheckCircle2, ClipboardList, Expand, Eye, ShieldAlert, TimerReset, XCircle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  requestStrictFaceCheck,
+  useFaceProctoring,
+  type ProctoringEvent,
+  type ProctoringEventType,
+} from '@/features/exam/useFaceProctoring';
 import { useSecureExamSession } from '@/features/exam/useSecureExamSession';
 import { loadRazorpayScript } from '@/features/learning/lib/loadRazorpay';
 import {
@@ -22,10 +28,12 @@ type ExamSubmissionReason = 'manual' | 'time_limit' | 'violation_limit' | 'exam_
 const ExaminationPortal = () => {
   const { user } = useAuth();
   const examContainerRef = useRef<HTMLDivElement | null>(null);
+  const faceVideoRef = useRef<HTMLVideoElement | null>(null);
   const restoredSessionRef = useRef(false);
   const ignoreSecurityEventsRef = useRef(false);
   const submittingRef = useRef(false);
   const violationCountRef = useRef(0);
+  const proctoringEventsRef = useRef<ProctoringEvent[]>([]);
   const [items, setItems] = useState<ExamDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeAttempt, setActiveAttempt] = useState<ActiveExamAttempt | null>(null);
@@ -40,6 +48,25 @@ const ExaminationPortal = () => {
   const [workingCourseId, setWorkingCourseId] = useState<string | null>(null);
   const [pendingStartItem, setPendingStartItem] = useState<ExamDashboardItem | null>(null);
   const [examExitMessage, setExamExitMessage] = useState('');
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [proctoringEvents, setProctoringEvents] = useState<ProctoringEvent[]>([]);
+
+  const appendProctoringEvent = (event: ProctoringEvent) => {
+    setProctoringEvents((current) => {
+      const nextEvents = [...current, event].slice(-80);
+      proctoringEventsRef.current = nextEvents;
+      return nextEvents;
+    });
+  };
+
+  const appendLocalProctoringEvent = (type: ProctoringEventType, message: string, faceCount?: number) => {
+    appendProctoringEvent({
+      type,
+      message,
+      faceCount,
+      at: new Date().toISOString(),
+    });
+  };
 
   useEffect(() => {
     if (!user) {
@@ -115,6 +142,10 @@ const ExaminationPortal = () => {
     violationCountRef.current = violations;
   }, [violations]);
 
+  useEffect(() => {
+    proctoringEventsRef.current = proctoringEvents;
+  }, [proctoringEvents]);
+
   const eligibleItems = useMemo(() => items.filter((item) => item.completed), [items]);
 
   const requestExamFullscreen = async () => {
@@ -136,6 +167,10 @@ const ExaminationPortal = () => {
     setAnswers({});
     setActiveQuestionIndex(0);
     setViolations(0);
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    setCameraStream(null);
+    setProctoringEvents([]);
+    proctoringEventsRef.current = [];
     if (document.fullscreenElement) {
       await document.exitFullscreen().catch(() => undefined);
     }
@@ -150,6 +185,7 @@ const ExaminationPortal = () => {
     }
 
     setFullscreenWarning(reason);
+    appendLocalProctoringEvent('security_violation', reason);
     setViolations((current) => {
       const nextValue = current + 1;
       if (activeAttempt && nextValue >= activeAttempt.warningLimit && !submitting) {
@@ -161,6 +197,14 @@ const ExaminationPortal = () => {
 
   useSecureExamSession({
     active: Boolean(activeAttempt),
+    onViolation: handleViolation,
+  });
+
+  useFaceProctoring({
+    active: Boolean(activeAttempt),
+    stream: cameraStream,
+    videoRef: faceVideoRef,
+    onEvent: appendProctoringEvent,
     onViolation: handleViolation,
   });
 
@@ -223,8 +267,15 @@ const ExaminationPortal = () => {
     setLastResult(null);
     setExamExitMessage('');
     setPendingStartItem(null);
+    setProctoringEvents([]);
+    proctoringEventsRef.current = [];
+    let verifiedStream: MediaStream | null = null;
 
     try {
+      const faceCheck = await requestStrictFaceCheck();
+      verifiedStream = faceCheck.stream;
+      setCameraStream(faceCheck.stream);
+      appendProctoringEvent(faceCheck.event);
       const exam = await startCourseExam(item.courseId);
       setActiveAttempt(exam);
       setAnswers({});
@@ -234,6 +285,9 @@ const ExaminationPortal = () => {
         void requestExamFullscreen();
       }, 0);
     } catch (error) {
+      verifiedStream?.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+      appendLocalProctoringEvent('camera_error', error instanceof Error ? error.message : 'Camera and face detection failed.');
       setPageError(error instanceof Error ? error.message : 'Unable to submit exam right now.');
     } finally {
       setWorkingCourseId(null);
@@ -265,6 +319,15 @@ const ExaminationPortal = () => {
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      const submittedEvent: ProctoringEvent = {
+        type: 'exam_submitted',
+        message: `Exam submitted by ${submissionReason}.`,
+        at: new Date().toISOString(),
+      };
+      const submissionProctoringEvents = [...proctoringEventsRef.current, submittedEvent].slice(-100);
+      proctoringEventsRef.current = submissionProctoringEvents;
+      setProctoringEvents(submissionProctoringEvents);
+
       const result = await submitCourseExamAttempt({
         courseId: activeAttempt.courseId,
         attemptId: activeAttempt.attemptId,
@@ -272,6 +335,7 @@ const ExaminationPortal = () => {
         violationCount: forcedViolationCount ?? violations,
         submissionReason,
         autoSubmitted,
+        proctoringEvents: submissionProctoringEvents,
       });
       setLastResult(result);
       if (submissionReason === 'exam_portal_exit') {
@@ -362,6 +426,7 @@ const ExaminationPortal = () => {
             <div className="mt-5 space-y-4 text-sm leading-7 text-slate-600">
               <p>Read the privacy and exam terms carefully before you write the exam. All the best.</p>
               <p>This is an MCQ examination. Choose one answer for every question and submit before the timer ends.</p>
+              <p>Strict mode requires camera permission and one visible face before the exam can start. Face checks continue during the exam and are saved with the attempt record.</p>
               <p>Stay inside the exam popup and keep fullscreen active. Changing tab, leaving the page, closing the portal, or exiting fullscreen will end the attempt and you must rewrite the exam after admin approval.</p>
               <p>Certificates are generated only after a verified passing score is recorded by the secure backend.</p>
             </div>
@@ -373,7 +438,7 @@ const ExaminationPortal = () => {
                 className="primary-cta px-5 py-3 text-sm disabled:opacity-70"
               >
                 <ClipboardList className="h-4 w-4" />
-                {workingCourseId === pendingStartItem.courseId ? 'Starting...' : 'I Agree, Start Exam'}
+                {workingCourseId === pendingStartItem.courseId ? 'Checking camera...' : 'I Agree, Start Exam'}
               </button>
               <button
                 type="button"
@@ -528,9 +593,21 @@ const ExaminationPortal = () => {
               </article>
 
               <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Face Detection</p>
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+                  <video ref={faceVideoRef} className="aspect-video w-full object-cover" muted playsInline />
+                </div>
+                <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <Camera className="h-4 w-4 text-blue-600" />
+                  Strict mode active. Keep exactly one face visible.
+                </p>
+              </article>
+
+              <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Rules</p>
                 <div className="mt-4 space-y-3 text-sm text-slate-600">
                   <p>Tab switches, fullscreen exits, copy, paste, right-click, and inspect shortcuts count as violations.</p>
+                  <p>No face, multiple faces, or camera interruption count as strict mode violations.</p>
                   <p>Three violations trigger automatic submission.</p>
                   <p>You get one attempt unless LearnPaddi support explicitly unlocks another attempt.</p>
                 </div>

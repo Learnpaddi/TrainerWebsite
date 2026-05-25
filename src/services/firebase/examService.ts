@@ -10,6 +10,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import type { ProctoringEvent } from '@/features/exam/useFaceProctoring';
 import { auth, db, functions, firebaseConfig } from '@/services/firebase/config';
 
 export interface ExamCatalogItem {
@@ -146,6 +147,7 @@ const submitCourseExamCallable = httpsCallable<{
   violationCount: number;
   submissionReason: 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
   autoSubmitted: boolean;
+  proctoringEvents?: ProctoringEvent[];
 }, SubmitCourseExamResponse>(functions, 'submitCourseExamAttempt');
 const createExamOrderCallable = httpsCallable<{ courseId: string }, CreateExamOrderResponse>(functions, 'createExamOrder');
 const verifyExamPaymentCallable = httpsCallable<{
@@ -155,6 +157,19 @@ const verifyExamPaymentCallable = httpsCallable<{
   razorpay_signature: string;
 }, { paymentStatus: 'success' }>(functions, 'verifyExamPayment');
 const verifyCertificateCallable = httpsCallable<{ certificateId: string }, VerifyCertificateResponse>(functions, 'verifyCertificate');
+const completeCourseForExamCallable = httpsCallable<{
+  courseId: string;
+  progress: number;
+}, {
+  enrollment: {
+    userId: string;
+    courseId: string;
+    progress: number;
+    completed: boolean;
+    paymentStatus: string;
+    updatedAt: string;
+  };
+}>(functions, 'completeCourseForExam');
 const ACTIVE_ATTEMPT_STORAGE_KEY = 'learnpaddi-active-exam-attempt';
 
 const mapExamDoc = (courseId: string, raw: Record<string, unknown> | undefined): ExamCatalogItem | null => {
@@ -426,6 +441,8 @@ export async function markEnrollmentCompleted(userId: string, courseId: string, 
     },
     { merge: true },
   );
+
+  await completeCourseForExamCallable({ courseId, progress });
 }
 
 export async function startCourseExam(courseId: string): Promise<ActiveExamAttempt> {
@@ -461,6 +478,7 @@ export async function submitCourseExamAttempt(payload: {
   violationCount: number;
   submissionReason: 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
   autoSubmitted: boolean;
+  proctoringEvents?: ProctoringEvent[];
 }): Promise<SubmittedExamResult> {
   const response = await submitCourseExamCallable(payload);
   return response.data;

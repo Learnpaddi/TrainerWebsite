@@ -1,7 +1,11 @@
 {
   "name": "functions",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run prisma:generate && tsc",
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "db:push": "prisma db push --schema=prisma/schema.prisma",
+    "db:seed": "node prisma/seed.cjs",
+    "db:migrate": "prisma migrate deploy --schema=prisma/schema.prisma",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -13,19 +17,21 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "firebase-admin": "^12.5.0",
     "firebase-functions": "^5.1.1",
-    "razorpay": "^2.9.4",
-    "pdf-lib": "^1.17.1",
     "nodemailer": "^6.9.13",
-    "cors": "^2.8.5",
-    "crypto": "^1.0.1"
+    "pdf-lib": "^1.17.1",
+    "prisma": "^6.19.0",
+    "razorpay": "^2.9.4"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "@types/node": "^22.7.4",
     "@types/cors": "^2.8.17",
-    "firebase-functions-test": "^3.1.1"
+    "@types/node": "^22.7.4",
+    "firebase-functions-test": "^3.1.1",
+    "typescript": "^5.5.4"
   },
   "private": true
 }

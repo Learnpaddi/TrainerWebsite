@@ -38,3 +38,5 @@ build/
 !firebase.json
 !firestore.rules
 !firestore.indexes.json
+
+/src/generated/prisma
