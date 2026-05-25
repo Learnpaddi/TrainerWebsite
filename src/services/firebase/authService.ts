@@ -9,9 +9,8 @@ import {
   type UserCredential
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
-import { Timestamp, doc, setDoc } from 'firebase/firestore';
-import { auth, authReady, db, googleProvider } from './config';
-import { getUserDoc } from './userService';
+import { auth, authReady, googleProvider } from './config';
+import { setUserDoc } from './userService';
 
 
 export interface RegisterPayload {
@@ -21,35 +20,17 @@ export interface RegisterPayload {
   role: 'student' | 'trainer';
 }
 
-const roleCollectionMap: Record<'student' | 'trainer', 'students' | 'trainers'> = {
-  student: 'students',
-  trainer: 'trainers',
-};
-
-const buildRoleDoc = (uid: string, payload: { name: string; email: string; role: 'student' | 'trainer' }) => ({
-  uid,
-  name: payload.name,
-  email: payload.email,
-  role: payload.role,
-  trainerId: payload.role === 'trainer' ? uid : null,
-  enrolledCourses: [],
-  certificates: [],
-  createdAt: Timestamp.now(),
-  updatedAt: Timestamp.now(),
-});
-
-const upsertRoleDoc = async (uid: string, payload: { name: string; email: string; role: 'student' | 'trainer' }) => {
-  const roleCollection = roleCollectionMap[payload.role];
-  await setDoc(doc(db, roleCollection, uid), buildRoleDoc(uid, payload), { merge: true });
-};
-
 export const register = async (payload: RegisterPayload): Promise<User> => {
   await authReady;
   const { user } = await createUserWithEmailAndPassword(auth, payload.email, payload.password);
   await updateProfile(user, { displayName: payload.name });
-  const docPayload = buildRoleDoc(user.uid, payload);
-  await setDoc(doc(db, 'users', user.uid), docPayload, { merge: true });
-  await upsertRoleDoc(user.uid, payload);
+  await setUserDoc(user.uid, {
+    uid: user.uid,
+    name: payload.name,
+    email: payload.email,
+    role: payload.role,
+    trainerId: payload.role === 'trainer' ? user.uid : null,
+  });
   return user;
 };
 
@@ -62,20 +43,12 @@ export const googleSignIn = async (): Promise<UserCredential> => {
   await authReady;
   const result = await signInWithPopup(auth, googleProvider);
   const user = result.user;
-  const existing = await getUserDoc(user.uid);
-  if (!existing) {
-    const payload = {
-      name: user.displayName || 'Learner',
-      email: user.email || '',
-      role: 'student' as const,
-    };
-    await setDoc(
-      doc(db, 'users', user.uid),
-      buildRoleDoc(user.uid, payload),
-      { merge: true },
-    );
-    await upsertRoleDoc(user.uid, payload);
-  }
+  await setUserDoc(user.uid, {
+    uid: user.uid,
+    name: user.displayName || 'Learner',
+    email: user.email || '',
+    role: 'student',
+  });
   return result;
 };
 

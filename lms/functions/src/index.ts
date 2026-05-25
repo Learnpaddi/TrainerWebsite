@@ -1,16 +1,11 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import crypto from 'node:crypto';
-import nodemailer from 'nodemailer';
 import Razorpay from 'razorpay';
-import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import { Prisma } from '@prisma/client';
 import { prisma } from './lib/prisma';
 
 admin.initializeApp();
-
-const db = admin.firestore();
-const bucket = admin.storage().bucket();
 
 type ExamQuestionRecord = {
   id: string;
@@ -71,8 +66,6 @@ const DEFAULT_WARNING_LIMIT = 3;
 const DEFAULT_PASSING_SCORE = 75;
 
 const razorpayConfig = functions.config().razorpay || {};
-const smtpConfig = functions.config().smtp || {};
-
 const razorpay = razorpayConfig.key_id && razorpayConfig.key_secret
   ? new Razorpay({
       key_id: razorpayConfig.key_id,
@@ -80,24 +73,8 @@ const razorpay = razorpayConfig.key_id && razorpayConfig.key_secret
     })
   : null;
 
-function getEnrollmentRef(userId: string, courseId: string) {
-  return db.collection('enrollments').doc(`${userId}_${courseId}`);
-}
-
 function getNowTimestamp() {
   return admin.firestore.Timestamp.now();
-}
-
-function toISOString(value: admin.firestore.Timestamp | string | undefined | null) {
-  if (!value) {
-    return new Date().toISOString();
-  }
-
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  return value.toDate().toISOString();
 }
 
 function shuffle<T>(items: T[]) {
@@ -212,61 +189,7 @@ async function getCourseExam(courseId: string): Promise<ExamDocumentRecord> {
     return prismaExam;
   }
 
-  const courseSnapshot = await db.collection('courses').doc(courseId).get();
-  const embeddedExam = courseSnapshot.exists ? courseSnapshot.data()?.exam : null;
-  if (embeddedExam && typeof embeddedExam === 'object') {
-    const embeddedExamData = embeddedExam as Record<string, unknown>;
-    const embeddedQuestions = Array.isArray(embeddedExamData.questions)
-      ? embeddedExamData.questions
-          .map((question, index) => normalizeQuestion(question, index))
-          .filter((question): question is ExamQuestionRecord => Boolean(question))
-      : [];
-
-    if (embeddedQuestions.length) {
-      return {
-        examId: courseId,
-        courseId,
-        duration: typeof embeddedExamData.duration === 'number' ? embeddedExamData.duration : 30,
-        passingScore: typeof embeddedExamData.passingScore === 'number'
-          ? embeddedExamData.passingScore
-          : typeof embeddedExamData.passPercentage === 'number'
-            ? embeddedExamData.passPercentage
-            : DEFAULT_PASSING_SCORE,
-        questions: embeddedQuestions,
-      };
-    }
-  }
-
-  const directExamSnapshot = await db.collection('exams').doc(courseId).get();
-  let examSource: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData> | null = directExamSnapshot;
-
-  if (!directExamSnapshot.exists) {
-    const lookup = await db.collection('exams').where('courseId', '==', courseId).limit(1).get();
-    examSource = lookup.empty ? null : lookup.docs[0];
-  }
-
-  if (!examSource?.exists) {
-    throw new functions.https.HttpsError('not-found', 'Exam configuration was not found for this course.');
-  }
-
-  const examData = examSource.data() || {};
-  const questions = Array.isArray(examData.questions)
-    ? examData.questions
-        .map((question, index) => normalizeQuestion(question, index))
-        .filter((question): question is ExamQuestionRecord => Boolean(question))
-    : [];
-
-  if (!questions.length) {
-    throw new functions.https.HttpsError('failed-precondition', 'This exam has no valid questions configured.');
-  }
-
-  return {
-    examId: examSource.id,
-    courseId,
-    duration: typeof examData.duration === 'number' ? examData.duration : 30,
-    passingScore: typeof examData.passingScore === 'number' ? examData.passingScore : DEFAULT_PASSING_SCORE,
-    questions,
-  };
+  throw new functions.https.HttpsError('not-found', 'Exam configuration was not found for this course.');
 }
 
 function buildPublicQuestions(exam: ExamDocumentRecord, questionOrder: string[]) {
@@ -301,6 +224,77 @@ export const checkPrismaDatabase = functions.https.onCall(async (_data, context)
   };
 });
 
+export const upsertAuthUserProfile = functions.https.onCall(async (data, context) => {
+  const userId = assertSignedIn(context);
+  const authUser = await admin.auth().getUser(userId);
+  const role = data?.role === 'trainer' ? 'trainer' : 'student';
+  const name = typeof data?.name === 'string' && data.name.trim()
+    ? data.name.trim()
+    : authUser.displayName || '';
+  const email = authUser.email || (typeof data?.email === 'string' ? data.email : `${userId}@firebase.local`);
+
+  const user = await prisma.user.upsert({
+    where: { id: userId },
+    create: {
+      id: userId,
+      email,
+      name,
+      role,
+    },
+    update: {
+      email,
+      name,
+      role,
+    },
+  });
+
+  return {
+    user: {
+      uid: user.id,
+      email: user.email,
+      name: user.name || '',
+      role: user.role === 'trainer' ? 'trainer' : 'student',
+      trainerId: user.role === 'trainer' ? user.id : null,
+      enrolledCourses: [],
+      certificates: [],
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    },
+  };
+});
+
+export const getAuthUserProfile = functions.https.onCall(async (_data, context) => {
+  const userId = assertSignedIn(context);
+  const authUser = await admin.auth().getUser(userId);
+  const user = await prisma.user.upsert({
+    where: { id: userId },
+    create: {
+      id: userId,
+      email: authUser.email || `${userId}@firebase.local`,
+      name: authUser.displayName || '',
+      role: 'student',
+    },
+    update: {
+      email: authUser.email || undefined,
+      name: authUser.displayName || undefined,
+    },
+  });
+
+  return {
+    user: {
+      uid: user.id,
+      email: user.email,
+      name: user.name || '',
+      role: user.role === 'trainer' ? 'trainer' : 'student',
+      trainerId: user.role === 'trainer' ? user.id : null,
+      enrolledCourses: [],
+      certificates: [],
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    },
+  };
+});
+
 export const completeCourseForExam = functions.https.onCall(async (data, context) => {
   const userId = assertSignedIn(context);
   const courseId = typeof data?.courseId === 'string' ? data.courseId : '';
@@ -310,48 +304,29 @@ export const completeCourseForExam = functions.https.onCall(async (data, context
     throw new functions.https.HttpsError('invalid-argument', 'courseId is required.');
   }
 
-  const [courseSnapshot, prismaCourse] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    prisma.course.findUnique({ where: { id: courseId } }),
-  ]);
-
-  if (!courseSnapshot.exists && !prismaCourse) {
+  const prismaCourse = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!prismaCourse) {
     throw new functions.https.HttpsError('not-found', 'Course not found.');
   }
 
-  const course = courseSnapshot.exists
-    ? courseSnapshot.data() || {}
-    : {
-        title: prismaCourse?.title,
-        price: prismaCourse?.price,
-        description: prismaCourse?.description,
-        examAvailable: prismaCourse?.examAvailable,
-        lessons: prismaCourse?.lessons,
-      };
-  const paymentStatus = typeof course.price === 'number' && course.price > 0 ? 'pending' : 'not_required';
+  const course = {
+    title: prismaCourse.title,
+    price: prismaCourse.price,
+    description: prismaCourse.description,
+    examAvailable: prismaCourse.examAvailable,
+    lessons: prismaCourse.lessons,
+  };
+  const paymentStatus = prismaCourse.price > 0 ? 'pending' : 'not_required';
   const completed = progress >= 100;
   const updatedAt = new Date().toISOString();
 
-  await Promise.all([
-    getEnrollmentRef(userId, courseId).set({
-      userId,
-      courseId,
-      progress,
-      completed,
-      status: completed ? 'completed' : 'in_progress',
-      paymentStatus,
-      courseTitle: typeof course.title === 'string' ? course.title : 'Course',
-      updatedAt,
-      completedAt: completed ? updatedAt : null,
-    }, { merge: true }),
-    upsertPrismaEnrollment(userId, courseId, course, {
-      progress,
-      completed,
-      status: completed ? 'completed' : 'in_progress',
-      paymentStatus,
-      courseTitle: typeof course.title === 'string' ? course.title : 'Course',
-    }),
-  ]);
+  await upsertPrismaEnrollment(userId, courseId, course, {
+    progress,
+    completed,
+    status: completed ? 'completed' : 'in_progress',
+    paymentStatus,
+    courseTitle: prismaCourse.title,
+  });
 
   return {
     enrollment: {
@@ -362,6 +337,88 @@ export const completeCourseForExam = functions.https.onCall(async (data, context
       paymentStatus,
       updatedAt,
     },
+  };
+});
+
+export const listExamDashboard = functions.https.onCall(async (_data, context) => {
+  const userId = assertSignedIn(context);
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      userId,
+      OR: [
+        { completed: true },
+        { progress: { gte: 100 } },
+        { status: 'completed' },
+      ],
+    },
+    include: {
+      course: {
+        include: {
+          exams: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: 'desc',
+    },
+  });
+
+  return {
+    items: enrollments
+      .filter((enrollment) => enrollment.course.examAvailable && enrollment.course.exams.length > 0)
+      .map((enrollment) => {
+        const exam = enrollment.course.exams[0];
+        const questions = Array.isArray(exam.questions) ? exam.questions : [];
+        return {
+          enrollmentId: enrollment.id,
+          userId: enrollment.userId,
+          courseId: enrollment.courseId,
+          courseTitle: enrollment.course.title,
+          price: enrollment.course.price,
+          completed: enrollment.completed || enrollment.progress >= 100 || enrollment.status === 'completed',
+          progress: enrollment.progress,
+          paymentStatus: enrollment.paymentStatus === 'success'
+            ? 'success'
+            : enrollment.paymentStatus === 'pending'
+              ? 'pending'
+              : 'not_required',
+          examAttempted: enrollment.examAttempted,
+          passed: enrollment.passed,
+          score: enrollment.score,
+          certificateUrl: enrollment.certificateUrl,
+          certificateId: enrollment.certificateId,
+          examAvailable: true,
+          examTitle: exam.title || `${enrollment.course.title} Final Exam`,
+          duration: exam.duration,
+          passingScore: exam.passingScore,
+          questionCount: questions.length,
+          adminRetakeAllowed: enrollment.adminRetakeAllowed,
+        };
+      }),
+  };
+});
+
+export const listCertificates = functions.https.onCall(async (_data, context) => {
+  const userId = assertSignedIn(context);
+  const certificates = await prisma.certificate.findMany({
+    where: { userId },
+    orderBy: { issuedAt: 'desc' },
+  });
+
+  return {
+    certificates: certificates.map((certificate) => ({
+      id: certificate.id,
+      certificateId: certificate.certificateId,
+      userId: certificate.userId,
+      courseId: certificate.courseId,
+      courseTitle: certificate.courseTitle,
+      userName: certificate.userName,
+      score: certificate.score,
+      completionDate: certificate.completionDate.toISOString(),
+      certificateUrl: certificate.certificateUrl,
+      verificationUrl: certificate.verificationUrl || undefined,
+      issuedAt: certificate.issuedAt.toISOString(),
+    })),
   };
 });
 
@@ -467,6 +524,7 @@ async function ensurePrismaUser(userId: string) {
       id: userId,
       email: authUser?.email || `${userId}@firebase.local`,
       name: authUser?.displayName || null,
+      role: 'student',
     },
     update: {
       email: authUser?.email || undefined,
@@ -526,31 +584,28 @@ async function upsertPrismaEnrollment(userId: string, courseId: string, course: 
 }
 
 async function ensureExamAccess(userId: string, courseId: string) {
-  const [courseSnapshot, enrollmentSnapshot, prismaCourse, prismaEnrollment, exam] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    getEnrollmentRef(userId, courseId).get(),
+  const [prismaCourse, prismaEnrollment, exam] = await Promise.all([
     prisma.course.findUnique({ where: { id: courseId } }),
     prisma.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } }),
     getCourseExam(courseId),
   ]);
 
-  if (!courseSnapshot.exists && !prismaCourse) {
+  if (!prismaCourse) {
     throw new functions.https.HttpsError('not-found', 'Course not found.');
   }
 
-  if (!enrollmentSnapshot.exists && !prismaEnrollment) {
+  if (!prismaEnrollment) {
     throw new functions.https.HttpsError('failed-precondition', 'Enroll in the course first.');
   }
 
-  const course = courseSnapshot.exists
-    ? courseSnapshot.data() || {}
-    : {
-        title: prismaCourse?.title,
-        price: prismaCourse?.price,
-      };
-  const enrollment = enrollmentSnapshot.exists
-    ? enrollmentSnapshot.data() as EnrollmentRecord
-    : normalizePrismaEnrollment(prismaEnrollment) as EnrollmentRecord;
+  const course = {
+    title: prismaCourse.title,
+    price: prismaCourse.price,
+    description: prismaCourse.description,
+    examAvailable: prismaCourse.examAvailable,
+    lessons: prismaCourse.lessons,
+  };
+  const enrollment = normalizePrismaEnrollment(prismaEnrollment) as EnrollmentRecord;
 
   const completed = enrollment.completed === true
     || enrollment.progress === 100
@@ -571,7 +626,6 @@ async function ensureExamAccess(userId: string, courseId: string) {
   return {
     course,
     enrollment,
-    enrollmentRef: getEnrollmentRef(userId, courseId),
     exam,
   };
 }
@@ -593,41 +647,6 @@ function scoreAttempt(exam: ExamDocumentRecord, answers: Record<string, number>)
   };
 }
 
-async function sendCertificateEmail(input: {
-  recipient: string;
-  userName: string;
-  courseTitle: string;
-  certificateUrl: string;
-  certificateId: string;
-}) {
-  if (!smtpConfig.host || !smtpConfig.user || !smtpConfig.pass) {
-    functions.logger.info('Skipping certificate email because SMTP is not configured.');
-    return;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: smtpConfig.host,
-    port: Number(smtpConfig.port || 587),
-    secure: String(smtpConfig.secure || 'false') === 'true',
-    auth: {
-      user: smtpConfig.user,
-      pass: smtpConfig.pass,
-    },
-  });
-
-  await transporter.sendMail({
-    from: smtpConfig.from || smtpConfig.user,
-    to: input.recipient,
-    subject: 'Your Certificate is Ready 🎉',
-    html: `
-      <p>Hi ${input.userName},</p>
-      <p>Your LearnPaddi certificate for <strong>${input.courseTitle}</strong> is ready.</p>
-      <p><a href="${input.certificateUrl}">Download your certificate</a></p>
-      <p>Certificate ID: <strong>${input.certificateId}</strong></p>
-    `,
-  });
-}
-
 async function generateCertificateArtifact(input: {
   certificateId: string;
   userId: string;
@@ -637,134 +656,17 @@ async function generateCertificateArtifact(input: {
   score: number;
   completionDate: string;
 }) {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([842, 595]);
-  const pageWidth = page.getWidth();
-  const pageHeight = page.getHeight();
-  const headingFont = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const bodyFont = await pdf.embedFont(StandardFonts.Helvetica);
-
-  page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: pageHeight, color: rgb(0.98, 0.99, 1) });
-  page.drawRectangle({
-    x: 28,
-    y: 28,
-    width: pageWidth - 56,
-    height: pageHeight - 56,
-    borderColor: rgb(0.12, 0.29, 0.7),
-    borderWidth: 2,
-  });
-
-  page.drawText('LEARNPADDI CERTIFIED', {
-    x: 250,
-    y: 510,
-    size: 16,
-    font: headingFont,
-    color: rgb(0.12, 0.29, 0.7),
-  });
-  page.drawText('Certificate of Achievement', {
-    x: 180,
-    y: 455,
-    size: 34,
-    font: headingFont,
-    color: rgb(0.08, 0.14, 0.22),
-  });
-  page.drawText('This certificate is proudly awarded to', {
-    x: 292,
-    y: 410,
-    size: 15,
-    font: bodyFont,
-    color: rgb(0.28, 0.34, 0.41),
-  });
-  page.drawText(input.userName, {
-    x: 130,
-    y: 360,
-    size: 36,
-    font: headingFont,
-    color: rgb(0.05, 0.12, 0.2),
-  });
-  page.drawText('for successfully completing and passing the final assessment for', {
-    x: 185,
-    y: 318,
-    size: 15,
-    font: bodyFont,
-    color: rgb(0.28, 0.34, 0.41),
-  });
-  page.drawText(input.courseTitle, {
-    x: 110,
-    y: 270,
-    size: 28,
-    font: headingFont,
-    color: rgb(0.01, 0.5, 0.53),
-  });
-
-  page.drawText(`Score: ${input.score}%`, {
-    x: 96,
-    y: 188,
-    size: 15,
-    font: bodyFont,
-    color: rgb(0.2, 0.25, 0.32),
-  });
-  page.drawText(`Completion Date: ${input.completionDate}`, {
-    x: 300,
-    y: 188,
-    size: 15,
-    font: bodyFont,
-    color: rgb(0.2, 0.25, 0.32),
-  });
-  page.drawText(`Certificate ID: ${input.certificateId}`, {
-    x: 96,
-    y: 156,
-    size: 14,
-    font: bodyFont,
-    color: rgb(0.2, 0.25, 0.32),
-  });
-  page.drawText(`Verify at learnpaddi.in/verify-certificate?code=${input.certificateId}`, {
-    x: 96,
-    y: 128,
-    size: 12,
-    font: bodyFont,
-    color: rgb(0.25, 0.35, 0.55),
-  });
-  page.drawText('LEARNPADDI VERIFIED', {
-    x: 205,
-    y: 280,
-    size: 44,
-    font: headingFont,
-    color: rgb(0.92, 0.94, 0.97),
-    rotate: degrees(26),
-  });
-  page.drawText('LearnPaddi Academic Office', {
-    x: 545,
-    y: 90,
-    size: 14,
-    font: headingFont,
-    color: rgb(0.12, 0.29, 0.7),
-  });
-
-  const bytes = await pdf.save();
-  const storagePath = `certificates/${input.userId}/${input.certificateId}.pdf`;
-  const file = bucket.file(storagePath);
-
-  await file.save(Buffer.from(bytes), {
-    resumable: false,
-    metadata: {
-      contentType: 'application/pdf',
-      metadata: {
-        certificateId: input.certificateId,
-        userId: input.userId,
-        courseId: input.courseId,
-      },
-    },
-  });
-
-  const [certificateUrl] = await file.getSignedUrl({
-    action: 'read',
-    expires: '2100-01-01',
-  });
+  void input.userId;
+  void input.userName;
+  void input.courseId;
+  void input.courseTitle;
+  void input.score;
+  void input.completionDate;
+  const certificateUrl = `https://learnpaddi.in/verify-certificate?code=${input.certificateId}`;
 
   return {
     certificateUrl,
-    storagePath,
+    storagePath: null,
   };
 }
 
@@ -775,18 +677,24 @@ export const createExamOrder = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('invalid-argument', 'courseId is required.');
   }
 
-  const [courseSnapshot, enrollmentSnapshot] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    getEnrollmentRef(userId, courseId).get(),
+  const [prismaCourse, prismaEnrollment] = await Promise.all([
+    prisma.course.findUnique({ where: { id: courseId } }),
+    prisma.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } }),
   ]);
 
-  if (!courseSnapshot.exists || !enrollmentSnapshot.exists) {
+  if (!prismaCourse || !prismaEnrollment) {
     throw new functions.https.HttpsError('failed-precondition', 'Course enrollment was not found.');
   }
 
-  const course = courseSnapshot.data() || {};
-  const enrollment = enrollmentSnapshot.data() as EnrollmentRecord;
-  const amount = Math.round((typeof course.price === 'number' ? course.price : 0) * 100);
+  const course = {
+    title: prismaCourse.title,
+    price: prismaCourse.price,
+    description: prismaCourse.description,
+    examAvailable: prismaCourse.examAvailable,
+    lessons: prismaCourse.lessons,
+  };
+  const enrollment = normalizePrismaEnrollment(prismaEnrollment) as EnrollmentRecord;
+  const amount = Math.round(prismaCourse.price * 100);
 
   const completed = enrollment.completed === true
     || enrollment.progress === 100
@@ -812,12 +720,6 @@ export const createExamOrder = functions.https.onCall(async (data, context) => {
     currency: 'INR',
     receipt: `exam_${courseId}_${userId}`,
   });
-
-  await enrollmentSnapshot.ref.set({
-    paymentStatus: 'pending',
-    razorpayOrderId: order.id,
-    updatedAt: new Date().toISOString(),
-  }, { merge: true });
 
   await upsertPrismaEnrollment(userId, courseId, course, {
     progress: enrollment.progress ?? 0,
@@ -857,16 +759,14 @@ export const verifyExamPayment = functions.https.onCall(async (data, context) =>
     throw new functions.https.HttpsError('permission-denied', 'Payment signature verification failed.');
   }
 
-  await getEnrollmentRef(userId, courseId).set({
-    paymentStatus: 'success',
-    razorpayOrderId: orderId,
-    razorpayPaymentId: paymentId,
-    razorpaySignature: signature,
-    updatedAt: new Date().toISOString(),
-  }, { merge: true });
-
-  const courseSnapshot = await db.collection('courses').doc(courseId).get();
-  await upsertPrismaEnrollment(userId, courseId, courseSnapshot.data() || {}, {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  await upsertPrismaEnrollment(userId, courseId, {
+    title: course?.title,
+    price: course?.price,
+    description: course?.description,
+    examAvailable: course?.examAvailable,
+    lessons: course?.lessons,
+  }, {
     paymentStatus: 'success',
     razorpayOrderId: orderId,
     razorpayPaymentId: paymentId,
@@ -951,7 +851,7 @@ export const startCourseExam = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const { course, enrollment, enrollmentRef, exam } = await ensureExamAccess(userId, courseId);
+    const { course, enrollment, exam } = await ensureExamAccess(userId, courseId);
     const now = getNowTimestamp();
     const activeSession = enrollment.examSession;
     const activeExpiresAt = activeSession?.expiresAt;
@@ -978,11 +878,6 @@ export const startCourseExam = functions.https.onRequest(async (req, res) => {
         warningLimit,
         submittedAt: null,
       };
-
-      await enrollmentRef.set({
-        examSession,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
 
       await upsertPrismaEnrollment(userId, courseId, course, {
         progress: enrollment.progress ?? 0,
@@ -1037,30 +932,24 @@ export const submitCourseExamAttempt = functions.https.onCall(async (data, conte
     throw new functions.https.HttpsError('invalid-argument', 'courseId and attemptId are required.');
   }
 
-  const [courseSnapshot, enrollmentSnapshot, prismaCourse, prismaEnrollment, exam] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    getEnrollmentRef(userId, courseId).get(),
+  const [prismaCourse, prismaEnrollment, exam] = await Promise.all([
     prisma.course.findUnique({ where: { id: courseId } }),
     prisma.enrollment.findUnique({ where: { userId_courseId: { userId, courseId } } }),
     getCourseExam(courseId),
   ]);
 
-  if ((!courseSnapshot.exists && !prismaCourse) || (!enrollmentSnapshot.exists && !prismaEnrollment)) {
+  if (!prismaCourse || !prismaEnrollment) {
     throw new functions.https.HttpsError('failed-precondition', 'Exam enrollment could not be found.');
   }
 
-  const course = courseSnapshot.exists
-    ? courseSnapshot.data() || {}
-    : {
-        title: prismaCourse?.title,
-        price: prismaCourse?.price,
-        description: prismaCourse?.description,
-        examAvailable: prismaCourse?.examAvailable,
-        lessons: prismaCourse?.lessons,
-      };
-  const enrollment = enrollmentSnapshot.exists
-    ? enrollmentSnapshot.data() as EnrollmentRecord
-    : normalizePrismaEnrollment(prismaEnrollment) as EnrollmentRecord;
+  const course = {
+    title: prismaCourse.title,
+    price: prismaCourse.price,
+    description: prismaCourse.description,
+    examAvailable: prismaCourse.examAvailable,
+    lessons: prismaCourse.lessons,
+  };
+  const enrollment = normalizePrismaEnrollment(prismaEnrollment) as EnrollmentRecord;
   const session = enrollment.examSession;
 
   if (!session || session.attemptId !== attemptId) {
@@ -1105,33 +994,6 @@ export const submitCourseExamAttempt = functions.https.onCall(async (data, conte
       isCorrect: selectedIndex === question.correctIndex,
     };
   });
-
-  await enrollmentSnapshot.ref.set({
-    examAttempted: true,
-    adminRetakeAllowed: false,
-    score: result.score,
-    passed: result.passed,
-    certificateId,
-    examSession: {
-      ...session,
-      submittedAt,
-    },
-    examResult: {
-      score: result.score,
-      passed: result.passed,
-      correctAnswers: result.correctAnswers,
-      totalQuestions: result.totalQuestions,
-      attemptedAt,
-      violationCount,
-      submissionReason,
-      autoSubmitted,
-      answers: sanitizedAnswers,
-      answerReview,
-      proctoringEvents,
-    },
-    updatedAt: attemptedAt,
-    courseTitle: typeof course.title === 'string' ? course.title : 'Course',
-  }, { merge: true });
 
   const completedSession: ExamSessionRecord = {
     ...session,
@@ -1200,93 +1062,26 @@ export const submitCourseExamAttempt = functions.https.onCall(async (data, conte
     },
   });
 
-  await db.collection('examAttempts').doc(attemptId).set({
-    attemptId,
-    userId,
-    courseId,
-    score: result.score,
-    passed: result.passed,
-    correctAnswers: result.correctAnswers,
-    totalQuestions: result.totalQuestions,
-    answers: sanitizedAnswers,
-    proctoringEvents,
-    violationCount,
-    submissionReason,
-    autoSubmitted,
-    submittedAt: attemptedAt,
-  }, { merge: true });
-
-  return {
-    score: result.score,
-    passed: result.passed,
-    correctAnswers: result.correctAnswers,
-    totalQuestions: result.totalQuestions,
-    attemptedAt,
-    autoSubmitted,
-    certificateId,
-    certificateUrl: typeof enrollment.certificateUrl === 'string' ? enrollment.certificateUrl : null,
-    answerReview,
-  };
-});
-
-export const issueCertificateOnPass = functions.firestore
-  .document('enrollments/{enrollmentId}')
-  .onWrite(async (change) => {
-    const before = change.before.exists ? change.before.data() as EnrollmentRecord : null;
-    const after = change.after.exists ? change.after.data() as EnrollmentRecord : null;
-
-    if (!after?.passed || after.certificateUrl) {
-      return;
-    }
-
-    if (before?.passed === true && before.certificateUrl) {
-      return;
-    }
-
-    const userId = after.userId;
-    const courseId = after.courseId;
-    if (!userId || !courseId) {
-      return;
-    }
-
-    const [userSnapshot, courseSnapshot] = await Promise.all([
-      db.collection('users').doc(userId).get(),
-      db.collection('courses').doc(courseId).get(),
-    ]);
-
-    const user = userSnapshot.data() || {};
-    const course = courseSnapshot.data() || {};
-    const certificateId = after.certificateId || buildCertificateId(userId, courseId);
-    const completionDate = toISOString(after.examResult?.attemptedAt as string | undefined);
+  let certificateUrl = typeof enrollment.certificateUrl === 'string' ? enrollment.certificateUrl : null;
+  if (result.passed && certificateId && !certificateUrl) {
+    const authUser = await admin.auth().getUser(userId).catch(() => null);
+    const completionDate = attemptedAt;
     const artifact = await generateCertificateArtifact({
       certificateId,
       userId,
-      userName: typeof user.name === 'string' ? user.name : 'LearnPaddi Learner',
+      userName: authUser?.displayName || authUser?.email || 'LearnPaddi Learner',
       courseId,
       courseTitle: typeof course.title === 'string' ? course.title : 'Course',
-      score: typeof after.score === 'number' ? after.score : 0,
+      score: result.score,
       completionDate,
     });
 
-    const certificateRecord = {
-      certificateId,
-      userId,
-      courseId,
-      userName: typeof user.name === 'string' ? user.name : 'LearnPaddi Learner',
-      courseTitle: typeof course.title === 'string' ? course.title : 'Course',
-      score: typeof after.score === 'number' ? after.score : 0,
-      completionDate,
-      certificateUrl: artifact.certificateUrl,
-      storagePath: artifact.storagePath,
-      verificationUrl: `https://learnpaddi.in/verify-certificate?code=${certificateId}`,
-      issuedAt: new Date().toISOString(),
-    };
-
+    certificateUrl = artifact.certificateUrl;
     await upsertPrismaEnrollment(userId, courseId, course, {
       certificateId,
-      certificateUrl: artifact.certificateUrl,
+      certificateUrl,
       passed: true,
-      score: typeof after.score === 'number' ? after.score : 0,
+      score: result.score,
       courseTitle: typeof course.title === 'string' ? course.title : 'Course',
     });
 
@@ -1296,50 +1091,38 @@ export const issueCertificateOnPass = functions.firestore
         certificateId,
         userId,
         courseId,
-        userName: certificateRecord.userName,
-        courseTitle: certificateRecord.courseTitle,
-        score: certificateRecord.score,
+        userName: authUser?.displayName || authUser?.email || 'LearnPaddi Learner',
+        courseTitle: typeof course.title === 'string' ? course.title : 'Course',
+        score: result.score,
         completionDate: new Date(completionDate),
-        certificateUrl: artifact.certificateUrl,
+        certificateUrl,
         storagePath: artifact.storagePath,
-        verificationUrl: certificateRecord.verificationUrl,
-        issuedAt: new Date(certificateRecord.issuedAt),
+        verificationUrl: `https://learnpaddi.in/verify-certificate?code=${certificateId}`,
+        issuedAt: new Date(),
       },
       update: {
-        userName: certificateRecord.userName,
-        courseTitle: certificateRecord.courseTitle,
-        score: certificateRecord.score,
+        score: result.score,
         completionDate: new Date(completionDate),
-        certificateUrl: artifact.certificateUrl,
+        certificateUrl,
         storagePath: artifact.storagePath,
-        verificationUrl: certificateRecord.verificationUrl,
-        issuedAt: new Date(certificateRecord.issuedAt),
+        verificationUrl: `https://learnpaddi.in/verify-certificate?code=${certificateId}`,
+        issuedAt: new Date(),
       },
     });
+  }
 
-    await Promise.all([
-      change.after.ref.set({
-        certificateId,
-        certificateUrl: artifact.certificateUrl,
-        certificateIssuedAt: new Date().toISOString(),
-      }, { merge: true }),
-      db.collection('certificates').doc(certificateId).set(certificateRecord, { merge: true }),
-      db.collection('users').doc(userId).set({
-        certificates: admin.firestore.FieldValue.arrayUnion(certificateId),
-        updatedAt: new Date().toISOString(),
-      }, { merge: true }),
-    ]);
-
-    if (typeof user.email === 'string' && user.email) {
-      await sendCertificateEmail({
-        recipient: user.email,
-        userName: certificateRecord.userName,
-        courseTitle: certificateRecord.courseTitle,
-        certificateUrl: artifact.certificateUrl,
-        certificateId,
-      });
-    }
-  });
+  return {
+    score: result.score,
+    passed: result.passed,
+    correctAnswers: result.correctAnswers,
+    totalQuestions: result.totalQuestions,
+    attemptedAt,
+    autoSubmitted,
+    certificateId,
+    certificateUrl,
+    answerReview,
+  };
+});
 
 export const verifyCertificate = functions.https.onCall(async (data) => {
   const certificateId = typeof data?.certificateId === 'string' ? data.certificateId.trim().toUpperCase() : '';
@@ -1367,16 +1150,5 @@ export const verifyCertificate = functions.https.onCall(async (data) => {
     };
   }
 
-  const snapshot = await db.collection('certificates').doc(certificateId).get();
-  if (!snapshot.exists) {
-    return { certificate: null };
-  }
-
-  return {
-    certificate: {
-      id: snapshot.id,
-      valid: true,
-      ...snapshot.data(),
-    },
-  };
+  return { certificate: null };
 });
