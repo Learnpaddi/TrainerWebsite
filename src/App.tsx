@@ -142,13 +142,13 @@ const App = () => {
       <Routes>
         <Route
           path="/"
-          element={<Navigate to="/select-role?mode=login" replace />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
         <Route
           path="/select-role"
           element={(
-            <MainLayout contentContainer={false}>
+            <MainLayout contentContainer={false} showHeader={false}>
               <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
                 <AuthPage />
               </div>
@@ -181,7 +181,7 @@ const App = () => {
         <Route
           path="/trainer/login"
           element={(
-            <MainLayout contentContainer={false}>
+            <MainLayout contentContainer={false} showHeader={false}>
               <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
                 <AuthPage fixedRole="trainer" fixedMode="login" />
               </div>

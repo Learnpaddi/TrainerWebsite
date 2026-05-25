@@ -10,7 +10,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '@/services/firebase/config';
+import { auth, db, functions, firebaseConfig } from '@/services/firebase/config';
 
 export interface ExamCatalogItem {
   id: string;
@@ -26,6 +26,12 @@ interface ExamQuestionCatalogItem {
   prompt?: string;
   options: string[];
   correctAnswer?: string;
+}
+
+interface StoredExamSession {
+  attempt: ActiveExamAttempt;
+  answers: Record<string, number>;
+  violations: number;
 }
 
 export interface ExamQuestionView {
@@ -77,6 +83,15 @@ export interface SubmittedExamResult {
   autoSubmitted: boolean;
   certificateId: string | null;
   certificateUrl: string | null;
+  answerReview?: SubmittedExamAnswerReviewItem[];
+}
+
+export interface SubmittedExamAnswerReviewItem {
+  questionId: string;
+  prompt: string;
+  selectedAnswer: string | null;
+  correctAnswer: string;
+  isCorrect: boolean;
 }
 
 export interface CertificateRecord {
@@ -97,18 +112,6 @@ export interface VerifiedCertificateRecord extends CertificateRecord {
   valid: boolean;
 }
 
-interface StartCourseExamResponse {
-  attemptId: string;
-  courseId: string;
-  courseTitle: string;
-  examTitle: string;
-  durationMinutes: number;
-  passingScore: number;
-  expiresAt: string;
-  warningLimit: number;
-  questions: ExamQuestionView[];
-}
-
 interface SubmitCourseExamResponse {
   score: number;
   passed: boolean;
@@ -118,6 +121,7 @@ interface SubmitCourseExamResponse {
   autoSubmitted: boolean;
   certificateId: string | null;
   certificateUrl: string | null;
+  answerReview?: SubmittedExamAnswerReviewItem[];
 }
 
 interface CreateExamOrderResponse {
@@ -135,13 +139,12 @@ interface VerifyCertificateResponse {
   certificate: VerifiedCertificateRecord | null;
 }
 
-const startCourseExamCallable = httpsCallable<{ courseId: string }, StartCourseExamResponse>(functions, 'startCourseExam');
 const submitCourseExamCallable = httpsCallable<{
   courseId: string;
   attemptId: string;
   answers: Record<string, number>;
   violationCount: number;
-  submissionReason: 'manual' | 'time_limit' | 'violation_limit';
+  submissionReason: 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
   autoSubmitted: boolean;
 }, SubmitCourseExamResponse>(functions, 'submitCourseExamAttempt');
 const createExamOrderCallable = httpsCallable<{ courseId: string }, CreateExamOrderResponse>(functions, 'createExamOrder');
@@ -152,6 +155,7 @@ const verifyExamPaymentCallable = httpsCallable<{
   razorpay_signature: string;
 }, { paymentStatus: 'success' }>(functions, 'verifyExamPayment');
 const verifyCertificateCallable = httpsCallable<{ certificateId: string }, VerifyCertificateResponse>(functions, 'verifyCertificate');
+const ACTIVE_ATTEMPT_STORAGE_KEY = 'learnpaddi-active-exam-attempt';
 
 const mapExamDoc = (courseId: string, raw: Record<string, unknown> | undefined): ExamCatalogItem | null => {
   if (!raw) {
@@ -159,11 +163,22 @@ const mapExamDoc = (courseId: string, raw: Record<string, unknown> | undefined):
   }
 
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
+  const duration = typeof raw.duration === 'number'
+    ? raw.duration
+    : typeof raw.durationMinutes === 'number'
+      ? raw.durationMinutes
+      : 30;
+  const passingScore = typeof raw.passingScore === 'number'
+    ? raw.passingScore
+    : typeof raw.passPercentage === 'number'
+      ? raw.passPercentage
+      : 75;
+
   return {
     id: typeof raw.examId === 'string' ? raw.examId : courseId,
-    courseId,
-    duration: typeof raw.duration === 'number' ? raw.duration : 0,
-    passingScore: typeof raw.passingScore === 'number' ? raw.passingScore : 0,
+    courseId: typeof raw.courseId === 'string' ? raw.courseId : courseId,
+    duration,
+    passingScore,
     questions: questions
       .map((question, index) => {
         if (!question || typeof question !== 'object') {
@@ -308,6 +323,49 @@ export function subscribeToExamDashboard(
   );
 }
 
+export function loadStoredActiveExamAttempt(userId: string): StoredExamSession | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(ACTIVE_ATTEMPT_STORAGE_KEY) || 'null') as (StoredExamSession & { userId?: string }) | null;
+    if (!parsed?.attempt || parsed.userId !== userId) {
+      return null;
+    }
+
+    if (new Date(parsed.attempt.expiresAt).getTime() <= Date.now()) {
+      window.localStorage.removeItem(ACTIVE_ATTEMPT_STORAGE_KEY);
+      return null;
+    }
+
+    return {
+      attempt: parsed.attempt,
+      answers: parsed.answers || {},
+      violations: parsed.violations || 0,
+    };
+  } catch {
+    window.localStorage.removeItem(ACTIVE_ATTEMPT_STORAGE_KEY);
+    return null;
+  }
+}
+
+export function storeActiveExamAttempt(userId: string, session: StoredExamSession | null) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (!session) {
+    window.localStorage.removeItem(ACTIVE_ATTEMPT_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(ACTIVE_ATTEMPT_STORAGE_KEY, JSON.stringify({
+    userId,
+    ...session,
+  }));
+}
+
 export function subscribeToCertificates(
   userId: string,
   onValue: (items: CertificateRecord[]) => void,
@@ -371,8 +429,29 @@ export async function markEnrollmentCompleted(userId: string, courseId: string, 
 }
 
 export async function startCourseExam(courseId: string): Promise<ActiveExamAttempt> {
-  const response = await startCourseExamCallable({ courseId });
-  return response.data;
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to start an exam.');
+  }
+
+  const token = await user.getIdToken();
+  const functionsBaseUrl = `https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net`;
+  const response = await fetch(`${functionsBaseUrl}/startCourseExam`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ courseId }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
+    throw new Error(errorData.error || 'Unable to start exam. Please try again.');
+  }
+
+  const data: ActiveExamAttempt = await response.json();
+  return data;
 }
 
 export async function submitCourseExamAttempt(payload: {
@@ -380,7 +459,7 @@ export async function submitCourseExamAttempt(payload: {
   attemptId: string;
   answers: Record<string, number>;
   violationCount: number;
-  submissionReason: 'manual' | 'time_limit' | 'violation_limit';
+  submissionReason: 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
   autoSubmitted: boolean;
 }): Promise<SubmittedExamResult> {
   const response = await submitCourseExamCallable(payload);

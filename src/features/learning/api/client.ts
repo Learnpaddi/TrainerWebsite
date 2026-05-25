@@ -1,4 +1,4 @@
-import { learningStorage } from '@/features/learning/lib/storage';
+import { getAuth } from 'firebase/auth';
 
 const API_URL = import.meta.env.VITE_LEARNING_API_URL || 'http://localhost:5000/api/v1';
 
@@ -16,11 +16,14 @@ export class ApiClientError extends Error {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const token = learningStorage.getToken();
   const headers = new Headers(options.headers || {});
 
-  if (!options.skipAuth && token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (!options.skipAuth) {
+    const currentUser = getAuth().currentUser;
+    if (currentUser) {
+      const idToken = await currentUser.getIdToken();
+      headers.set('Authorization', `Bearer ${idToken}`);
+    }
   }
 
   if (!headers.has('Content-Type') && options.body) {
@@ -42,3 +45,4 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 export { API_URL };
+

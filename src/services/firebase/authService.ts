@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { Timestamp, doc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from './config';
+import { auth, authReady, db, googleProvider } from './config';
 import { getUserDoc } from './userService';
 
 
@@ -44,6 +44,7 @@ const upsertRoleDoc = async (uid: string, payload: { name: string; email: string
 };
 
 export const register = async (payload: RegisterPayload): Promise<User> => {
+  await authReady;
   const { user } = await createUserWithEmailAndPassword(auth, payload.email, payload.password);
   await updateProfile(user, { displayName: payload.name });
   const docPayload = buildRoleDoc(user.uid, payload);
@@ -53,10 +54,12 @@ export const register = async (payload: RegisterPayload): Promise<User> => {
 };
 
 export const login = async (email: string, password: string): Promise<UserCredential> => {
+  await authReady;
   return signInWithEmailAndPassword(auth, email, password);
 };
 
 export const googleSignIn = async (): Promise<UserCredential> => {
+  await authReady;
   const result = await signInWithPopup(auth, googleProvider);
   const user = result.user;
   const existing = await getUserDoc(user.uid);

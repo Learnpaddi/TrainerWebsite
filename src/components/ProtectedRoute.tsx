@@ -13,12 +13,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAuth = true, 
   requireRole 
 }) => {
-  const { user, loading, roleError, isStudent, isTrainer } = useAuth();
+  const { user, loading, authResolved, roleError, isStudent, isTrainer } = useAuth();
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const authRedirectPath = `/select-role?mode=login&from=${encodeURIComponent(returnTo)}`;
 
-  if (loading) {
+  // Do not redirect while auth state is still being determined
+  if (loading || !authResolved) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
         <div className="rounded-2xl border border-white/70 bg-white/90 px-6 py-5 text-center shadow-xl">
@@ -33,8 +34,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={authRedirectPath} replace state={{ from: returnTo, authMessage: roleError }} />;
   }
 
+  // Show inline error for role/profile issues instead of kicking the user out
   if (roleError) {
-    return <Navigate to={authRedirectPath} replace state={{ from: returnTo, authMessage: roleError }} />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+        <div className="rounded-2xl border border-red-200 bg-white/90 px-6 py-5 text-center shadow-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-500">Account Issue</p>
+          <p className="mt-2 text-base font-bold text-slate-900">{roleError}</p>
+          <a href={authRedirectPath} className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:text-blue-700">
+            Return to login
+          </a>
+        </div>
+      </div>
+    );
   }
 
   if (requireRole === 'trainer' && !isTrainer) {

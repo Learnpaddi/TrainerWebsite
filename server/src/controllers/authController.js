@@ -1,12 +1,11 @@
-import bcrypt from 'bcryptjs';
-import { User } from '../models/User.js';
+import { auth, db } from '../config/firebase.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { signToken } from '../utils/auth.js';
 
 function normalizeAuthPayload(user) {
   return {
-    id: user._id,
+    id: user.uid || user.id,
     name: user.name,
     email: user.email,
     role: user.role,
@@ -20,25 +19,38 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Name, email, and password are required.');
   }
 
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
-  if (existingUser) {
+  const existingDoc = await db.collection('users').where('email', '==', email.toLowerCase()).limit(1).get();
+  if (!existingDoc.empty) {
     throw new ApiError(409, 'A user with this email already exists.');
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({
-    name,
+  const userRecord = await auth.createUser({
     email: email.toLowerCase(),
-    passwordHash,
-    role,
+    password,
+    displayName: name,
   });
 
-  const token = signToken(user);
+  const userPayload = {
+    uid: userRecord.uid,
+    name,
+    email: email.toLowerCase(),
+    role,
+    enrolledCourses: [],
+    certificates: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await db.collection('users').doc(userRecord.uid).set(userPayload);
+  const roleCollection = role === 'trainer' ? 'trainers' : 'students';
+  await db.collection(roleCollection).doc(userRecord.uid).set(userPayload);
+
+  const token = await signToken({ uid: userRecord.uid });
 
   res.status(201).json({
     success: true,
     token,
-    user: normalizeAuthPayload(user),
+    user: normalizeAuthPayload(userPayload),
   });
 });
 
@@ -49,22 +61,19 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Email and password are required.');
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user) {
+  const userSnapshot = await db.collection('users').where('email', '==', email.toLowerCase()).limit(1).get();
+
+  if (userSnapshot.empty) {
     throw new ApiError(401, 'Invalid email or password.');
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordMatches) {
-    throw new ApiError(401, 'Invalid email or password.');
-  }
-
-  const token = signToken(user);
+  const userData = userSnapshot.docs[0].data();
+  const token = await signToken({ uid: userData.uid });
 
   res.json({
     success: true,
     token,
-    user: normalizeAuthPayload(user),
+    user: normalizeAuthPayload(userData),
   });
 });
 
@@ -74,3 +83,4 @@ export const getMe = asyncHandler(async (req, res) => {
     user: normalizeAuthPayload(req.user),
   });
 });
+

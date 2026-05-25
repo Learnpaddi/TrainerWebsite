@@ -634,6 +634,33 @@ export const updateCourse = async (courseId: string, partial: Partial<CourseReco
   }
 
   await updateDoc(doc(db, 'courses', courseId), partial);
+
+  if (partial.exam) {
+    const examId = courseId;
+    const normalizedExam = {
+      examId,
+      courseId,
+      title: partial.exam.title || `${existingCourse.title || 'Course'} Final Exam`,
+      duration: partial.exam.duration || 30,
+      passingScore: partial.exam.passPercentage,
+      passPercentage: partial.exam.passPercentage,
+      createdBy: currentUser.uid,
+      updatedAt: new Date().toISOString(),
+      questions: partial.exam.questions.map((question, index) => {
+        const options = question.options.map((option) => option.trim()).filter(Boolean);
+        return {
+          id: question.id || `question-${index + 1}`,
+          prompt: question.question,
+          question: question.question,
+          options,
+          correctAnswer: question.correctAnswer,
+          correctAnswerIndex: options.findIndex((option) => option === question.correctAnswer),
+        };
+      }),
+    };
+
+    await setDoc(doc(db, 'exams', examId), normalizedExam, { merge: true });
+  }
 };
 
 export const deleteCourse = async (courseId: string) => {
