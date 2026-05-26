@@ -2,7 +2,7 @@ import { Award, Download, Eye, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { subscribeToCertificates, type CertificateRecord } from '@/services/firebase/examService';
+import { subscribeToCertificates, type CertificateRecord } from '@/services/database/examService';
 
 const Certificates = () => {
   const { user } = useAuth();

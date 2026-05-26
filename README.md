@@ -221,7 +221,7 @@ npm run dev
 
 **Notes**
 
-- The feature is isolated so it can coexist with the existing Firebase-based LMS work already in this repository.
+- The feature is isolated so it can coexist with the existing LMS work already in this repository.
 - Backend route protection is JWT-based.
 - Exam start and submission are both validated server-side.
 - If Razorpay is not configured, the mock payment flow keeps development and QA unblocked.

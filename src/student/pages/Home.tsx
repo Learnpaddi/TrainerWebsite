@@ -14,7 +14,7 @@ import {
   LayoutDashboard 
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import type { Progress } from '@/services/firebase/types';
+import type { Progress } from '@/services/database/types';
 
 type EnrollmentProgress = Progress & {
   completedLessons?: number;

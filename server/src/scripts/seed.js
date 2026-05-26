@@ -1,28 +1,62 @@
-import { db } from '../config/firebase.js';
+import { prisma } from '../config/database.js';
 import { demoCourses } from '../utils/seedCourses.js';
+import { seedDemoUsers } from '../utils/seedUsers.js';
 
-async function seed() {
-  const batch = db.batch();
-  let seededCount = 0;
+async function seedCourse(course) {
+  const existingCourse = await prisma.course.findFirst({ where: { title: course.title } });
+  const courseRecord = await prisma.course.upsert({
+    where: { id: existingCourse?.id || '__new_course__' },
+    update: {
+      description: course.description,
+      price: course.price,
+      examAvailable: course.examAvailable,
+      lessons: course.lessons,
+    },
+    create: {
+      title: course.title,
+      description: course.description,
+      price: course.price,
+      examAvailable: course.examAvailable,
+      lessons: course.lessons,
+    },
+  });
 
-  for (const course of demoCourses) {
-    const existing = await db.collection('courses').where('title', '==', course.title).limit(1).get();
-    const ref = existing.empty ? db.collection('courses').doc() : existing.docs[0].ref;
-    batch.set(ref, {
-      ...course,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-    seededCount++;
+  if (course.exam) {
+    await prisma.exam.upsert({
+      where: { courseId: courseRecord.id },
+      update: {
+        title: course.exam.title,
+        duration: course.exam.timeLimitMinutes,
+        passingScore: course.exam.passingScore,
+        questions: course.exam.questions,
+      },
+      create: {
+        courseId: courseRecord.id,
+        title: course.exam.title,
+        duration: course.exam.timeLimitMinutes,
+        passingScore: course.exam.passingScore,
+        questions: course.exam.questions,
+      },
+    });
   }
-
-  await batch.commit();
-  console.log(`Seeded ${seededCount} course(s).`);
-  process.exit(0);
 }
 
-seed().catch((error) => {
-  console.error('Seeding failed:', error);
-  process.exit(1);
-});
+async function seed() {
+  const seededUsers = await seedDemoUsers(prisma);
 
+  for (const course of demoCourses) {
+    await seedCourse(course);
+  }
+
+  console.log(`Seeded ${seededUsers} user(s).`);
+  console.log(`Seeded ${demoCourses.length} course(s).`);
+}
+
+seed()
+  .catch((error) => {
+    console.error('Seeding failed:', error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

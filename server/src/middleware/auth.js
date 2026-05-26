@@ -1,5 +1,6 @@
-import { admin, db } from '../config/firebase.js';
+import { prisma } from '../config/database.js';
 import { ApiError } from '../utils/ApiError.js';
+import { verifyToken } from '../utils/auth.js';
 
 export async function requireAuth(req, _res, next) {
   const authorization = req.headers.authorization || '';
@@ -10,24 +11,25 @@ export async function requireAuth(req, _res, next) {
   }
 
   try {
-    const payload = await admin.auth().verifyIdToken(token);
-    const userDoc = await db.collection('users').doc(payload.uid).get();
+    const payload = verifyToken(token);
+    if (!payload) {
+      return next(new ApiError(401, 'Invalid or expired authentication token.'));
+    }
 
-    if (!userDoc.exists) {
+    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user) {
       return next(new ApiError(401, 'Authenticated user was not found.'));
     }
 
-    const userData = userDoc.data();
     req.user = {
-      uid: payload.uid,
-      id: payload.uid,
-      name: userData.name || '',
-      email: userData.email || '',
-      role: userData.role || 'student',
+      uid: user.id,
+      id: user.id,
+      name: user.name || '',
+      email: user.email,
+      role: user.role || 'student',
     };
     next();
   } catch {
     next(new ApiError(401, 'Invalid or expired authentication token.'));
   }
 }
-

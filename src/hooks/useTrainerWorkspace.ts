@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRole } from '@/hooks/useRole';
-import { getTrainerDashboardData, type CourseRecord } from '@/services/firebase/lmsService';
+import { getTrainerDashboardData, type CourseRecord } from '@/services/database/lmsService';
 
 interface TrainerWorkspaceState {
   loading: boolean;

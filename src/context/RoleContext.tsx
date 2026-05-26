@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { logout } from '@/services/firebase/authService';
+import { logout } from '@/services/database/authService';
 import { clearPendingCourseIntent } from '@/student/lib/courseIntent';
 
 export type AppRole = 'student' | 'trainer' | null;

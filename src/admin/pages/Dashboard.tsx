@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTrainerCourses } from '@/hooks/useTrainerCourses';
 import { useTrainerEnrollments } from '@/hooks/useTrainerEnrollments';
-import { createCourse, updateCourse, deleteCourse, type Course } from '@/services/firebase/courseService';
+import { createCourse, updateCourse, deleteCourse, type Course } from '@/services/database/courseService';
 import { Loader2, Plus, Edit3, Trash2, Users, DollarSign, GraduationCap } from 'lucide-react';
 
 type NewCourse = Pick<Course, 'title' | 'description' | 'price' | 'duration'>;

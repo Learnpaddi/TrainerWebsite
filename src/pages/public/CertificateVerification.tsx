@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ShieldCheck, ShieldX, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '@/shared/layouts/MainLayout';
-import { verifyCertificateById, type VerifiedCertificateRecord } from '@/services/firebase/examService';
+import { verifyCertificateById, type VerifiedCertificateRecord } from '@/services/database/examService';
 
 const formatDate = (value?: string) => {
   if (!value) {

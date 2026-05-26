@@ -4,8 +4,8 @@ import { CheckCircle2, Loader2, PlayCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCourses } from '@/hooks/useCourses';
 import { useEnrollments } from '@/hooks/useEnrollments';
-import { markLessonComplete } from '@/services/firebase/progressService';
-import { getStorageAssetUrl } from '@/services/firebase/storageService';
+import { markLessonComplete } from '@/services/database/progressService';
+import { getStorageAssetUrl } from '@/services/database/storageService';
 
 const CoursePlayer = () => {
   const { id } = useParams<{ id: string }>();

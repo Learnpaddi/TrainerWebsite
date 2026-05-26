@@ -4,7 +4,7 @@ import {
   getMarketplaceCourses,
   getRatingSnapshot,
   type CourseRecord,
-} from '@/services/firebase/lmsService';
+} from '@/services/database/lmsService';
 
 export interface MarketplaceCourse extends CourseRecord {
   averageRating: number;

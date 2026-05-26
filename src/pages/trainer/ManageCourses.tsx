@@ -2,9 +2,9 @@ import { BarChart3, ClipboardList, PencilLine, Plus, Trash2, X } from 'lucide-re
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRole } from '@/hooks/useRole';
-import { deleteCourse, getCourseInsights, getTrainerCourses, type CourseRecord } from '@/services/firebase/lmsService';
-import { updateCourse } from '@/services/firebase/lmsService';
-import type { CourseExamQuestion } from '@/services/firebase/types';
+import { deleteCourse, getCourseInsights, getTrainerCourses, type CourseRecord } from '@/services/database/lmsService';
+import { updateCourse } from '@/services/database/lmsService';
+import type { CourseExamQuestion } from '@/services/database/types';
 
 interface CourseInsightState {
   totalEnrollments: number;

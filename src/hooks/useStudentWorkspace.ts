@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useCourses } from '@/hooks/useCourses';
 import { useEnrollments } from '@/hooks/useEnrollments';
-import { canGenerateCertificateForCourse } from '@/services/firebase/examUtils';
-import type { Course } from '@/services/firebase/courseService';
-import type { Enrollment, Progress } from '@/services/firebase/types';
+import { canGenerateCertificateForCourse } from '@/services/database/examUtils';
+import type { Course } from '@/services/database/courseService';
+import type { Enrollment, Progress } from '@/services/database/types';
 
 interface StudentWorkspaceState {
   loading: boolean;

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { getCourseEnrollments, type Enrollment } from '@/services/firebase/enrollmentService';
-import { getCourseById, getUserCourses } from '@/services/firebase/courseService';
-import type { Course } from '@/services/firebase/courseService';
-import { getUserDoc } from '@/services/firebase/userService';
+import { getCourseEnrollments, type Enrollment } from '@/services/database/enrollmentService';
+import { getCourseById, getUserCourses } from '@/services/database/courseService';
+import type { Course } from '@/services/database/courseService';
+import { getUserDoc } from '@/services/database/userService';
 
 export interface TrainerEnrollment extends Enrollment {
   course: Course | null;

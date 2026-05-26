@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { enrollInCourse, getUserEnrollments } from '../services/firebase/enrollmentService';
-import { getCourseById } from '../services/firebase/courseService';
-import { getCourseProgress } from '../services/firebase/progressService';
-import type { Enrollment, Progress } from '../services/firebase/types';
+import { enrollInCourse, getUserEnrollments } from '../services/database/enrollmentService';
+import { getCourseById } from '../services/database/courseService';
+import { getCourseProgress } from '../services/database/progressService';
+import type { Enrollment, Progress } from '../services/database/types';
 
 export const useEnrollments = () => {
   const { user, loading } = useAuth();

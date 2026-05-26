@@ -1,21 +1,5 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { db } from '@/services/firebase/config';
-import { auth } from '@/services/firebase/config';
-import type { CourseExam } from '@/services/firebase/types';
+import { learningStorage } from '@/features/learning/lib/storage';
+import type { CourseExam } from '@/services/database/types';
 
 export type Role = 'student' | 'trainer';
 
@@ -25,6 +9,7 @@ export interface LessonRecord {
   youtubeUrl: string;
   duration?: string;
   videoUrl?: string;
+  videoPath?: string;
   summary?: string;
 }
 
@@ -237,9 +222,6 @@ const setLocalStore = <T,>(key: string, value: T) => {
 
 const formatCreatedAt = (value: unknown): string => {
   if (typeof value === 'string') return value;
-  if (value && typeof value === 'object' && 'toDate' in value && typeof (value as Timestamp).toDate === 'function') {
-    return (value as Timestamp).toDate().toISOString();
-  }
   return new Date().toISOString();
 };
 
@@ -296,57 +278,16 @@ const sortNewest = <T extends { createdAt?: string; enrolledAt?: string; issuedA
     return right - left;
   });
 
-const normalizeEnrollment = (
-  raw: Partial<EnrollmentRecord>,
-  id: string,
-): EnrollmentRecord => {
-  const progress = Math.max(0, Math.min(Number(raw.progress) || 0, 100));
-  const completed = raw.completed === true || raw.status === 'completed' || progress >= 100;
-
-  return {
-    id,
-    userId: raw.userId || '',
-    courseId: raw.courseId || '',
-    progress,
-    completed,
-    completedLessons: Array.isArray(raw.completedLessons)
-      ? raw.completedLessons.filter((lessonId): lessonId is string => typeof lessonId === 'string')
-      : [],
-    currentLessonId: raw.currentLessonId,
-    completedAt: completed ? raw.completedAt || new Date().toISOString() : undefined,
-    enrolledAt: raw.enrolledAt || new Date().toISOString(),
-    status: completed ? 'completed' : 'active',
-    updatedAt: raw.updatedAt,
-  };
-};
-
 const persistEnrollment = async (enrollment: EnrollmentRecord) => {
   setLocalStore(STORAGE_KEYS.enrollments, [
     enrollment,
     ...getLocalStore<EnrollmentRecord[]>(STORAGE_KEYS.enrollments, []).filter((item) => item.id !== enrollment.id),
   ]);
-
-  try {
-    await setDoc(doc(db, 'enrollments', enrollment.id), enrollment, { merge: true });
-  } catch {
-    // Local fallback is already persisted.
-  }
 };
 
 export const getMarketplaceCourses = async (filters?: MarketplaceFilters): Promise<CourseRecord[]> => {
   const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
-
-  try {
-    const snapshot = await getDocs(query(collection(db, 'courses'), orderBy('createdAt', 'desc')));
-    const firestoreCourses = snapshot.docs.map((courseDoc) => normalizeCourse(courseDoc.data() as Partial<CourseRecord>, courseDoc.id));
-    const merged = sortNewest([...localCourses, ...firestoreCourses, ...fallbackCatalog].filter(
-      (course, index, array) => array.findIndex((item) => item.id === course.id) === index,
-    ));
-
-    return filterCourses(merged, filters);
-  } catch {
-    return filterCourses(sortNewest([...localCourses, ...fallbackCatalog]), filters);
-  }
+  return filterCourses(sortNewest([...localCourses, ...fallbackCatalog]), filters);
 };
 
 const filterCourses = (courses: CourseRecord[], filters?: MarketplaceFilters) => {
@@ -363,29 +304,13 @@ export const getMarketplaceCategories = async () => {
 };
 
 export const getCourseById = async (courseId: string) => {
-  try {
-    const snapshot = await getDoc(doc(db, 'courses', courseId));
-    if (snapshot.exists()) {
-      return normalizeCourse(snapshot.data() as Partial<CourseRecord>, snapshot.id);
-    }
-  } catch {
-    // Fall back to merged catalog below.
-  }
-
   const courses = await getMarketplaceCourses();
   return courses.find((course) => course.id === courseId) || null;
 };
 
 export const getCourseReviews = async (courseId: string): Promise<ReviewRecord[]> => {
   const localReviews = getLocalStore<ReviewRecord[]>(STORAGE_KEYS.reviews, fallbackReviews);
-
-  try {
-    const snapshot = await getDocs(query(collection(db, 'reviews'), where('courseId', '==', courseId), orderBy('createdAt', 'desc')));
-    const firestoreReviews = snapshot.docs.map((reviewDoc) => ({ id: reviewDoc.id, ...(reviewDoc.data() as Omit<ReviewRecord, 'id'>) }));
-    return sortNewest([...localReviews, ...firestoreReviews].filter((review) => review.courseId === courseId));
-  } catch {
-    return sortNewest(localReviews.filter((review) => review.courseId === courseId));
-  }
+  return sortNewest(localReviews.filter((review) => review.courseId === courseId));
 };
 
 export const submitCourseReview = async (input: Omit<ReviewRecord, 'id' | 'createdAt'>) => {
@@ -398,29 +323,12 @@ export const submitCourseReview = async (input: Omit<ReviewRecord, 'id' | 'creat
   const localReviews = getLocalStore<ReviewRecord[]>(STORAGE_KEYS.reviews, fallbackReviews);
   setLocalStore(STORAGE_KEYS.reviews, [review, ...localReviews]);
 
-  try {
-    await addDoc(collection(db, 'reviews'), review);
-  } catch {
-    // Local fallback is already persisted.
-  }
-
   return review;
 };
 
 export const getStudentEnrollments = async (userId: string): Promise<EnrollmentRecord[]> => {
   const localEnrollments = getLocalStore<EnrollmentRecord[]>(STORAGE_KEYS.enrollments, []);
-
-  try {
-    const snapshot = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', userId), orderBy('enrolledAt', 'desc')));
-    const firestoreEnrollments = snapshot.docs.map((enrollmentDoc) =>
-      normalizeEnrollment(enrollmentDoc.data() as Partial<EnrollmentRecord>, enrollmentDoc.id),
-    );
-    return sortNewest([...localEnrollments, ...firestoreEnrollments].filter(
-      (item, index, array) => item.userId === userId && array.findIndex((entry) => entry.id === item.id) === index,
-    ));
-  } catch {
-    return sortNewest(localEnrollments.filter((enrollment) => enrollment.userId === userId));
-  }
+  return sortNewest(localEnrollments.filter((enrollment) => enrollment.userId === userId));
 };
 
 export const enrollInCourse = async (userId: string, courseId: string): Promise<EnrollmentRecord> => {
@@ -542,146 +450,99 @@ export const getTrainerDashboardData = async (trainerId: string) => {
 };
 
 export const createCourse = async (input: CreateCourseInput) => {
-  const currentUser = auth.currentUser;
-  if (!currentUser?.uid) {
+  const currentUser = learningStorage.getUser();
+  if (!currentUser?.id) {
     throw new LmsServiceError('course/unauthenticated', 'You must be signed in as a trainer to create a course.');
   }
 
   const normalizedTitle = input.title.trim();
-  const duplicateSnapshot = await getDocs(
-    query(
-      collection(db, 'courses'),
-      where('trainerId', '==', currentUser.uid),
-      where('title', '==', normalizedTitle),
-    ),
-  );
+  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
+  const duplicateCourse = localCourses.find((course) => (
+    course.trainerId === currentUser.id && course.title.toLowerCase() === normalizedTitle.toLowerCase()
+  ));
 
-  if (!duplicateSnapshot.empty) {
+  if (duplicateCourse) {
     throw new LmsServiceError('course/duplicate-title', 'Course already exists');
   }
 
-  const firestorePayload = {
+  const created = normalizeCourse({
     title: normalizedTitle,
     description: input.description.trim(),
     category: input.category.trim() || 'General',
     thumbnail: input.thumbnail.trim(),
     price: input.price,
-    trainerId: currentUser.uid,
+    trainerId: currentUser.id,
     lessons: input.lessons.map((lesson, index) => ({
       id: `lesson-${Date.now()}-${index}`,
       title: lesson.title.trim(),
       youtubeUrl: lesson.youtubeUrl.trim(),
       videoUrl: lesson.youtubeUrl.trim(),
     })),
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
     level: 'Beginner' as const,
-    trainerName: 'LearnPaddi Trainer',
+    trainerName: currentUser.name || 'LearnPaddi Trainer',
     duration: 'Self-paced',
     studentsCount: 0,
     featured: false,
     modules: [],
-  };
+  }, `course-${Date.now()}`);
 
-  const docRef = await addDoc(collection(db, 'courses'), firestorePayload);
-  const created = normalizeCourse(firestorePayload as unknown as Partial<CourseRecord>, docRef.id);
-
-  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
   setLocalStore(STORAGE_KEYS.courses, [created, ...localCourses]);
 
   return created;
 };
 
 export const getTrainerCourses = async (trainerId: string) => {
-  const ownedCoursesSnapshot = await getDocs(
-    query(collection(db, 'courses'), where('trainerId', '==', trainerId)),
-  );
-
-  const firestoreCourses = ownedCoursesSnapshot.docs.map((courseDoc) =>
-    normalizeCourse(courseDoc.data() as Partial<CourseRecord>, courseDoc.id),
-  );
   const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
-  const filteredLocal = localCourses.filter((course) => course.trainerId === trainerId);
+  const allCourses = [...localCourses, ...fallbackCatalog];
 
-  return sortNewest([...firestoreCourses, ...filteredLocal].filter(
+  return sortNewest(allCourses.filter((course) => course.trainerId === trainerId).filter(
     (course, index, arr) => arr.findIndex((entry) => entry.id === course.id) === index,
   ));
 };
 
 export const updateCourse = async (courseId: string, partial: Partial<CourseRecord>) => {
-  const currentUser = auth.currentUser;
-  if (!currentUser?.uid) {
+  const currentUser = learningStorage.getUser();
+  if (!currentUser?.id) {
     throw new LmsServiceError('course/unauthenticated', 'You must be signed in to update this course.');
   }
 
-  const existingCourseDoc = await getDoc(doc(db, 'courses', courseId));
-  if (!existingCourseDoc.exists()) {
+  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
+  const existingCourse = localCourses.find((course) => course.id === courseId)
+    || fallbackCatalog.find((course) => course.id === courseId);
+  if (!existingCourse) {
     throw new Error('Course not found.');
   }
 
-  const existingCourse = existingCourseDoc.data() as Partial<CourseRecord>;
-  if (existingCourse.trainerId !== currentUser.uid) {
+  if (existingCourse.trainerId !== currentUser.id) {
     throw new LmsServiceError('course/forbidden', 'You can edit only your own courses.');
   }
 
-  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
-  const existing = localCourses.find((course) => course.id === courseId);
-  if (existing) {
-    const updated = normalizeCourse({ ...existing, ...partial }, courseId);
-    setLocalStore(STORAGE_KEYS.courses, [
-      updated,
-      ...localCourses.filter((course) => course.id !== courseId),
-    ]);
-  }
-
-  await updateDoc(doc(db, 'courses', courseId), partial);
-
-  if (partial.exam) {
-    const examId = courseId;
-    const normalizedExam = {
-      examId,
-      courseId,
-      title: partial.exam.title || `${existingCourse.title || 'Course'} Final Exam`,
-      duration: partial.exam.duration || 30,
-      passingScore: partial.exam.passPercentage,
-      passPercentage: partial.exam.passPercentage,
-      createdBy: currentUser.uid,
-      updatedAt: new Date().toISOString(),
-      questions: partial.exam.questions.map((question, index) => {
-        const options = question.options.map((option) => option.trim()).filter(Boolean);
-        return {
-          id: question.id || `question-${index + 1}`,
-          prompt: question.question,
-          question: question.question,
-          options,
-          correctAnswer: question.correctAnswer,
-          correctAnswerIndex: options.findIndex((option) => option === question.correctAnswer),
-        };
-      }),
-    };
-
-    await setDoc(doc(db, 'exams', examId), normalizedExam, { merge: true });
-  }
+  const updated = normalizeCourse({ ...existingCourse, ...partial }, courseId);
+  setLocalStore(STORAGE_KEYS.courses, [
+    updated,
+    ...localCourses.filter((course) => course.id !== courseId),
+  ]);
 };
 
 export const deleteCourse = async (courseId: string) => {
-  const currentUser = auth.currentUser;
-  if (!currentUser?.uid) {
+  const currentUser = learningStorage.getUser();
+  if (!currentUser?.id) {
     throw new LmsServiceError('course/unauthenticated', 'You must be signed in to delete this course.');
   }
 
-  const existingCourseDoc = await getDoc(doc(db, 'courses', courseId));
-  if (!existingCourseDoc.exists()) {
+  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
+  const existingCourse = localCourses.find((course) => course.id === courseId)
+    || fallbackCatalog.find((course) => course.id === courseId);
+  if (!existingCourse) {
     return;
   }
 
-  const existingCourse = existingCourseDoc.data() as Partial<CourseRecord>;
-  if (existingCourse.trainerId !== currentUser.uid) {
+  if (existingCourse.trainerId !== currentUser.id) {
     throw new LmsServiceError('course/forbidden', 'You can delete only your own courses.');
   }
 
-  const localCourses = getLocalStore<CourseRecord[]>(STORAGE_KEYS.courses, []);
   setLocalStore(STORAGE_KEYS.courses, localCourses.filter((course) => course.id !== courseId));
-  await deleteDoc(doc(db, 'courses', courseId));
 };
 
 export const getCertificateRecords = async (userId: string): Promise<CertificateRecord[]> => {
@@ -702,12 +563,6 @@ export const issueCertificate = async (input: Pick<CertificateRecord, 'courseId'
   };
 
   setLocalStore(STORAGE_KEYS.certificates, [certificate, ...certificates]);
-
-  try {
-    await setDoc(doc(db, 'certificates', certificate.id), certificate, { merge: true });
-  } catch {
-    // Local fallback is already persisted.
-  }
 
   return certificate;
 };

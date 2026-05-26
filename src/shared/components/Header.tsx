@@ -1,4 +1,4 @@
-import { logout } from '@/services/firebase/authService';
+import { logout } from '@/services/database/authService';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { Menu, X, GraduationCap, LogOut } from 'lucide-react';

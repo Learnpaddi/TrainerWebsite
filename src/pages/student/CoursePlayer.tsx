@@ -15,8 +15,8 @@ import {
   type EnrollmentRecord,
   type LessonRecord,
   type ReviewRecord,
-} from '@/services/firebase/lmsService';
-import { hasCourseExam } from '@/services/firebase/examUtils';
+} from '@/services/database/lmsService';
+import { hasCourseExam } from '@/services/database/examUtils';
 
 function getYouTubeId(url: string): string {
   if (!url) return '';

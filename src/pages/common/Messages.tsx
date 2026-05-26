@@ -10,7 +10,7 @@ import {
   type ConversationRecord,
   type MessageContact,
   type MessageRecord,
-} from '@/services/firebase/messageService';
+} from '@/services/database/messageService';
 
 const formatMessageTime = (value?: string) => {
   if (!value) {

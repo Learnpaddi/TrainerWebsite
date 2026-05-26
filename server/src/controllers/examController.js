@@ -1,7 +1,40 @@
-import { db } from '../config/firebase.js';
+import { prisma } from '../config/database.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { canAccessExam } from '../services/enrollmentAccess.js';
+
+function getPrimaryExam(course) {
+  return course.exams?.[0] || null;
+}
+
+function toExamAccessCourse(course) {
+  const exam = getPrimaryExam(course);
+
+  return {
+    id: course.id,
+    title: course.title,
+    price: course.price,
+    examAvailable: course.examAvailable,
+    exam: exam
+      ? {
+          title: exam.title,
+          timeLimitMinutes: exam.duration,
+          passingScore: exam.passingScore,
+          questions: Array.isArray(exam.questions) ? exam.questions : [],
+        }
+      : null,
+  };
+}
+
+function toExamAccessEnrollment(enrollment) {
+  return enrollment
+    ? {
+        progress: enrollment.progress ?? 0,
+        completed: enrollment.completed ?? false,
+        paymentStatus: enrollment.paymentStatus || 'not_required',
+      }
+    : null;
+}
 
 function serializeQuestions(questions = []) {
   return questions.map((question, index) => ({
@@ -11,6 +44,18 @@ function serializeQuestions(questions = []) {
   }));
 }
 
+async function getCourseAndEnrollment(userId, courseId) {
+  return Promise.all([
+    prisma.course.findUnique({
+      where: { id: courseId },
+      include: { exams: true },
+    }),
+    prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    }),
+  ]);
+}
+
 export const canAccessCourseExam = asyncHandler(async (req, res) => {
   const { courseId } = req.query;
 
@@ -18,34 +63,15 @@ export const canAccessCourseExam = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'A valid courseId query parameter is required.');
   }
 
-  const [courseDoc, enrollmentDoc] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).get(),
-  ]);
-
-  if (!courseDoc.exists) {
+  const [courseRecord, enrollmentRecord] = await getCourseAndEnrollment(req.user.id, courseId);
+  if (!courseRecord) {
     throw new ApiError(404, 'Course not found.');
   }
 
-  const courseData = courseDoc.data();
-  const course = {
-    id: courseDoc.id,
-    title: courseData.title,
-    price: courseData.price,
-    examAvailable: courseData.examAvailable,
-    exam: courseData.exam || null,
-  };
-
-  const enrollmentData = enrollmentDoc.exists ? enrollmentDoc.data() : null;
-  const enrollment = enrollmentData
-    ? {
-        progress: enrollmentData.progress ?? 0,
-        completed: enrollmentData.completed ?? false,
-        paymentStatus: enrollmentData.paymentStatus || 'not_required',
-      }
-    : null;
-
-  const access = canAccessExam(course, enrollment);
+  const access = canAccessExam(
+    toExamAccessCourse(courseRecord),
+    toExamAccessEnrollment(enrollmentRecord),
+  );
 
   res.json({
     success: true,
@@ -62,35 +88,13 @@ export const startExam = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid course id.');
   }
 
-  const [courseDoc, enrollmentDoc] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).get(),
-  ]);
-
-  if (!courseDoc.exists) {
+  const [courseRecord, enrollmentRecord] = await getCourseAndEnrollment(req.user.id, courseId);
+  if (!courseRecord) {
     throw new ApiError(404, 'Course not found.');
   }
 
-  const courseData = courseDoc.data();
-  const enrollmentData = enrollmentDoc.exists ? enrollmentDoc.data() : null;
-
-  const course = {
-    id: courseDoc.id,
-    title: courseData.title,
-    price: courseData.price,
-    examAvailable: courseData.examAvailable,
-    exam: courseData.exam || null,
-  };
-
-  const enrollment = enrollmentData
-    ? {
-        progress: enrollmentData.progress ?? 0,
-        completed: enrollmentData.completed ?? false,
-        paymentStatus: enrollmentData.paymentStatus || 'not_required',
-      }
-    : null;
-
-  const access = canAccessExam(course, enrollment);
+  const course = toExamAccessCourse(courseRecord);
+  const access = canAccessExam(course, toExamAccessEnrollment(enrollmentRecord));
   if (!access.allowed) {
     throw new ApiError(403, access.message);
   }
@@ -98,12 +102,12 @@ export const startExam = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     exam: {
-      courseId: courseDoc.id,
-      courseTitle: courseData.title,
-      title: courseData.exam.title,
-      timeLimitMinutes: courseData.exam.timeLimitMinutes,
-      passingScore: courseData.exam.passingScore,
-      questions: serializeQuestions(courseData.exam.questions),
+      courseId: courseRecord.id,
+      courseTitle: courseRecord.title,
+      title: course.exam.title,
+      timeLimitMinutes: course.exam.timeLimitMinutes,
+      passingScore: course.exam.passingScore,
+      questions: serializeQuestions(course.exam.questions),
     },
   });
 });
@@ -116,38 +120,18 @@ export const submitExam = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid course id.');
   }
 
-  const [courseDoc, enrollmentDoc] = await Promise.all([
-    db.collection('courses').doc(courseId).get(),
-    db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).get(),
-  ]);
-
-  if (!courseDoc.exists || !enrollmentDoc.exists) {
+  const [courseRecord, enrollmentRecord] = await getCourseAndEnrollment(req.user.id, courseId);
+  if (!courseRecord || !enrollmentRecord) {
     throw new ApiError(404, 'Course enrollment was not found.');
   }
 
-  const courseData = courseDoc.data();
-  const enrollmentData = enrollmentDoc.data();
-
-  const course = {
-    id: courseDoc.id,
-    title: courseData.title,
-    price: courseData.price,
-    examAvailable: courseData.examAvailable,
-    exam: courseData.exam || null,
-  };
-
-  const enrollment = {
-    progress: enrollmentData.progress ?? 0,
-    completed: enrollmentData.completed ?? false,
-    paymentStatus: enrollmentData.paymentStatus || 'not_required',
-  };
-
-  const access = canAccessExam(course, enrollment);
+  const course = toExamAccessCourse(courseRecord);
+  const access = canAccessExam(course, toExamAccessEnrollment(enrollmentRecord));
   if (!access.allowed) {
     throw new ApiError(403, access.message);
   }
 
-  const questions = courseData.exam.questions || [];
+  const questions = course.exam.questions || [];
 
   if (!Array.isArray(answers) || answers.length !== questions.length) {
     throw new ApiError(400, 'Please submit an answer for every exam question.');
@@ -159,8 +143,7 @@ export const submitExam = asyncHandler(async (req, res) => {
 
   const totalQuestions = questions.length;
   const score = Math.round((correctAnswers / totalQuestions) * 100);
-  const passed = score >= courseData.exam.passingScore;
-
+  const passed = score >= course.exam.passingScore;
   const examResult = {
     score,
     correctAnswers,
@@ -169,9 +152,27 @@ export const submitExam = asyncHandler(async (req, res) => {
     attemptedAt: new Date().toISOString(),
   };
 
-  await db.collection('enrollments').doc(`${req.user.uid}_${courseId}`).update({
-    examResult,
-    updatedAt: new Date().toISOString(),
+  await prisma.enrollment.update({
+    where: { id: enrollmentRecord.id },
+    data: {
+      examResult,
+      examAttempted: true,
+      passed,
+      score,
+    },
+  });
+
+  await prisma.examAttempt.create({
+    data: {
+      id: `${req.user.id}_${courseId}_${Date.now()}`,
+      userId: req.user.id,
+      courseId,
+      score,
+      passed,
+      correctAnswers,
+      totalQuestions,
+      answers,
+    },
   });
 
   res.json({
@@ -179,4 +180,3 @@ export const submitExam = asyncHandler(async (req, res) => {
     result: examResult,
   });
 });
-

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { auth } from '@/services/firebase/config';
-import { getUserDoc, type UserDoc } from '@/services/firebase/userService';
+import {
+  getCurrentUser,
+  subscribeAuthChanged,
+  type DatabaseUser,
+} from '@/services/database/authState';
+import { getUserDoc, type UserDoc } from '@/services/database/userService';
 
-export interface AuthUser extends FirebaseUser {
-  role?: 'student' | 'trainer';
+export interface AuthUser extends DatabaseUser {
+  role: 'student' | 'trainer';
   doc?: UserDoc | null;
 }
 
@@ -18,37 +21,29 @@ export const useAuth = () => {
   useEffect(() => {
     let active = true;
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!active) {
-        return;
-      }
+    const loadUser = async () => {
       setLoading(true);
       setError(null);
       setRoleError(null);
 
-      if (!firebaseUser) {
-        setAuthUser(null);
-        setAuthResolved(true);
-        setLoading(false);
-        return;
-      }
-
       try {
-        const userDoc = await getUserDoc(firebaseUser.uid);
-        if (!userDoc) {
-          // Keep Firebase user in state so UI can decide how to handle missing profile
-          setAuthUser({ ...firebaseUser, role: undefined, doc: null });
-          setRoleError('Account profile was not found. Please complete sign up first.');
-          setAuthResolved(true);
-          setLoading(false);
+        const user = getCurrentUser();
+        if (!user) {
+          if (active) {
+            setAuthUser(null);
+          }
           return;
         }
 
-        setAuthUser({ ...firebaseUser, role: userDoc.role, doc: userDoc });
+        const userDoc = await getUserDoc(user.uid);
+        if (!userDoc) {
+          setRoleError('Account profile was not found. Please sign in again.');
+          setAuthUser({ ...user, role: user.role === 'trainer' ? 'trainer' : 'student', doc: null });
+          return;
+        }
+
+        setAuthUser({ ...user, role: userDoc.role, doc: userDoc });
       } catch (authLoadError) {
-        // On Firestore error, keep Firebase user so refresh doesn't force logout
-        setAuthUser({ ...firebaseUser, role: undefined, doc: null });
-        setRoleError('We signed you in, but could not load your user profile from Firestore.');
         setError(authLoadError instanceof Error ? authLoadError : new Error('Unable to load auth state.'));
       } finally {
         if (active) {
@@ -56,6 +51,11 @@ export const useAuth = () => {
           setLoading(false);
         }
       }
+    };
+
+    void loadUser();
+    const unsubscribe = subscribeAuthChanged(() => {
+      void loadUser();
     });
 
     return () => {
@@ -64,13 +64,13 @@ export const useAuth = () => {
     };
   }, []);
 
-  return { 
-    user: authUser, 
-    loading, 
+  return {
+    user: authUser,
+    loading,
     authResolved,
     error,
     roleError,
     isStudent: authUser?.role === 'student',
-    isTrainer: authUser?.role === 'trainer'
+    isTrainer: authUser?.role === 'trainer',
   };
 };

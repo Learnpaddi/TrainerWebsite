@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { getUserCourses, type Course } from '@/services/firebase/courseService';
+import { getUserCourses, type Course } from '@/services/database/courseService';
 
 export const useTrainerCourses = () => {
   const { user, loading: authLoading } = useAuth();

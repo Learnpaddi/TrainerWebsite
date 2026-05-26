@@ -9,8 +9,8 @@ import {
   type CourseLesson,
   type CourseModule,
   updateCourse,
-} from '@/services/firebase/courseService';
-import { uploadCourseAsset } from '@/services/firebase/storageService';
+} from '@/services/database/courseService';
+import { uploadCourseAsset } from '@/services/database/storageService';
 
 interface EditableLesson extends CourseLesson {
   file?: File | null;

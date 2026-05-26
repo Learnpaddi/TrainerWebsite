@@ -3,8 +3,8 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthContainer, { type AuthTab } from '@/auth/components/AuthContainer';
 import type { AuthRole, LoginValues } from '@/auth/components/LoginForm';
 import type { SignupValues } from '@/auth/components/SignupForm';
-import { getAuthErrorMessage, login, logout, register } from '@/services/firebase/authService';
-import { getUserDoc } from '@/services/firebase/userService';
+import { getAuthErrorMessage, login, logout, register } from '@/services/database/authService';
+import { getUserDoc } from '@/services/database/userService';
 import { useAuth } from '@/hooks/useAuth';
 import { consumePendingCourseIntent } from '@/student/lib/courseIntent';
 
@@ -131,7 +131,7 @@ const AuthPage = ({ fixedRole, fixedMode }: AuthPageProps) => {
 
       if (!userDoc) {
         await logout();
-        setErrorMessage('User profile not found in Firestore. Please sign up first.');
+        setErrorMessage('User profile not found. Please sign up first.');
         return;
       }
 

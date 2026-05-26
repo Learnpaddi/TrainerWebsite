@@ -2,7 +2,7 @@ import { ArrowLeft, Download, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { subscribeToCertificates, type CertificateRecord } from '@/services/firebase/examService';
+import { subscribeToCertificates, type CertificateRecord } from '@/services/database/examService';
 
 const formatDate = (value?: string) => {
   if (!value) return new Date().toLocaleDateString();

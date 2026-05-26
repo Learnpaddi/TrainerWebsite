@@ -1,108 +1,104 @@
-import { db } from '../config/firebase.js';
+import { prisma } from '../config/database.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { canAccessExam } from '../services/enrollmentAccess.js';
 
-function serializeCourse(courseDoc) {
-  const data = courseDoc.data ? courseDoc.data() : courseDoc;
-  const id = courseDoc.id || data.id;
+function serializeCourse(course) {
+  const exam = course.exam || course.exams?.[0] || null;
+  const questions = Array.isArray(exam?.questions) ? exam.questions : [];
+
   return {
-    id,
-    title: data.title,
-    description: data.description,
-    price: data.price,
-    examAvailable: data.examAvailable,
-    lessons: data.lessons || [],
-    exam: data.exam
+    id: course.id,
+    title: course.title,
+    description: course.description,
+    price: course.price,
+    examAvailable: course.examAvailable,
+    lessons: Array.isArray(course.lessons) ? course.lessons : [],
+    exam: exam
       ? {
-          title: data.exam.title,
-          timeLimitMinutes: data.exam.timeLimitMinutes,
-          passingScore: data.exam.passingScore,
-          questionCount: (data.exam.questions || []).length,
+          title: exam.title,
+          timeLimitMinutes: exam.timeLimitMinutes || exam.duration,
+          passingScore: exam.passingScore,
+          questionCount: questions.length,
         }
       : null,
   };
 }
 
-function serializeEnrollment(enrollmentDoc) {
-  if (!enrollmentDoc) return null;
-  const data = enrollmentDoc.data ? enrollmentDoc.data() : enrollmentDoc;
-  const id = enrollmentDoc.id || data.id;
+function serializeEnrollment(enrollment) {
+  if (!enrollment) return null;
+
   return {
-    id,
-    progress: data.progress ?? 0,
-    completed: data.completed ?? false,
-    paymentStatus: data.paymentStatus || 'not_required',
-    amountPaid: data.amountPaid ?? 0,
-    enrolledAt: data.enrolledAt || data.createdAt || new Date().toISOString(),
-    completedAt: data.completedAt || null,
-    examResult: data.examResult || null,
+    id: enrollment.id,
+    progress: enrollment.progress ?? 0,
+    completed: enrollment.completed ?? false,
+    paymentStatus: enrollment.paymentStatus || 'not_required',
+    amountPaid: enrollment.amountPaid ?? 0,
+    enrolledAt: enrollment.createdAt?.toISOString?.() || new Date().toISOString(),
+    completedAt: enrollment.completedAt?.toISOString?.() || null,
+    examResult: enrollment.examResult || null,
   };
 }
 
 export const listCourses = asyncHandler(async (_req, res) => {
-  const snapshot = await db.collection('courses').orderBy('createdAt', 'desc').get();
-  const courses = snapshot.docs.map(serializeCourse);
+  const courses = await prisma.course.findMany({
+    include: { exams: true },
+    orderBy: { createdAt: 'desc' },
+  });
 
   res.json({
     success: true,
-    courses,
+    courses: courses.map(serializeCourse),
   });
 });
 
 export const getCourseById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const courseDoc = await db.collection('courses').doc(id).get();
-  if (!courseDoc.exists) {
+  const courseRecord = await prisma.course.findUnique({
+    where: { id },
+    include: { exams: true },
+  });
+  if (!courseRecord) {
     throw new ApiError(404, 'Course not found.');
   }
 
-  const course = serializeCourse(courseDoc);
-
-  let enrollment = null;
-  if (req.user) {
-    const enrollmentId = `${req.user.uid}_${id}`;
-    const enrollmentDoc = await db.collection('enrollments').doc(enrollmentId).get();
-    if (enrollmentDoc.exists) {
-      enrollment = serializeEnrollment(enrollmentDoc);
-    }
-  }
-
-  const access = canAccessExam(course, enrollment);
+  const course = serializeCourse(courseRecord);
+  const enrollmentRecord = req.user
+    ? await prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId: req.user.id, courseId: id } },
+      })
+    : null;
+  const enrollment = serializeEnrollment(enrollmentRecord);
 
   res.json({
     success: true,
     course,
     enrollment,
-    examAccess: access,
+    examAccess: canAccessExam(course, enrollment),
   });
 });
 
 export const listMyEnrollments = asyncHandler(async (req, res) => {
-  const snapshot = await db
-    .collection('enrollments')
-    .where('userId', '==', req.user.uid)
-    .orderBy('createdAt', 'desc')
-    .get();
+  const enrollmentRecords = await prisma.enrollment.findMany({
+    where: { userId: req.user.id },
+    include: { course: { include: { exams: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const enrollments = [];
-  for (const enrollmentDoc of snapshot.docs) {
-    const enrollmentData = enrollmentDoc.data();
-    const courseDoc = await db.collection('courses').doc(enrollmentData.courseId).get();
-    const course = courseDoc.exists ? serializeCourse(courseDoc) : null;
+  const enrollments = enrollmentRecords.map((enrollmentRecord) => {
+    const course = enrollmentRecord.course ? serializeCourse(enrollmentRecord.course) : null;
+    const enrollment = serializeEnrollment(enrollmentRecord);
 
-    const enrollment = serializeEnrollment(enrollmentDoc);
-    enrollments.push({
+    return {
       ...enrollment,
       course,
       examAccess: canAccessExam(course, enrollment),
-    });
-  }
+    };
+  });
 
   res.json({
     success: true,
     enrollments,
   });
 });
-

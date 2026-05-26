@@ -2,31 +2,14 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCourses } from '@/hooks/useCourses';
 import { useEnrollments } from '@/hooks/useEnrollments';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/services/firebase/config';
-import { loadRazorpay, RAZORPAY_CONFIG } from '@/services/razorpay/client';
 import { Loader2, Play, GraduationCap, Users, DollarSign, Clock, Star, BookOpen } from 'lucide-react';
 import { useState } from 'react';
-
-type RazorpayOrderResponse = {
-  order: {
-    amount: number;
-    currency: string;
-    id: string;
-  };
-};
-
-type RazorpayPaymentResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
   const { courses, loading: coursesLoading } = useCourses();
-  const { enrollments, enrollLoading } = useEnrollments();
+  const { enrollments, enrollLoading, enrollInCourse } = useEnrollments();
   const [enrolling, setEnrolling] = useState(false);
 
   const course = courses.find(c => c.id === courseId);
@@ -37,44 +20,9 @@ const CourseDetail = () => {
     if (!user || !course || isEnrolled) return;
     setEnrolling(true);
     try {
-      const createOrder = httpsCallable(functions, 'createRazorpayOrder');
-      const orderResponse = await createOrder({
-        amount: course.price * 100, // paise
-        currency: 'INR',
-        courseId: course.id,
-        userId: user.uid
-      });
-      const orderData = orderResponse.data as RazorpayOrderResponse;
-      
-      const razorpayLoaded = await loadRazorpay();
-      if (!razorpayLoaded || !window.Razorpay) {
-        throw new Error('Razorpay checkout is unavailable.');
-      }
-      
-      const options = {
-        key: RAZORPAY_CONFIG.key_id,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
-        name: RAZORPAY_CONFIG.name,
-        description: course.title,
-        order_id: orderData.order.id,
-        handler: async (response: RazorpayPaymentResponse) => {
-          // Verify payment
-          const verifyPayment = httpsCallable(functions, 'verifyRazorpayPayment');
-          await verifyPayment({
-            orderId: response.razorpay_order_id,
-            paymentId: response.razorpay_payment_id,
-            signature: response.razorpay_signature
-          });
-          // Enrollment created in backend
-        },
-        theme: { color: RAZORPAY_CONFIG.theme.color }
-      };
-      
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      await enrollInCourse(course.id, course.price);
     } catch (error) {
-      console.error('Payment failed:', error);
+      console.error('Enrollment failed:', error);
     } finally {
       setEnrolling(false);
     }
@@ -188,7 +136,7 @@ const CourseDetail = () => {
                 </li>
                 <li className="flex items-start gap-3 p-4 bg-blue-50 rounded-2xl">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                  <span>Deploy scalable Firebase backends</span>
+                  <span>Deploy scalable database-backed applications</span>
                 </li>
               </ul>
             </section>

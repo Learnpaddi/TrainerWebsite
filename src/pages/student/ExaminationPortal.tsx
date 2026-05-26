@@ -21,7 +21,7 @@ import {
   type ActiveExamAttempt,
   type ExamDashboardItem,
   type SubmittedExamResult,
-} from '@/services/firebase/examService';
+} from '@/services/database/examService';
 
 type ExamSubmissionReason = 'manual' | 'time_limit' | 'violation_limit' | 'exam_portal_exit';
 

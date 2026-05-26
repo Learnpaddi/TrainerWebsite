@@ -190,7 +190,24 @@
   </main>
 
   <script type="module">
-    import { register, googleLogin, errorCodeToMessage, showMessage } from './lms/firebase-public.js';
+    const showMessage = (message, type = 'error') => {
+      const el = document.getElementById('message');
+      el.textContent = message;
+      el.className = `mt-6 p-5 rounded-2xl font-semibold text-center shadow-lg border-l-4 transition-all duration-300 ${type === 'success' ? 'bg-green-50 text-green-700 border-green-500' : 'bg-red-50 text-red-700 border-red-500'}`;
+    };
+    const errorCodeToMessage = (code) => code || 'Unable to complete this request.';
+    const register = async (email, password, name) => {
+      const response = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+      if (!response.ok) throw new Error('Registration failed');
+      window.location.href = '/dashboard';
+    };
+    const googleLogin = async () => {
+      throw new Error('Google sign up is not configured.');
+    };
 
     // Form handling
     document.getElementById('register-form').onsubmit = async (e) => {

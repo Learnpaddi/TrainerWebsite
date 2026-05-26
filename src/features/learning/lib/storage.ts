@@ -1,15 +1,12 @@
 import type { LearningUser } from '@/features/learning/types';
 
 const USER_KEY = 'learnpaddi-learning-user';
+const TOKEN_KEY = 'learnpaddi-learning-token';
 
-/**
- * @deprecated The backend now uses Firebase Authentication tokens.
- * JWT token storage is no longer needed. Kept for backward compat with cached user data.
- */
 export const learningStorage = {
-  getToken: () => null,
-  setToken: (_token: string) => {},
-  clearToken: () => {},
+  getToken: () => window.localStorage.getItem(TOKEN_KEY),
+  setToken: (token: string) => window.localStorage.setItem(TOKEN_KEY, token),
+  clearToken: () => window.localStorage.removeItem(TOKEN_KEY),
   getUser: (): LearningUser | null => {
     const raw = window.localStorage.getItem(USER_KEY);
     if (!raw) return null;
@@ -23,7 +20,7 @@ export const learningStorage = {
   setUser: (user: LearningUser) => window.localStorage.setItem(USER_KEY, JSON.stringify(user)),
   clearUser: () => window.localStorage.removeItem(USER_KEY),
   clear: () => {
+    window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
   },
 };
-

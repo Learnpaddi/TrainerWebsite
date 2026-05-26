@@ -1,11 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -13,7 +8,123 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  role         String   @default("student")
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enrollments  Enrollment[]
+  examAttempts ExamAttempt[]
+  certificates Certificate[]
+}
+
+model Course {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  price         Int      @default(0)
+  examAvailable Boolean  @default(true)
+  lessons       Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  enrollments  Enrollment[]
+  exams        Exam[]
+  examAttempts ExamAttempt[]
+  certificates Certificate[]
+}
+
+model Enrollment {
+  id                 String  @id @default(cuid())
+  userId             String
+  courseId           String
+  progress           Int     @default(0)
+  completed          Boolean @default(false)
+  paymentStatus      String  @default("not_required")
+  amountPaid         Int     @default(0)
+  status             String?
+  examAttempted      Boolean @default(false)
+  adminRetakeAllowed Boolean @default(false)
+  passed             Boolean @default(false)
+  score              Int?
+  certificateId      String?
+  certificateUrl     String?
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  razorpaySignature  String?
+  paymentOrderId     String?
+  paymentId          String?
+  paymentSignature   String?
+  examSession        Json?
+  examResult         Json?
+  courseTitle        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Exam {
+  id           String   @id @default(cuid())
+  courseId     String
+  title        String?
+  duration     Int      @default(30)
+  passingScore Int      @default(75)
+  questions    Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId])
+}
+
+model ExamAttempt {
+  id               String   @id
+  userId           String
+  courseId         String
+  score            Int
+  passed           Boolean
+  correctAnswers   Int
+  totalQuestions   Int
+  answers          Json
+  answerReview     Json?
+  proctoringEvents Json?
+  violationCount   Int      @default(0)
+  submissionReason String   @default("manual")
+  autoSubmitted    Boolean  @default(false)
+  submittedAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Certificate {
+  id              String   @id @default(cuid())
+  certificateId   String   @unique
+  userId          String
+  courseId        String
+  userName        String
+  courseTitle     String
+  score           Int
+  completionDate  DateTime
+  certificateUrl  String
+  storagePath     String?
+  verificationUrl String?
+  issuedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }

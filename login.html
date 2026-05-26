@@ -181,7 +181,27 @@
   </main>
 
   <script type="module">
-    import { login, googleLogin, resetPassword, errorCodeToMessage, showMessage } from './lms/firebase-public.js';
+    const showMessage = (message, type = 'error') => {
+      const el = document.getElementById('message');
+      el.textContent = message;
+      el.className = `mt-6 p-5 rounded-2xl font-semibold text-center shadow-lg border-l-4 transition-all duration-300 ${type === 'success' ? 'bg-green-50 text-green-700 border-green-500' : 'bg-red-50 text-red-700 border-red-500'}`;
+    };
+    const errorCodeToMessage = (code) => code || 'Unable to complete this request.';
+    const login = async (email, password) => {
+      const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) throw new Error('Login failed');
+      window.location.href = '/dashboard';
+    };
+    const googleLogin = async () => {
+      throw new Error('Google login is not configured.');
+    };
+    const resetPassword = async () => {
+      throw new Error('Password reset is not configured.');
+    };
 
     // Form handling
     document.getElementById('login-form').onsubmit = async (e) => {

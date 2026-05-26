@@ -2,7 +2,7 @@ import { BookOpen, CheckCircle2, PlayCircle, Plus, Trash2, X } from 'lucide-reac
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRole } from '@/hooks/useRole';
-import { createCourse, getCourseById, updateCourse } from '@/services/firebase/lmsService';
+import { createCourse, getCourseById, updateCourse } from '@/services/database/lmsService';
 
 interface LessonDraft {
   id: string;
